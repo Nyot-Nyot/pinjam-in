@@ -7,6 +7,7 @@ class LoanItem {
     required this.borrower,
     required this.daysRemaining,
     this.note,
+    this.contact,
     required this.color,
   });
 
@@ -15,5 +16,6 @@ class LoanItem {
   final String borrower;
   final int daysRemaining;
   final String? note;
+  final String? contact;
   final Color color;
 }

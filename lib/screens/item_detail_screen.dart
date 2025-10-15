@@ -2,12 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../models/loan_item.dart';
+import 'edit_item_screen.dart';
 
-class ItemDetailScreen extends StatelessWidget {
+class ItemDetailScreen extends StatefulWidget {
   const ItemDetailScreen({Key? key, required this.item}) : super(key: key);
 
   final LoanItem item;
 
+  @override
+  State<ItemDetailScreen> createState() => _ItemDetailScreenState();
+}
+
+class _ItemDetailScreenState extends State<ItemDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -66,7 +72,20 @@ class ItemDetailScreen extends StatelessWidget {
                       icon: Icons.edit,
                       background: const Color(0xFF8530E4),
                       iconColor: Colors.white,
-                      onTap: () {},
+                      onTap: () async {
+                        // open edit screen and await updated item; if returned, pop this detail with updated item
+                        final updated = await Navigator.of(context)
+                            .push<LoanItem?>(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    EditItemScreen(item: widget.item),
+                              ),
+                            );
+                        if (!mounted) return;
+                        if (updated != null) {
+                          Navigator.of(context).pop<LoanItem>(updated);
+                        }
+                      },
                     ),
                   ],
                 ),
@@ -120,7 +139,7 @@ class ItemDetailScreen extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                item.title,
+                                widget.item.title,
                                 style: GoogleFonts.arimo(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w700,
@@ -149,19 +168,19 @@ class ItemDetailScreen extends StatelessWidget {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: item.daysRemaining < 0
+                            color: widget.item.daysRemaining < 0
                                 ? const Color(0x30DC2626)
                                 : const Color(0x1A8530E4),
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
-                            item.daysRemaining < 0
-                                ? 'Terlambat ${item.daysRemaining.abs()}h'
-                                : '${item.daysRemaining} hari',
+                            widget.item.daysRemaining < 0
+                                ? 'Terlambat ${widget.item.daysRemaining.abs()}h'
+                                : '${widget.item.daysRemaining} hari',
                             style: GoogleFonts.arimo(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: item.daysRemaining < 0
+                              color: widget.item.daysRemaining < 0
                                   ? const Color(0xFFDC2626)
                                   : const Color(0xFF8530E4),
                             ),
@@ -179,7 +198,7 @@ class ItemDetailScreen extends StatelessWidget {
                           radius: 20,
                           backgroundColor: Colors.white,
                           child: Text(
-                            (item.borrower
+                            (widget.item.borrower
                                     .split(' ')
                                     .map((s) => s.isNotEmpty ? s[0] : '')
                                     .take(2)
@@ -196,7 +215,7 @@ class ItemDetailScreen extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                item.borrower,
+                                widget.item.borrower,
                                 style: GoogleFonts.arimo(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
@@ -214,7 +233,25 @@ class ItemDetailScreen extends StatelessWidget {
                           ),
                         ),
                         IconButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            // If contact is present, ideally call via intent — placeholder for now
+                            if (widget.item.contact != null &&
+                                widget.item.contact!.isNotEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Hubungi ${widget.item.contact}',
+                                  ),
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Kontak belum disetel'),
+                                ),
+                              );
+                            }
+                          },
                           icon: const Icon(
                             Icons.call,
                             color: Color(0xFF6B5E78),
@@ -243,7 +280,8 @@ class ItemDetailScreen extends StatelessWidget {
                     _statusRow('Status', 'Aktif'),
 
                     // Note
-                    if (item.note != null && item.note!.trim().isNotEmpty) ...[
+                    if (widget.item.note != null &&
+                        widget.item.note!.trim().isNotEmpty) ...[
                       const SizedBox(height: 12),
                       Text(
                         'Catatan',
@@ -261,14 +299,14 @@ class ItemDetailScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.04),
+                              color: Color.fromRGBO(0, 0, 0, 0.04),
                               offset: const Offset(0, 6),
                               blurRadius: 12,
                             ),
                           ],
                         ),
                         child: Text(
-                          item.note!,
+                          widget.item.note!,
                           style: GoogleFonts.arimo(
                             color: const Color(0xFF0C0315),
                           ),

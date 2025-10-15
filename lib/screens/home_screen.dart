@@ -164,6 +164,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
+          // small gap between header/search and the list
+          const SizedBox(height: 12.0),
+
           // List of loan cards
           Expanded(
             child: Padding(
@@ -178,6 +181,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     key: ValueKey(item.id),
                     item: item,
                     onComplete: () => _onItemDismissed(item.id),
+                    onEdit: (updated) {
+                      setState(() {
+                        final i = _active.indexWhere((e) => e.id == updated.id);
+                        if (i != -1) _active[i] = updated;
+                      });
+                    },
                   );
                 },
               ),
@@ -301,11 +310,12 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _LoanCard extends StatefulWidget {
-  const _LoanCard({Key? key, required this.item, this.onComplete})
+  const _LoanCard({Key? key, required this.item, this.onComplete, this.onEdit})
     : super(key: key);
 
   final LoanItem item;
   final VoidCallback? onComplete;
+  final ValueChanged<LoanItem>? onEdit;
 
   @override
   State<_LoanCard> createState() => _LoanCardState();
@@ -408,94 +418,100 @@ class _LoanCardState extends State<_LoanCard>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Main info row
-            GestureDetector(
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => ItemDetailScreen(item: widget.item),
-                ),
-              ),
-              child: Row(
-                children: [
-                  // Left visual
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14.0),
-                    ),
-                    child: const Center(
-                      child: Text('📦', style: TextStyle(fontSize: 24)),
-                    ),
-                  ),
-
-                  const SizedBox(width: 12.0),
-
-                  // Title and borrower (with due-time badge below borrower)
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          widget.item.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.arimo(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF0C0315),
-                          ),
+            // Main info row (with Edit button)
+            Stack(
+              children: [
+                GestureDetector(
+                  onTap: () async {
+                    final updated = await Navigator.of(context).push<LoanItem?>(
+                      MaterialPageRoute(
+                        builder: (_) => ItemDetailScreen(item: widget.item),
+                      ),
+                    );
+                    if (updated != null) widget.onEdit?.call(updated);
+                  },
+                  child: Row(
+                    children: [
+                      // Left visual
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14.0),
                         ),
-                        const SizedBox(height: 6),
-                        Row(
+                        child: const Center(
+                          child: Text('📦', style: TextStyle(fontSize: 24)),
+                        ),
+                      ),
+
+                      const SizedBox(width: 12.0),
+
+                      // Title and borrower (with due-time badge below borrower)
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(
-                              Icons.person,
-                              size: 14,
-                              color: Color(0xFF0C0315),
+                            Text(
+                              widget.item.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.arimo(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF0C0315),
+                              ),
                             ),
-                            const SizedBox(width: 8),
-                            Expanded(
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.person,
+                                  size: 14,
+                                  color: Color(0xFF0C0315),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    widget.item.borrower,
+                                    style: GoogleFonts.arimo(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color.fromRGBO(12, 3, 21, 0.75),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            // due-time tag placed under borrower
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: badgeColor,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                               child: Text(
-                                widget.item.borrower,
+                                statusText,
                                 style: GoogleFonts.arimo(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: const Color(
-                                    0xFF0C0315,
-                                  ).withOpacity(0.75),
+                                  fontSize: 12,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        // due-time tag placed under borrower
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: badgeColor,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            statusText,
-                            style: GoogleFonts.arimo(
-                              fontSize: 12,
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                // removed inline edit button: editing is done from the detail screen
+              ],
             ),
 
             const SizedBox(height: 12.0),
@@ -513,17 +529,18 @@ class _LoanCardState extends State<_LoanCard>
 
                   return Stack(
                     children: [
-                      // Track
+                      // Track (label centered and padded so it's not covered by the knob)
                       Container(
                         height: 52,
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(14.0),
                         ),
-                        alignment: Alignment.centerLeft,
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                        alignment: Alignment.center,
+                        padding: EdgeInsets.symmetric(horizontal: knobWidth),
                         child: Text(
                           'Geser untuk selesaikan',
+                          textAlign: TextAlign.center,
                           style: GoogleFonts.arimo(
                             fontSize: 13,
                             color: const Color(0xFF4A3D5C),
