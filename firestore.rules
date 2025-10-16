@@ -1,0 +1,24 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users collection: each authenticated user may read/write their own doc.
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false; // disallow deletes from client
+    }
+
+    // Loan items collection: authenticated users may read/write items.
+    // This rule is intentionally permissive for dev use; tighten for prod.
+    match /loan_items/{itemId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // Fallback: deny everything else.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

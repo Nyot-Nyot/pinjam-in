@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "loan_items",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isHistory", "order": "ASCENDING" },
+        { "fieldPath": "updatedAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
