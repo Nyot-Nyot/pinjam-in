@@ -426,7 +426,10 @@ class _AddItemScreenState extends State<AddItemScreen> {
       contact: _contactController.text.trim().isEmpty
           ? null
           : _contactController.text.trim(),
-      color: widget.initial?.color ?? LoanItem.randomPastel(),
+      // If this is an edit, keep the existing color. For new items, derive a
+      // deterministic pastel color from the generated id so the color remains
+      // stable across restarts.
+      color: widget.initial?.color ?? LoanItem.pastelForId(widget.initial?.id ?? DateTime.now().millisecondsSinceEpoch.toString()),
     );
 
     Navigator.of(context).pop<LoanItem>(newItem);

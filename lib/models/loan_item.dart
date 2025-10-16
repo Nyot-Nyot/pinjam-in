@@ -37,4 +37,18 @@ class LoanItem {
     final r = rng ?? Random();
     return pastelPalette[r.nextInt(pastelPalette.length)];
   }
+
+  /// Deterministically map an item id to a pastel color from the shared palette.
+  ///
+  /// We use a simple DJB2-style hash over the id's UTF-16 code units so the
+  /// same id always maps to the same palette index across app restarts.
+  static Color pastelForId(String id) {
+    if (id.isEmpty) return pastelPalette[0];
+    var hash = 5381;
+    for (final unit in id.codeUnits) {
+      hash = ((hash << 5) + hash) + unit; // hash * 33 + unit
+    }
+    final idx = hash.abs() % pastelPalette.length;
+    return pastelPalette[idx];
+  }
 }
