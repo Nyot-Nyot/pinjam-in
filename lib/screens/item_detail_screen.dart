@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../models/loan_item.dart';
 
@@ -312,31 +313,31 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              backgroundColor: const Color(0xFFF6EFFD),
-                              side: const BorderSide(
-                                color: Color(0xFFD4C3E6),
-                                width: 1.4,
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFF6EFFD),
+                                  side: const BorderSide(
+                                    color: Color(0xFFD4C3E6),
+                                    width: 1.4,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                ),
+                                onPressed: _onShare,
+                                icon: const Icon(
+                                  Icons.share,
+                                  color: Color(0xFF0C0315),
+                                ),
+                                label: Text(
+                                  'Bagikan',
+                                  style: GoogleFonts.arimo(
+                                    color: const Color(0xFF0C0315),
+                                  ),
+                                ),
                               ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
                             ),
-                            onPressed: () {},
-                            icon: const Icon(
-                              Icons.share,
-                              color: Color(0xFF0C0315),
-                            ),
-                            label: Text(
-                              'Bagikan',
-                              style: GoogleFonts.arimo(
-                                color: const Color(0xFF0C0315),
-                              ),
-                            ),
-                          ),
-                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: ElevatedButton.icon(
@@ -347,7 +348,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                               ),
                               padding: const EdgeInsets.symmetric(vertical: 16),
                             ),
-                            onPressed: () {},
+                            onPressed: _onDeletePressed,
                             icon: const Icon(Icons.delete, color: Colors.white),
                             label: Text(
                               'Hapus',
@@ -365,6 +366,35 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         ],
       ),
     );
+  }
+
+  void _onShare() {
+    final text = StringBuffer()
+      ..writeln(widget.item.title)
+      ..writeln('Peminjam: ${widget.item.borrower}')
+      ..writeln('Sisa hari: ${widget.item.daysRemaining}')
+      ..writeln(widget.item.note ?? '');
+
+    Share.share(text.toString(), subject: 'Detail pinjaman: ${widget.item.title}');
+  }
+
+  Future<void> _onDeletePressed() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus pinjaman'),
+        content: const Text('Apakah Anda yakin ingin menghapus catatan pinjaman ini?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Batal')),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Hapus', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      // Pop with a special payload so the caller can perform deletion/move-to-history.
+      Navigator.of(context).pop<Map<String, dynamic>>({'action': 'delete', 'item': widget.item});
+    }
   }
 
   Widget _infoRow(String label, String value, IconData icon) {

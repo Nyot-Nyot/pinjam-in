@@ -469,12 +469,24 @@ class _LoanCardState extends State<_LoanCard>
                         builder: (_) => ItemDetailScreen(item: widget.item),
                       ),
                     );
+
+                    // If the detail screen requested deletion, treat it like a
+                    // completion / move-to-history action by invoking the
+                    // onComplete callback supplied by the parent.
+                    if (result is Map<String, dynamic> &&
+                        result['action'] == 'delete' &&
+                        result['item'] is LoanItem) {
+                      widget.onComplete?.call();
+                      return;
+                    }
+
                     if (result is Map<String, dynamic> &&
                         result['action'] == 'edit' &&
                         result['item'] is LoanItem) {
                       widget.onRequestEdit?.call(result['item'] as LoanItem);
                       return;
                     }
+
                     if (result is LoanItem) widget.onEdit?.call(result);
                   },
                   child: Row(
