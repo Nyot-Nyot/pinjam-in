@@ -60,7 +60,19 @@ class _HomeScreenState extends State<HomeScreen> {
         final item = _active.removeAt(idx);
         _history.add(item);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${item.title} dipindahkan ke Riwayat')),
+          SnackBar(
+            content: Text('${item.title} dipindahkan ke Riwayat'),
+            action: SnackBarAction(
+              label: 'Undo',
+              onPressed: () {
+                setState(() {
+                  // restore to the top of active list
+                  _history.removeWhere((h) => h.id == item.id);
+                  _active.insert(0, item);
+                });
+              },
+            ),
+          ),
         );
       }
     });

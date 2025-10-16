@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../models/loan_item.dart';
 
@@ -226,22 +227,30 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                           ),
                         ),
                         IconButton(
-                          onPressed: () {
-                            // If contact is present, ideally call via intent — placeholder for now
-                            if (widget.item.contact != null &&
-                                widget.item.contact!.isNotEmpty) {
+                          onPressed: () async {
+                            final contact = widget.item.contact ?? '';
+                            if (contact.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Hubungi ${widget.item.contact}',
-                                  ),
-                                ),
+                                const SnackBar(content: Text('Kontak belum disetel')),
                               );
-                            } else {
+                              return;
+                            }
+
+                            // Try launching tel: URI; if not supported, copy contact to clipboard
+                            final uri = Uri(scheme: 'tel', path: contact);
+                            try {
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(uri);
+                              } else {
+                                await Clipboard.setData(ClipboardData(text: contact));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Nomor disalin ke clipboard')),
+                                );
+                              }
+                            } catch (e) {
+                              await Clipboard.setData(ClipboardData(text: contact));
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Kontak belum disetel'),
-                                ),
+                                const SnackBar(content: Text('Nomor disalin ke clipboard')),
                               );
                             }
                           },
@@ -313,31 +322,31 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                     Row(
                       children: [
                         Expanded(
-                              child: OutlinedButton.icon(
-                                style: OutlinedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFF6EFFD),
-                                  side: const BorderSide(
-                                    color: Color(0xFFD4C3E6),
-                                    width: 1.4,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                ),
-                                onPressed: _onShare,
-                                icon: const Icon(
-                                  Icons.share,
-                                  color: Color(0xFF0C0315),
-                                ),
-                                label: Text(
-                                  'Bagikan',
-                                  style: GoogleFonts.arimo(
-                                    color: const Color(0xFF0C0315),
-                                  ),
-                                ),
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: const Color(0xFFF6EFFD),
+                              side: const BorderSide(
+                                color: Color(0xFFD4C3E6),
+                                width: 1.4,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            onPressed: _onShare,
+                            icon: const Icon(
+                              Icons.share,
+                              color: Color(0xFF0C0315),
+                            ),
+                            label: Text(
+                              'Bagikan',
+                              style: GoogleFonts.arimo(
+                                color: const Color(0xFF0C0315),
                               ),
                             ),
+                          ),
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: ElevatedButton.icon(
@@ -375,7 +384,13 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       ..writeln('Sisa hari: ${widget.item.daysRemaining}')
       ..writeln(widget.item.note ?? '');
 
-    Share.share(text.toString(), subject: 'Detail pinjaman: ${widget.item.title}');
+    // Fallback: copy share text to clipboard and notify the user. This avoids
+    // pulling native share plugins on platforms where they may cause build
+    // issues (e.g., win32 on Linux builds in the current setup).
+    Clipboard.setData(ClipboardData(text: text.toString()));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Rangkuman disalin ke clipboard')),
+    );
   }
 
   Future<void> _onDeletePressed() async {
@@ -383,17 +398,29 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Hapus pinjaman'),
-        content: const Text('Apakah Anda yakin ingin menghapus catatan pinjaman ini?'),
+        content: const Text(
+          'Apakah Anda yakin ingin menghapus catatan pinjaman ini?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Batal')),
-          TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Hapus', style: TextStyle(color: Colors.red))),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+          ),
         ],
       ),
     );
 
+    if (!mounted) return;
+
     if (confirm == true) {
       // Pop with a special payload so the caller can perform deletion/move-to-history.
-      Navigator.of(context).pop<Map<String, dynamic>>({'action': 'delete', 'item': widget.item});
+      Navigator.of(
+        context,
+      ).pop<Map<String, dynamic>>({'action': 'delete', 'item': widget.item});
     }
   }
 
