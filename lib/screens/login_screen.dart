@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:pinjam_in/screens/home_screen.dart';
 import 'package:pinjam_in/screens/register_screen.dart';
 
+import '../services/shared_prefs_persistence.dart';
+
 // Use local SVG assets placed under assets/images/
 const String _logoAsset = 'assets/images/logo-purple.svg';
 const String _enterIconAsset = 'assets/images/enter.svg';
@@ -233,7 +235,10 @@ class LoginScreen extends StatelessWidget {
                                       // Skip authentication for now — navigate directly to Home
                                       Navigator.of(context).pushReplacement(
                                         MaterialPageRoute(
-                                          builder: (_) => const HomeScreen(),
+                                          builder: (_) => HomeScreen(
+                                            persistence:
+                                                SharedPrefsPersistence(),
+                                          ),
                                         ),
                                       );
                                     },

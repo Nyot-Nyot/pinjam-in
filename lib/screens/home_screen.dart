@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/loan_item.dart';
+import '../services/persistence_service.dart';
+import '../services/shared_prefs_persistence.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/local_image.dart';
 import 'add_item_screen.dart';
@@ -13,7 +13,10 @@ import 'history_screen.dart';
 import 'item_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  /// Optional persistence service for easier testing and swapping implementations.
+  const HomeScreen({super.key, this.persistence});
+
+  final PersistenceService? persistence;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -56,44 +59,27 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<LoanItem> _history = [];
 
-  static const String _kActiveKey = 'loan_active_v1';
-  static const String _kHistoryKey = 'loan_history_v1';
+  // persistence keys moved to SharedPrefsPersistence implementation
+
+  PersistenceService get _persistence =>
+      widget.persistence ?? SharedPrefsPersistence();
 
   Future<void> _saveAll() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        _kActiveKey,
-        jsonEncode(_active.map((e) => e.toJson()).toList()),
-      );
-      await prefs.setString(
-        _kHistoryKey,
-        jsonEncode(_history.map((e) => e.toJson()).toList()),
-      );
+      await _persistence.saveAll(active: _active, history: _history);
     } catch (_) {}
   }
 
   Future<void> _loadAll() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final a = prefs.getString(_kActiveKey);
-      final h = prefs.getString(_kHistoryKey);
-      if (a != null) {
-        final list = jsonDecode(a) as List<dynamic>;
-        _active
-          ..clear()
-          ..addAll(
-            list.map((e) => LoanItem.fromJson(e as Map<String, dynamic>)),
-          );
-      }
-      if (h != null) {
-        final list = jsonDecode(h) as List<dynamic>;
-        _history
-          ..clear()
-          ..addAll(
-            list.map((e) => LoanItem.fromJson(e as Map<String, dynamic>)),
-          );
-      }
+      final a = await _persistence.loadActive();
+      final h = await _persistence.loadHistory();
+      _active
+        ..clear()
+        ..addAll(a);
+      _history
+        ..clear()
+        ..addAll(h);
     } catch (_) {}
   }
 

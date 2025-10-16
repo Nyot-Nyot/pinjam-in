@@ -1,0 +1,71 @@
+import 'dart:convert';
+
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../models/loan_item.dart';
+import 'persistence_service.dart';
+
+class SharedPrefsPersistence implements PersistenceService {
+  static const _kActiveKey = 'loan_active_v1';
+  static const _kHistoryKey = 'loan_history_v1';
+
+  @override
+  Future<List<LoanItem>> loadActive() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final a = prefs.getString(_kActiveKey);
+      if (a == null) return [];
+      final list = jsonDecode(a) as List<dynamic>;
+      return list
+          .map((e) => LoanItem.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  @override
+  Future<List<LoanItem>> loadHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final h = prefs.getString(_kHistoryKey);
+      if (h == null) return [];
+      final list = jsonDecode(h) as List<dynamic>;
+      return list
+          .map((e) => LoanItem.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  @override
+  Future<void> saveActive(List<LoanItem> active) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _kActiveKey,
+        jsonEncode(active.map((e) => e.toJson()).toList()),
+      );
+    } catch (_) {}
+  }
+
+  @override
+  Future<void> saveHistory(List<LoanItem> history) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _kHistoryKey,
+        jsonEncode(history.map((e) => e.toJson()).toList()),
+      );
+    } catch (_) {}
+  }
+
+  @override
+  Future<void> saveAll({
+    required List<LoanItem> active,
+    required List<LoanItem> history,
+  }) async {
+    await Future.wait([saveActive(active), saveHistory(history)]);
+  }
+}
