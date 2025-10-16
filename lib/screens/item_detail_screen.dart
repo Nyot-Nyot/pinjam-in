@@ -255,25 +255,25 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: widget.item.daysRemaining == null
+                            color: widget.item.computedDaysRemaining == null
                                 ? const Color(0xFFF6EFFD)
-                                : (widget.item.daysRemaining! < 0
+                                : (widget.item.computedDaysRemaining! < 0
                                       ? const Color(0x30DC2626)
                                       : const Color(0x1A8530E4)),
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
-                            widget.item.daysRemaining == null
+                            widget.item.computedDaysRemaining == null
                                 ? 'Tanpa batas'
-                                : (widget.item.daysRemaining! < 0
-                                      ? 'Terlambat ${widget.item.daysRemaining!.abs()}h'
-                                      : '${widget.item.daysRemaining} hari'),
+                                : (widget.item.computedDaysRemaining! < 0
+                                      ? 'Terlambat ${widget.item.computedDaysRemaining!.abs()}h'
+                                      : '${widget.item.computedDaysRemaining} hari'),
                             style: GoogleFonts.arimo(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: widget.item.daysRemaining == null
+                              color: widget.item.computedDaysRemaining == null
                                   ? const Color(0xFF8530E4)
-                                  : (widget.item.daysRemaining! < 0
+                                  : (widget.item.computedDaysRemaining! < 0
                                         ? const Color(0xFFDC2626)
                                         : const Color(0xFF8530E4)),
                             ),
@@ -504,6 +504,15 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     final text = StringBuffer()
       ..writeln(widget.item.title)
       ..writeln('Peminjam: ${widget.item.borrower}')
+      ..writeln(
+        'Dibuat: ${widget.item.createdAt?.toLocal().toIso8601String() ?? 'Tidak diketahui'}',
+      )
+      ..writeln(
+        'Target kembali: ${widget.item.dueDate?.toLocal().toIso8601String() ?? 'Tidak ditentukan'}',
+      )
+      ..writeln(
+        'Sisa hari: ${widget.item.computedDaysRemaining ?? 'Tanpa batas'}',
+      )
       ..writeln('Sisa hari: ${widget.item.daysRemaining ?? 'Tanpa batas'}')
       ..writeln(widget.item.note ?? '');
 

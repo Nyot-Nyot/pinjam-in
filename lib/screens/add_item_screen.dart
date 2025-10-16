@@ -66,7 +66,10 @@ class _AddItemScreenState extends State<AddItemScreen> {
       _validatePickedImagePath(_pickedImagePath!);
     }
 
-    if (widget.initial?.daysRemaining != null) {
+    // Prefer an absolute dueDate if present; fall back to legacy daysRemaining.
+    if (widget.initial?.dueDate != null) {
+      _selectedDate = widget.initial!.dueDate!.toLocal();
+    } else if (widget.initial?.daysRemaining != null) {
       _selectedDate = DateTime.now().add(
         Duration(days: widget.initial!.daysRemaining!),
       );
@@ -98,7 +101,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
       if (_pickedImagePath != null) {
         _validatePickedImagePath(_pickedImagePath!);
       }
-      if (widget.initial?.daysRemaining != null) {
+      if (widget.initial?.dueDate != null) {
+        _selectedDate = widget.initial!.dueDate!.toLocal();
+      } else if (widget.initial?.daysRemaining != null) {
         _selectedDate = DateTime.now().add(
           Duration(days: widget.initial!.daysRemaining!),
         );
@@ -1371,6 +1376,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                         if (!mounted) return;
                       }
 
+                      final now = DateTime.now().toUtc();
                       final newItem = LoanItem(
                         id:
                             widget.initial?.id ??
@@ -1378,6 +1384,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
                         title: title,
                         borrower: borrower,
                         daysRemaining: daysRemaining,
+                        createdAt: widget.initial?.createdAt ?? now,
+                        dueDate: _selectedDate?.toUtc(),
+                        returnedAt: widget.initial?.returnedAt,
                         note: _noteController.text.trim().isEmpty
                             ? null
                             : _noteController.text.trim(),
@@ -1385,13 +1394,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
                             ? null
                             : _contactController.text.trim(),
                         imagePath: finalImagePath,
-                        color:
-                            widget.initial?.color ??
-                            LoanItem.pastelForId(
-                              widget.initial?.id ??
-                                  DateTime.now().millisecondsSinceEpoch
-                                      .toString(),
-                            ),
+                        imageUrl: widget.initial?.imageUrl,
+                        ownerId: widget.initial?.ownerId,
+                        status: widget.initial?.status ?? 'active',
                       );
 
                       if (onSaveCb != null) {

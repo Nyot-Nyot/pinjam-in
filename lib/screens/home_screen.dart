@@ -39,21 +39,24 @@ class _HomeScreenState extends State<HomeScreen> {
       borrower: 'Andi Wijaya',
       daysRemaining: -9,
       note: 'Kapasitas sudah berkurang, harap kembalikan sebelum 10 Okt',
-      color: LoanItem.pastelForId('1'),
+      createdAt: DateTime.now().toUtc().subtract(const Duration(days: 20)),
+      dueDate: DateTime.now().toUtc().add(const Duration(days: -9)),
     ),
     LoanItem(
       id: '2',
       title: 'Buku: Clean Code',
       borrower: 'Siti Rahmawati',
       daysRemaining: -4,
-      color: LoanItem.pastelForId('2'),
+      createdAt: DateTime.now().toUtc().subtract(const Duration(days: 10)),
+      dueDate: DateTime.now().toUtc().add(const Duration(days: -4)),
     ),
     LoanItem(
       id: '3',
       title: 'Kabel HDMI 2 Meter',
       borrower: 'Budi Santoso',
       daysRemaining: -12,
-      color: LoanItem.pastelForId('3'),
+      createdAt: DateTime.now().toUtc().subtract(const Duration(days: 30)),
+      dueDate: DateTime.now().toUtc().add(const Duration(days: -12)),
     ),
   ];
 
@@ -294,7 +297,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          '${_active.where((e) => e.daysRemaining != null && e.daysRemaining! < 0).length} terlambat',
+                          '${_active.where((e) => e.computedDaysRemaining != null && e.computedDaysRemaining! < 0).length} terlambat',
                           style: GoogleFonts.arimo(
                             fontSize: 12,
                             color: Colors.red.shade600,
@@ -532,21 +535,21 @@ class _LoanCardState extends State<_LoanCard>
     _maxDrag = MediaQuery.of(context).size.width - 24.0 * 2 - 70 - 24;
 
     // Improved, more readable card layout while preserving draggable completion
-    final statusText = widget.item.daysRemaining == null
+    final statusText = widget.item.computedDaysRemaining == null
         ? 'Tanpa batas'
-        : (widget.item.daysRemaining! < 0
-              ? 'Terlambat ${widget.item.daysRemaining!.abs()} hari'
-              : '${widget.item.daysRemaining} hari');
-    final badgeColor = widget.item.daysRemaining == null
+        : (widget.item.computedDaysRemaining! < 0
+              ? 'Terlambat ${widget.item.computedDaysRemaining!.abs()} hari'
+              : '${widget.item.computedDaysRemaining} hari');
+    final badgeColor = widget.item.computedDaysRemaining == null
         ? const Color(0xFF6B5E78)
-        : (widget.item.daysRemaining! < 0
+        : (widget.item.computedDaysRemaining! < 0
               ? Colors.red.shade600
               : const Color(0xFF8530E4));
 
     return Container(
       constraints: const BoxConstraints(minHeight: 140),
       decoration: BoxDecoration(
-        color: widget.item.color,
+        color: LoanItem.pastelForId(widget.item.id),
         borderRadius: BorderRadius.circular(18.0),
         boxShadow: const [
           BoxShadow(

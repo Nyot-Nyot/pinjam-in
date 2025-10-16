@@ -178,7 +178,7 @@ class _HistoryCard extends StatelessWidget {
       child: Container(
         constraints: const BoxConstraints(minHeight: 88),
         decoration: BoxDecoration(
-          color: item.color,
+          color: LoanItem.pastelForId(item.id),
           borderRadius: BorderRadius.circular(20.0),
           boxShadow: const [
             BoxShadow(

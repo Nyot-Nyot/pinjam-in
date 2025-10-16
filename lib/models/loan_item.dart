@@ -7,45 +7,96 @@ class LoanItem {
     required this.id,
     required this.title,
     required this.borrower,
-    required this.daysRemaining,
+    this.daysRemaining,
+    this.createdAt,
+    this.dueDate,
+    this.returnedAt,
     this.note,
     this.contact,
     this.imagePath,
-    required this.color,
+    this.imageUrl,
+    this.ownerId,
+    this.status = 'active',
   });
 
   final String id;
   final String title;
   final String borrower;
+
+  /// legacy: stored snapshot of days remaining at save time. Prefer using
+  /// [dueDate] for up-to-date calculations.
   final int? daysRemaining;
+  final DateTime? createdAt;
+  final DateTime? dueDate;
+  final DateTime? returnedAt;
   final String? note;
   final String? contact;
+
+  /// Local cached image path (device-local). For remote sync prefer `imageUrl`.
   final String? imagePath;
-  final Color color;
+  final String? imageUrl;
+  final String? ownerId;
+
+  /// 'active' | 'returned' | 'deleted'
+  final String status;
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'title': title,
     'borrower': borrower,
     'daysRemaining': daysRemaining,
+    'createdAt': createdAt?.millisecondsSinceEpoch,
+    'dueDate': dueDate?.millisecondsSinceEpoch,
+    'returnedAt': returnedAt?.millisecondsSinceEpoch,
     'note': note,
     'contact': contact,
     'imagePath': imagePath,
-    'color': color.toARGB32(),
+    'imageUrl': imageUrl,
+    'ownerId': ownerId,
+    'status': status,
   };
 
-  static LoanItem fromJson(Map<String, dynamic> j) => LoanItem(
-    id: j['id'] as String,
-    title: j['title'] as String,
-    borrower: j['borrower'] as String,
-    daysRemaining: j['daysRemaining'] == null
+  static LoanItem fromJson(Map<String, dynamic> j) {
+    // Backwards compatible: older stored objects may only have daysRemaining.
+    DateTime? parseMs(Object? o) {
+      if (o == null) return null;
+      if (o is int) return DateTime.fromMillisecondsSinceEpoch(o);
+      if (o is String) {
+        final v = int.tryParse(o);
+        if (v != null) return DateTime.fromMillisecondsSinceEpoch(v);
+        try {
+          return DateTime.parse(o);
+        } catch (_) {
+          return null;
+        }
+      }
+      return null;
+    }
+
+    final due = parseMs(j['dueDate']);
+    final created = parseMs(j['createdAt']);
+    final returned = parseMs(j['returnedAt']);
+
+    final int? legacyDays = j['daysRemaining'] == null
         ? null
-        : (j['daysRemaining'] as num).toInt(),
-    note: j['note'] as String?,
-    contact: j['contact'] as String?,
-    imagePath: j['imagePath'] as String?,
-    color: Color((j['color'] as int?) ?? pastelPalette[0].toARGB32()),
-  );
+        : (j['daysRemaining'] as num).toInt();
+
+    return LoanItem(
+      id: j['id'] as String,
+      title: j['title'] as String,
+      borrower: j['borrower'] as String,
+      daysRemaining: legacyDays,
+      createdAt: created,
+      dueDate: due,
+      returnedAt: returned,
+      note: j['note'] as String?,
+      contact: j['contact'] as String?,
+      imagePath: j['imagePath'] as String?,
+      imageUrl: j['imageUrl'] as String?,
+      ownerId: j['ownerId'] as String?,
+      status: j['status'] as String? ?? 'active',
+    );
+  }
 
   // A small pastel palette used across the app.
   static const List<Color> pastelPalette = [
@@ -76,5 +127,16 @@ class LoanItem {
     }
     final idx = hash.abs() % pastelPalette.length;
     return pastelPalette[idx];
+  }
+
+  /// Compute up-to-date days remaining using [dueDate] when available.
+  /// Falls back to the legacy [daysRemaining] snapshot if [dueDate] is not set.
+  int? get computedDaysRemaining {
+    if (returnedAt != null) return null;
+    if (dueDate != null) {
+      final now = DateTime.now().toUtc();
+      return dueDate!.toUtc().difference(now).inDays;
+    }
+    return daysRemaining;
   }
 }
