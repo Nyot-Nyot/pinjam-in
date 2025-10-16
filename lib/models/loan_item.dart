@@ -10,16 +10,42 @@ class LoanItem {
     required this.daysRemaining,
     this.note,
     this.contact,
+    this.imagePath,
     required this.color,
   });
 
   final String id;
   final String title;
   final String borrower;
-  final int daysRemaining;
+  final int? daysRemaining;
   final String? note;
   final String? contact;
+  final String? imagePath;
   final Color color;
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'borrower': borrower,
+    'daysRemaining': daysRemaining,
+    'note': note,
+    'contact': contact,
+    'imagePath': imagePath,
+    'color': color.toARGB32(),
+  };
+
+  static LoanItem fromJson(Map<String, dynamic> j) => LoanItem(
+    id: j['id'] as String,
+    title: j['title'] as String,
+    borrower: j['borrower'] as String,
+    daysRemaining: j['daysRemaining'] == null
+        ? null
+        : (j['daysRemaining'] as num).toInt(),
+    note: j['note'] as String?,
+    contact: j['contact'] as String?,
+    imagePath: j['imagePath'] as String?,
+    color: Color((j['color'] as int?) ?? pastelPalette[0].toARGB32()),
+  );
 
   // A small pastel palette used across the app.
   static const List<Color> pastelPalette = [

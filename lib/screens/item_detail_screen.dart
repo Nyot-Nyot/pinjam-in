@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/loan_item.dart';
+import '../services/share_service.dart';
+import '../widgets/local_image.dart';
 
 class ItemDetailScreen extends StatefulWidget {
-  const ItemDetailScreen({super.key, required this.item});
+  const ItemDetailScreen({
+    super.key,
+    required this.item,
+    this.isInHistory = false,
+  });
 
   final LoanItem item;
+  final bool isInHistory;
 
   @override
   State<ItemDetailScreen> createState() => _ItemDetailScreenState();
@@ -29,9 +36,16 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                 height: 320,
                 width: double.infinity,
                 color: const Color(0xFFD9CCE8),
-                child: const Center(
-                  child: Text('📦', style: TextStyle(fontSize: 120)),
-                ),
+                child: widget.item.imagePath != null
+                    ? LocalImage(
+                        path: widget.item.imagePath,
+                        width: double.infinity,
+                        height: 320,
+                        fit: BoxFit.cover,
+                      )
+                    : const Center(
+                        child: Text('📦', style: TextStyle(fontSize: 120)),
+                      ),
               ),
             ),
           ),
@@ -162,21 +176,27 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: widget.item.daysRemaining < 0
-                                ? const Color(0x30DC2626)
-                                : const Color(0x1A8530E4),
+                            color: widget.item.daysRemaining == null
+                                ? const Color(0xFFF6EFFD)
+                                : (widget.item.daysRemaining! < 0
+                                      ? const Color(0x30DC2626)
+                                      : const Color(0x1A8530E4)),
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
-                            widget.item.daysRemaining < 0
-                                ? 'Terlambat ${widget.item.daysRemaining.abs()}h'
-                                : '${widget.item.daysRemaining} hari',
+                            widget.item.daysRemaining == null
+                                ? 'Tanpa batas'
+                                : (widget.item.daysRemaining! < 0
+                                      ? 'Terlambat ${widget.item.daysRemaining!.abs()}h'
+                                      : '${widget.item.daysRemaining} hari'),
                             style: GoogleFonts.arimo(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: widget.item.daysRemaining < 0
-                                  ? const Color(0xFFDC2626)
-                                  : const Color(0xFF8530E4),
+                              color: widget.item.daysRemaining == null
+                                  ? const Color(0xFF8530E4)
+                                  : (widget.item.daysRemaining! < 0
+                                        ? const Color(0xFFDC2626)
+                                        : const Color(0xFF8530E4)),
                             ),
                           ),
                         ),
@@ -231,7 +251,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                             final contact = widget.item.contact ?? '';
                             if (contact.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Kontak belum disetel')),
+                                const SnackBar(
+                                  content: Text('Kontak belum disetel'),
+                                ),
                               );
                               return;
                             }
@@ -246,15 +268,23 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                               if (await canLaunchUrl(uri)) {
                                 await launchUrl(uri);
                               } else {
-                                await Clipboard.setData(ClipboardData(text: contact));
+                                await Clipboard.setData(
+                                  ClipboardData(text: contact),
+                                );
                                 messenger.showSnackBar(
-                                  const SnackBar(content: Text('Nomor disalin ke clipboard')),
+                                  const SnackBar(
+                                    content: Text('Nomor disalin ke clipboard'),
+                                  ),
                                 );
                               }
                             } catch (e) {
-                              await Clipboard.setData(ClipboardData(text: contact));
+                              await Clipboard.setData(
+                                ClipboardData(text: contact),
+                              );
                               messenger.showSnackBar(
-                                const SnackBar(content: Text('Nomor disalin ke clipboard')),
+                                const SnackBar(
+                                  content: Text('Nomor disalin ke clipboard'),
+                                ),
                               );
                             }
                           },
@@ -283,7 +313,17 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                       Icons.calendar_today_outlined,
                     ),
                     const SizedBox(height: 8),
-                    _statusRow('Status', 'Aktif'),
+                    // Show 'Selesai' for items coming from History; otherwise keep current active label.
+                    _statusRow(
+                      'Status',
+                      widget.isInHistory ? 'Selesai' : 'Aktif',
+                      bgColor: widget.isInHistory
+                          ? const Color(0x1A16A34A)
+                          : null,
+                      textColor: widget.isInHistory
+                          ? const Color(0xFF16A34A)
+                          : null,
+                    ),
 
                     // Note
                     if (widget.item.note != null &&
@@ -381,20 +421,33 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     );
   }
 
-  void _onShare() {
+  Future<void> _onShare() async {
     final text = StringBuffer()
       ..writeln(widget.item.title)
       ..writeln('Peminjam: ${widget.item.borrower}')
-      ..writeln('Sisa hari: ${widget.item.daysRemaining}')
+      ..writeln('Sisa hari: ${widget.item.daysRemaining ?? 'Tanpa batas'}')
       ..writeln(widget.item.note ?? '');
 
-    // Fallback: copy share text to clipboard and notify the user. This avoids
-    // pulling native share plugins on platforms where they may cause build
-    // issues (e.g., win32 on Linux builds in the current setup).
-    Clipboard.setData(ClipboardData(text: text.toString()));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Rangkuman disalin ke clipboard')),
+    final messenger = ScaffoldMessenger.of(context);
+    final success = await ShareService.share(
+      text.toString(),
+      subject: 'Detail pinjaman: ${widget.item.title}',
     );
+    // Notify user what happened. In the current desktop-first setup the
+    // implementation copies the summary to clipboard, so inform user about
+    // that. If in future a native share is used, you may want to change the
+    // message accordingly.
+    if (success) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Rangkuman disalin ke clipboard')),
+      );
+    } else {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Gagal membagikan; ringkasan disalin ke clipboard'),
+        ),
+      );
+    }
   }
 
   Future<void> _onDeletePressed() async {
@@ -468,7 +521,12 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     );
   }
 
-  Widget _statusRow(String label, String value) {
+  Widget _statusRow(
+    String label,
+    String value, {
+    Color? bgColor,
+    Color? textColor,
+  }) {
     return Row(
       children: [
         Expanded(
@@ -489,13 +547,13 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0x1A8530E4),
+                  color: bgColor ?? const Color(0x1A8530E4),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
                   value,
                   style: GoogleFonts.arimo(
-                    color: const Color(0xFF8530E4),
+                    color: textColor ?? const Color(0xFF8530E4),
                     fontWeight: FontWeight.w700,
                   ),
                 ),

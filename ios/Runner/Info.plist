@@ -47,5 +47,9 @@
 	<true/>
 	<key>NSContactsUsageDescription</key>
 	<string>Aplikasi membutuhkan akses kontak untuk memilih kontak peminjam.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Aplikasi membutuhkan akses kamera untuk mengambil foto barang.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Aplikasi membutuhkan akses galeri untuk menyimpan atau memilih foto.</string>
 </dict>
 </plist>

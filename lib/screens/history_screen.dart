@@ -136,9 +136,11 @@ class _HistoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => ItemDetailScreen(item: item)));
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ItemDetailScreen(item: item, isInHistory: true),
+          ),
+        );
       },
       child: Container(
         constraints: const BoxConstraints(minHeight: 88),

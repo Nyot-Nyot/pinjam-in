@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/loan_item.dart';
 import '../widgets/bottom_nav.dart';
+import '../widgets/local_image.dart';
 import 'add_item_screen.dart';
 import 'history_screen.dart';
 import 'item_detail_screen.dart';
@@ -53,6 +56,47 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<LoanItem> _history = [];
 
+  static const String _kActiveKey = 'loan_active_v1';
+  static const String _kHistoryKey = 'loan_history_v1';
+
+  Future<void> _saveAll() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _kActiveKey,
+        jsonEncode(_active.map((e) => e.toJson()).toList()),
+      );
+      await prefs.setString(
+        _kHistoryKey,
+        jsonEncode(_history.map((e) => e.toJson()).toList()),
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _loadAll() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final a = prefs.getString(_kActiveKey);
+      final h = prefs.getString(_kHistoryKey);
+      if (a != null) {
+        final list = jsonDecode(a) as List<dynamic>;
+        _active
+          ..clear()
+          ..addAll(
+            list.map((e) => LoanItem.fromJson(e as Map<String, dynamic>)),
+          );
+      }
+      if (h != null) {
+        final list = jsonDecode(h) as List<dynamic>;
+        _history
+          ..clear()
+          ..addAll(
+            list.map((e) => LoanItem.fromJson(e as Map<String, dynamic>)),
+          );
+      }
+    } catch (_) {}
+  }
+
   void _onItemDismissed(String id) {
     setState(() {
       final idx = _active.indexWhere((e) => e.id == id);
@@ -70,10 +114,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   _history.removeWhere((h) => h.id == item.id);
                   _active.insert(0, item);
                 });
+                _saveAll();
               },
             ),
           ),
         );
+        _saveAll();
       }
     });
   }
@@ -101,9 +147,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
                 _editingItem = null;
               });
+              _saveAll();
               _pageController.animateToPage(
                 0,
                 duration: const Duration(milliseconds: 350),
+                curve: Curves.ease,
+              );
+            },
+            onCancel: () {
+              // navigate back to Home page when Add is embedded
+              _pageController.animateToPage(
+                0,
+                duration: const Duration(milliseconds: 300),
                 curve: Curves.ease,
               );
             },
@@ -118,6 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _loadAll();
     _pageController = PageController(initialPage: _selectedIndex)
       ..addListener(() {
         final p = _pageController.hasClients && _pageController.page != null
@@ -209,7 +265,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          '${_active.where((e) => e.daysRemaining < 0).length} terlambat',
+                          '${_active.where((e) => e.daysRemaining != null && e.daysRemaining! < 0).length} terlambat',
                           style: GoogleFonts.arimo(
                             fontSize: 12,
                             color: Colors.red.shade600,
@@ -312,6 +368,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         final i = _active.indexWhere((e) => e.id == updated.id);
                         if (i != -1) _active[i] = updated;
                       });
+                      _saveAll();
                     },
                     onRequestEdit: (itemToEdit) {
                       // prepare edit and navigate to Add page
@@ -446,12 +503,16 @@ class _LoanCardState extends State<_LoanCard>
     _maxDrag = MediaQuery.of(context).size.width - 24.0 * 2 - 70 - 24;
 
     // Improved, more readable card layout while preserving draggable completion
-    final statusText = widget.item.daysRemaining < 0
-        ? 'Terlambat ${widget.item.daysRemaining.abs()} hari'
-        : '${widget.item.daysRemaining} hari';
-    final badgeColor = widget.item.daysRemaining < 0
-        ? Colors.red.shade600
-        : const Color(0xFF8530E4);
+    final statusText = widget.item.daysRemaining == null
+        ? 'Tanpa batas'
+        : (widget.item.daysRemaining! < 0
+              ? 'Terlambat ${widget.item.daysRemaining!.abs()} hari'
+              : '${widget.item.daysRemaining} hari');
+    final badgeColor = widget.item.daysRemaining == null
+        ? const Color(0xFF6B5E78)
+        : (widget.item.daysRemaining! < 0
+              ? Colors.red.shade600
+              : const Color(0xFF8530E4));
 
     return Container(
       constraints: const BoxConstraints(minHeight: 140),
@@ -503,7 +564,7 @@ class _LoanCardState extends State<_LoanCard>
                   },
                   child: Row(
                     children: [
-                      // Left visual
+                      // Left visual: show image if available, otherwise placeholder
                       Container(
                         width: 64,
                         height: 64,
@@ -511,8 +572,22 @@ class _LoanCardState extends State<_LoanCard>
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(14.0),
                         ),
-                        child: const Center(
-                          child: Text('📦', style: TextStyle(fontSize: 24)),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(14.0),
+                          child: widget.item.imagePath != null
+                              ? LocalImage(
+                                  path: widget.item.imagePath,
+                                  width: 64,
+                                  height: 64,
+                                  fit: BoxFit.cover,
+                                  borderRadius: BorderRadius.circular(14.0),
+                                )
+                              : const Center(
+                                  child: Text(
+                                    '📦',
+                                    style: TextStyle(fontSize: 24),
+                                  ),
+                                ),
                         ),
                       ),
 
