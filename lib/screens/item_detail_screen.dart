@@ -236,6 +236,10 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                               return;
                             }
 
+                            // Capture messenger before awaiting so we don't use the
+                            // BuildContext across async gaps.
+                            final messenger = ScaffoldMessenger.of(context);
+
                             // Try launching tel: URI; if not supported, copy contact to clipboard
                             final uri = Uri(scheme: 'tel', path: contact);
                             try {
@@ -243,13 +247,13 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                                 await launchUrl(uri);
                               } else {
                                 await Clipboard.setData(ClipboardData(text: contact));
-                                ScaffoldMessenger.of(context).showSnackBar(
+                                messenger.showSnackBar(
                                   const SnackBar(content: Text('Nomor disalin ke clipboard')),
                                 );
                               }
                             } catch (e) {
                               await Clipboard.setData(ClipboardData(text: contact));
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              messenger.showSnackBar(
                                 const SnackBar(content: Text('Nomor disalin ke clipboard')),
                               );
                             }
