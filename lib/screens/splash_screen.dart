@@ -136,7 +136,7 @@ class _SplashScreenState extends State<SplashScreen>
 // Home placeholder removed; splash now navigates to the real LoginScreen.
 
 class _LogoSvg extends StatelessWidget {
-  const _LogoSvg({Key? key}) : super(key: key);
+  const _LogoSvg({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -6,7 +6,7 @@ const String _logoAsset = 'assets/images/logo-purple.svg';
 const String _enterIconAsset = 'assets/images/enter.svg';
 
 class RegisterScreen extends StatelessWidget {
-  const RegisterScreen({Key? key}) : super(key: key);
+  const RegisterScreen({super.key});
 
   static const double _cardWidth = 329.6;
 

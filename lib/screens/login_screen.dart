@@ -9,7 +9,7 @@ const String _logoAsset = 'assets/images/logo-purple.svg';
 const String _enterIconAsset = 'assets/images/enter.svg';
 
 class LoginScreen extends StatelessWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   static const double _cardWidth = 329.6;
 

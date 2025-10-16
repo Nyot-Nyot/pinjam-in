@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../models/loan_item.dart';
+import '../widgets/bottom_nav.dart';
+import 'add_item_screen.dart';
 import 'item_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -13,6 +15,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  late final PageController _pageController;
+  LoanItem? _editingItem;
 
   final List<LoanItem> _active = [
     LoanItem(
@@ -56,17 +60,51 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final pages = <Widget>[
-      _buildHome(),
-      _buildAddPlaceholder(),
-      _buildHistoryPlaceholder(),
-    ];
-
+    // Use PageView so Home <-> Add <-> History feel like adjacent pages
     return Scaffold(
       backgroundColor: const Color(0xFFF6EFFD),
-      body: pages[_selectedIndex],
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: (idx) => setState(() => _selectedIndex = idx),
+        children: [
+          _buildHome(),
+          // embed Add screen so bottom nav stays visible; use onSave to receive items
+          AddItemScreen(
+            initial: _editingItem,
+            onSave: (newItem) {
+              setState(() {
+                if (_editingItem != null) {
+                  final i = _active.indexWhere((e) => e.id == newItem.id);
+                  if (i != -1) _active[i] = newItem;
+                } else {
+                  _active.insert(0, newItem);
+                }
+                _editingItem = null;
+              });
+              _pageController.animateToPage(
+                0,
+                duration: const Duration(milliseconds: 350),
+                curve: Curves.ease,
+              );
+            },
+          ),
+          _buildHistoryPlaceholder(),
+        ],
+      ),
       bottomNavigationBar: _buildBottomNav(),
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: _selectedIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   Widget _buildHome() {
@@ -187,6 +225,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         if (i != -1) _active[i] = updated;
                       });
                     },
+                    onRequestEdit: (itemToEdit) {
+                      // prepare edit and navigate to Add page
+                      setState(() {
+                        _editingItem = itemToEdit;
+                      });
+                      _pageController.animateToPage(
+                        1,
+                        duration: const Duration(milliseconds: 350),
+                        curve: Curves.ease,
+                      );
+                    },
                   );
                 },
               ),
@@ -197,11 +246,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildAddPlaceholder() {
-    return Center(
-      child: Text('Add item — not implemented', style: GoogleFonts.arimo()),
-    );
-  }
+  // Add page is embedded in the PageView; no placeholder function needed.
 
   Widget _buildHistoryPlaceholder() {
     return Center(
@@ -213,109 +258,37 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildBottomNav() {
-    return Container(
-      // full-width drawer-like background (rounded top corners only)
-      decoration: const BoxDecoration(
-        color: Color(0xFFEBE1F7),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
-        boxShadow: [
-          BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.12),
-            offset: Offset(0, -4),
-            blurRadius: 16,
-          ),
-        ],
-      ),
-      // no horizontal margin: container spans full width of screen
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // subtle top divider to separate from content above
-          Container(height: 1, color: Color(0xFFE6DBF8)),
-          Padding(
-            padding: const EdgeInsets.only(
-              top: 16.0,
-              left: 24.0,
-              right: 24.0,
-              bottom: 12.0,
-            ),
-            child: SizedBox(
-              height: 56.0,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  GestureDetector(
-                    onTap: () => setState(() => _selectedIndex = 0),
-                    child: Container(
-                      width: 61.6,
-                      height: 61.6,
-                      decoration: BoxDecoration(
-                        color: _selectedIndex == 0
-                            ? const Color(0xFF8530E4)
-                            : const Color(0xFF8530E4),
-                        borderRadius: BorderRadius.circular(20.0),
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.home,
-                          color: Colors.white,
-                          size: 26.4,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  GestureDetector(
-                    onTap: () => setState(() => _selectedIndex = 1),
-                    child: Container(
-                      width: 56.0,
-                      height: 56.0,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20.0),
-                      ),
-                      child: const Center(
-                        child: Icon(Icons.add, color: Colors.black, size: 24.0),
-                      ),
-                    ),
-                  ),
-
-                  GestureDetector(
-                    onTap: () => setState(() => _selectedIndex = 2),
-                    child: Container(
-                      width: 56.0,
-                      height: 56.0,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20.0),
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.history,
-                          color: Colors.black,
-                          size: 24.0,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+    return BottomNav(
+      selectedIndex: _selectedIndex,
+      onTap: (i) {
+        setState(() => _selectedIndex = i);
+        if (i == 1) {
+          // open add page and reset editing state
+          setState(() => _editingItem = null);
+        }
+        _pageController.animateToPage(
+          i,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.ease,
+        );
+      },
     );
   }
 }
 
 class _LoanCard extends StatefulWidget {
-  const _LoanCard({Key? key, required this.item, this.onComplete, this.onEdit})
-    : super(key: key);
+  const _LoanCard({
+    super.key,
+    required this.item,
+    this.onComplete,
+    this.onEdit,
+    this.onRequestEdit,
+  });
 
   final LoanItem item;
   final VoidCallback? onComplete;
   final ValueChanged<LoanItem>? onEdit;
+  final ValueChanged<LoanItem>? onRequestEdit;
 
   @override
   State<_LoanCard> createState() => _LoanCardState();
@@ -423,12 +396,18 @@ class _LoanCardState extends State<_LoanCard>
               children: [
                 GestureDetector(
                   onTap: () async {
-                    final updated = await Navigator.of(context).push<LoanItem?>(
+                    final result = await Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => ItemDetailScreen(item: widget.item),
                       ),
                     );
-                    if (updated != null) widget.onEdit?.call(updated);
+                    if (result is Map<String, dynamic> &&
+                        result['action'] == 'edit' &&
+                        result['item'] is LoanItem) {
+                      widget.onRequestEdit?.call(result['item'] as LoanItem);
+                      return;
+                    }
+                    if (result is LoanItem) widget.onEdit?.call(result);
                   },
                   child: Row(
                     children: [

@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../models/loan_item.dart';
-import 'edit_item_screen.dart';
 
 class ItemDetailScreen extends StatefulWidget {
-  const ItemDetailScreen({Key? key, required this.item}) : super(key: key);
+  const ItemDetailScreen({super.key, required this.item});
 
   final LoanItem item;
 
@@ -73,18 +72,11 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                       background: const Color(0xFF8530E4),
                       iconColor: Colors.white,
                       onTap: () async {
-                        // open edit screen and await updated item; if returned, pop this detail with updated item
-                        final updated = await Navigator.of(context)
-                            .push<LoanItem?>(
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    EditItemScreen(item: widget.item),
-                              ),
-                            );
-                        if (!mounted) return;
-                        if (updated != null) {
-                          Navigator.of(context).pop<LoanItem>(updated);
-                        }
+                        // Request edit by popping back to the caller with a payload
+                        Navigator.of(context).pop<Map<String, dynamic>>({
+                          'action': 'edit',
+                          'item': widget.item,
+                        });
                       },
                     ),
                   ],
