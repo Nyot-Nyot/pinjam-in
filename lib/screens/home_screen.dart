@@ -163,7 +163,50 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
-          HistoryScreen(history: _history),
+          HistoryScreen(
+            history: _history,
+            onDelete: (item) {
+              // Find index so we can restore to same position on undo
+              final idx = _history.indexWhere((h) => h.id == item.id);
+              if (idx == -1) return;
+              setState(() {
+                _history.removeAt(idx);
+              });
+              _saveAll();
+
+              final messenger = ScaffoldMessenger.of(context);
+              messenger.showSnackBar(
+                SnackBar(
+                  content: Text('"${item.title}" dihapus permanen'),
+                  action: SnackBarAction(
+                    label: 'Undo',
+                    onPressed: () {
+                      setState(() {
+                        _history.insert(idx, item);
+                      });
+                      _saveAll();
+                    },
+                  ),
+                  duration: const Duration(seconds: 5),
+                ),
+              );
+            },
+            onRestore: (item) {
+              setState(() {
+                _history.removeWhere((h) => h.id == item.id);
+                _active.insert(0, item);
+              });
+              _saveAll();
+            },
+            onRequestEdit: (item) {
+              setState(() => _editingItem = item);
+              _pageController.animateToPage(
+                1,
+                duration: const Duration(milliseconds: 350),
+                curve: Curves.ease,
+              );
+            },
+          ),
         ],
       ),
       bottomNavigationBar: _buildBottomNav(),
