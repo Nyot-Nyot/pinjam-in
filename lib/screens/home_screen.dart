@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -19,6 +21,10 @@ class _HomeScreenState extends State<HomeScreen> {
   late final PageController _pageController;
   double _pageValue = 0.0;
   LoanItem? _editingItem;
+  String _query = '';
+  late final TextEditingController _searchController;
+  late final FocusNode _searchFocusNode;
+  Timer? _searchDebounce;
 
   final List<LoanItem> _active = [
     LoanItem(
@@ -27,21 +33,21 @@ class _HomeScreenState extends State<HomeScreen> {
       borrower: 'Andi Wijaya',
       daysRemaining: -9,
       note: 'Kapasitas sudah berkurang, harap kembalikan sebelum 10 Okt',
-      color: const Color(0xFFF4B5C4),
+      color: LoanItem.randomPastel(),
     ),
     LoanItem(
       id: '2',
       title: 'Buku: Clean Code',
       borrower: 'Siti Rahmawati',
       daysRemaining: -4,
-      color: const Color(0xFFB88EF5),
+      color: LoanItem.randomPastel(),
     ),
     LoanItem(
       id: '3',
       title: 'Kabel HDMI 2 Meter',
       borrower: 'Budi Santoso',
       daysRemaining: -12,
-      color: const Color(0xFFF4D9C4),
+      color: LoanItem.randomPastel(),
     ),
   ];
 
@@ -109,15 +115,38 @@ class _HomeScreenState extends State<HomeScreen> {
           _pageValue = p;
         });
       });
+    _searchController = TextEditingController(text: '');
+    _searchFocusNode = FocusNode();
+    _searchController.addListener(() {
+      // update UI (clear button) immediately, but debounce the actual filtering
+      setState(() {});
+      _searchDebounce?.cancel();
+      _searchDebounce = Timer(const Duration(milliseconds: 200), () {
+        if (!mounted) return;
+        setState(() => _query = _searchController.text);
+      });
+    });
   }
 
   @override
   void dispose() {
     _pageController.dispose();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
   }
 
   Widget _buildHome() {
+    final visible = _query.isEmpty
+        ? _active
+        : _active
+              .where(
+                (e) =>
+                    e.title.toLowerCase().contains(_query.toLowerCase()) ||
+                    e.borrower.toLowerCase().contains(_query.toLowerCase()),
+              )
+              .toList();
     return SafeArea(
       child: Column(
         children: [
@@ -139,7 +168,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 8.0),
                 Text(
-                  '${_active.length} barang sedang dipinjamkan',
+                  '${visible.length} barang sedang dipinjamkan',
                   style: GoogleFonts.arimo(
                     fontSize: 14,
                     color: const Color(0xFF4A3D5C),
@@ -192,15 +221,52 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(20.0),
                     ),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const Icon(Icons.search, color: Color(0xFF8530E4)),
+                        const Icon(
+                          Icons.search,
+                          color: Color(0xFF8530E4),
+                          size: 20,
+                        ),
                         const SizedBox(width: 12.0),
                         Expanded(
-                          child: Text(
-                            'Cari barang atau nama peminjam',
-                            style: GoogleFonts.arimo(
-                              fontSize: 15,
-                              color: const Color(0xFF4A3D5C),
+                          child: Semantics(
+                            textField: true,
+                            label: 'Pencarian barang atau nama peminjam',
+                            child: TextField(
+                              controller: _searchController,
+                              focusNode: _searchFocusNode,
+                              textAlignVertical: TextAlignVertical.center,
+                              decoration: InputDecoration(
+                                border: InputBorder.none,
+                                hintText: 'Cari barang atau nama peminjam',
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                suffixIcon: _searchController.text.isEmpty
+                                    ? null
+                                    : IconButton(
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(
+                                          minWidth: 32,
+                                          minHeight: 32,
+                                        ),
+                                        icon: const Icon(
+                                          Icons.clear,
+                                          size: 20,
+                                          color: Color(0xFF6B5E78),
+                                        ),
+                                        onPressed: () {
+                                          _searchController.clear();
+                                          _searchFocusNode.requestFocus();
+                                        },
+                                      ),
+                              ),
+                              style: GoogleFonts.arimo(
+                                fontSize: 15,
+                                color: const Color(0xFF4A3D5C),
+                              ),
                             ),
                           ),
                         ),
@@ -221,10 +287,10 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: ListView.separated(
                 padding: const EdgeInsets.only(top: 8.0, bottom: 24.0),
-                itemCount: _active.length,
+                itemCount: visible.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 12.0),
                 itemBuilder: (context, index) {
-                  final item = _active[index];
+                  final item = visible[index];
                   return _LoanCard(
                     key: ValueKey(item.id),
                     item: item,

@@ -426,7 +426,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
       contact: _contactController.text.trim().isEmpty
           ? null
           : _contactController.text.trim(),
-      color: widget.initial?.color ?? const Color(0xFFF4D9C4),
+      color: widget.initial?.color ?? LoanItem.randomPastel(),
     );
 
     Navigator.of(context).pop<LoanItem>(newItem);
