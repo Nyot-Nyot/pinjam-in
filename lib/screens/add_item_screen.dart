@@ -13,6 +13,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../models/loan_item.dart';
 import 'image_crop_preview.dart';
+import '../services/image_service.dart';
 
 class AddItemScreen extends StatefulWidget {
   /// If [initial] is provided, the screen will be used to edit that item (fields are prefilled).
@@ -1369,6 +1370,18 @@ class _AddItemScreenState extends State<AddItemScreen> {
                       if (_pickedImagePath != null) {
                         finalImagePath = await _processAndSaveImage();
                         if (!mounted) return;
+
+                        // Upload to Firebase Storage and use returned URL (skip if already a URL)
+                        try {
+                          final pathToUpload = finalImagePath;
+                          if (pathToUpload != null && !pathToUpload.startsWith('http')) {
+                            final svc = ImageService();
+                            final url = await svc.uploadImage(pathToUpload, widget.initial?.id ?? DateTime.now().millisecondsSinceEpoch.toString());
+                            finalImagePath = url;
+                          }
+                        } catch (_) {
+                          // If upload fails, keep local path so the item still works offline.
+                        }
                       }
 
                       final newItem = LoanItem(
