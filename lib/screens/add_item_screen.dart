@@ -147,6 +147,18 @@ class _AddItemScreenState extends State<AddItemScreen> {
                   ),
                   child: Column(
                     children: [
+                      // small drag handle
+                      Center(
+                        child: Container(
+                          width: 48,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD9CCE8),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -238,31 +250,48 @@ class _AddItemScreenState extends State<AddItemScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child: GestureDetector(
-                              onTap: () => Navigator.of(ctx).pop(),
-                              child: Container(
-                                height: 48,
-                                decoration: BoxDecoration(color: const Color(0xFFD9CCE8), borderRadius: BorderRadius.circular(20)),
-                                child: Center(child: Text('Batal', style: GoogleFonts.arimo(color: const Color(0xFF0C0315), fontSize: 16).copyWith(decoration: TextDecoration.none))),
+                            child: Semantics(
+                              button: true,
+                              label: 'Batal memilih tanggal',
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(20),
+                                  onTap: () => Navigator.of(ctx).pop(),
+                                  child: Container(
+                                    height: 48,
+                                    decoration: BoxDecoration(color: const Color(0xFFD9CCE8), borderRadius: BorderRadius.circular(20)),
+                                    child: Center(child: Text('Batal', style: GoogleFonts.arimo(color: const Color(0xFF0C0315), fontSize: 16).copyWith(decoration: TextDecoration.none))),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                // clamp day to selected month/year
-                                final maxD = daysInMonth(curYear, curMonth);
-                                final selDay = curDay.clamp(1, maxD);
-                                final picked = DateTime(curYear, curMonth, selDay);
-                                Navigator.of(ctx).pop();
-                                if (!mounted) return;
-                                setState(() => _selectedDate = picked);
-                              },
-                              child: Container(
-                                height: 48,
-                                decoration: BoxDecoration(color: const Color(0xFF8530E4), borderRadius: BorderRadius.circular(20)),
-                                child: Center(child: Text('Konfirmasi', style: GoogleFonts.arimo(color: Colors.white, fontSize: 16).copyWith(decoration: TextDecoration.none))),
+                            child: Semantics(
+                              button: true,
+                              label: 'Konfirmasi tanggal',
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(20),
+                                  onTap: () {
+                                    // clamp day to selected month/year
+                                    final maxD = daysInMonth(curYear, curMonth);
+                                    final selDay = curDay.clamp(1, maxD);
+                                    final picked = DateTime(curYear, curMonth, selDay);
+                                    HapticFeedback.mediumImpact();
+                                    Navigator.of(ctx).pop();
+                                    if (!mounted) return;
+                                    setState(() => _selectedDate = picked);
+                                  },
+                                  child: Container(
+                                    height: 48,
+                                    decoration: BoxDecoration(color: const Color(0xFF8530E4), borderRadius: BorderRadius.circular(20)),
+                                    child: Center(child: Text('Konfirmasi', style: GoogleFonts.arimo(color: Colors.white, fontSize: 16).copyWith(decoration: TextDecoration.none))),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -276,7 +305,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
           });
         },
         transitionBuilder: (ctx, anim, secAnim, child) {
-          final curved = CurvedAnimation(parent: anim, curve: Curves.easeOut);
+          // use a slightly springy curve for a friendlier feel
+          final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutBack);
           return SlideTransition(
             position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(curved),
             child: child,
