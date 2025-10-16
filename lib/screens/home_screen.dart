@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../models/loan_item.dart';
 import '../widgets/bottom_nav.dart';
 import 'add_item_screen.dart';
+import 'history_screen.dart';
 import 'item_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -16,6 +17,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   late final PageController _pageController;
+  double _pageValue = 0.0;
   LoanItem? _editingItem;
 
   final List<LoanItem> _active = [
@@ -88,7 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
-          _buildHistoryPlaceholder(),
+          HistoryScreen(history: _history),
         ],
       ),
       bottomNavigationBar: _buildBottomNav(),
@@ -98,7 +100,15 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(initialPage: _selectedIndex);
+    _pageController = PageController(initialPage: _selectedIndex)
+      ..addListener(() {
+        final p = _pageController.hasClients && _pageController.page != null
+            ? _pageController.page!
+            : _selectedIndex.toDouble();
+        setState(() {
+          _pageValue = p;
+        });
+      });
   }
 
   @override
@@ -248,18 +258,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Add page is embedded in the PageView; no placeholder function needed.
 
-  Widget _buildHistoryPlaceholder() {
-    return Center(
-      child: Text(
-        'Riwayat (history) — not implemented',
-        style: GoogleFonts.arimo(),
-      ),
-    );
-  }
-
   Widget _buildBottomNav() {
     return BottomNav(
       selectedIndex: _selectedIndex,
+      page: _pageValue,
       onTap: (i) {
         setState(() => _selectedIndex = i);
         if (i == 1) {

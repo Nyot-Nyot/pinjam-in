@@ -5,10 +5,13 @@ class BottomNav extends StatelessWidget {
     super.key,
     required this.selectedIndex,
     required this.onTap,
+    this.page,
   });
 
   final int selectedIndex;
   final ValueChanged<int> onTap;
+  // optional continuous page value from PageController.page
+  final double? page;
 
   Alignment _alignForIndex(int i) {
     return i == 0
@@ -18,10 +21,18 @@ class BottomNav extends StatelessWidget {
         : const Alignment(1.0, 0);
   }
 
+  Alignment _alignmentFromPage(double p) {
+    // p is expected between 0..(n-1) where n=3 pages. Map to -1..1
+    final clamped = p.clamp(0.0, 2.0);
+    final t = (clamped / 2.0) * 2.0 - 1.0; // maps 0->-1, 1->0, 2->1
+    return Alignment(t, 0);
+  }
+
   @override
   Widget build(BuildContext context) {
-    const duration = Duration(milliseconds: 360);
-    final align = _alignForIndex(selectedIndex);
+    final align = page != null
+        ? _alignmentFromPage(page!)
+        : _alignForIndex(selectedIndex);
 
     return Container(
       decoration: const BoxDecoration(
@@ -51,10 +62,9 @@ class BottomNav extends StatelessWidget {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  AnimatedAlign(
+                  // Use Align so the position can be controlled continuously when `page` is provided.
+                  Align(
                     alignment: align,
-                    duration: duration,
-                    curve: Curves.easeInOut,
                     child: Container(
                       width: 64,
                       height: 64,
