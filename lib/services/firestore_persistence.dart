@@ -5,48 +5,85 @@ import '../models/loan_item.dart';
 import 'persistence_service.dart';
 
 class FirestorePersistence implements PersistenceService {
-  FirestorePersistence({FirebaseFirestore? firestore}) : _db = firestore ?? FirebaseFirestore.instance;
+  FirestorePersistence({FirebaseFirestore? firestore})
+    : _db = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _db;
   final String _collection = 'loan_items';
 
   Map<String, dynamic> _toDoc(LoanItem item, {required bool isHistory}) => {
-        'id': item.id,
-        'title': item.title,
-        'borrower': item.borrower,
-        'daysRemaining': item.daysRemaining,
-        'note': item.note,
-        'contact': item.contact,
-        'imagePath': item.imagePath,
-  'color': item.color.toARGB32(),
-        'isHistory': isHistory,
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
+    'id': item.id,
+    'title': item.title,
+    'borrower': item.borrower,
+    // Store absolute timestamps. Use provided borrowDate if present, otherwise
+    // request a serverTimestamp so older documents keep a reliable created time.
+    'borrowDate': item.borrowDate != null
+        ? Timestamp.fromDate(item.borrowDate!)
+        : FieldValue.serverTimestamp(),
+    if (item.targetReturnDate != null)
+      'targetReturnDate': Timestamp.fromDate(item.targetReturnDate!),
+    'note': item.note,
+    'contact': item.contact,
+    'imagePath': item.imagePath,
+    'color': item.color.toARGB32(),
+    'isHistory': isHistory,
+    'updatedAt': FieldValue.serverTimestamp(),
+  };
 
   LoanItem _fromDoc(Map<String, dynamic> d) => LoanItem(
-        id: d['id'] as String,
-        title: d['title'] as String,
-        borrower: d['borrower'] as String,
-        daysRemaining: d['daysRemaining'] == null ? null : (d['daysRemaining'] as num).toInt(),
-        note: d['note'] as String?,
-        contact: d['contact'] as String?,
-        imagePath: d['imagePath'] as String?,
-        color: d['color'] == null ? LoanItem.pastelForId(d['id'] as String) : Color((d['color'] as int)),
-      );
+    id: d['id'] as String,
+    title: d['title'] as String,
+    borrower: d['borrower'] as String,
+    borrowDate: (() {
+      try {
+        final b = d['borrowDate'];
+        if (b == null) return null;
+        if (b is Timestamp) return b.toDate();
+        if (b is String) return DateTime.parse(b);
+      } catch (_) {}
+      return null;
+    })(),
+    targetReturnDate: (() {
+      try {
+        final t = d['targetReturnDate'];
+        if (t == null) return null;
+        if (t is Timestamp) return t.toDate();
+        if (t is String) return DateTime.parse(t);
+      } catch (_) {}
+      return null;
+    })(),
+    note: d['note'] as String?,
+    contact: d['contact'] as String?,
+    imagePath: d['imagePath'] as String?,
+    color: d['color'] == null
+        ? LoanItem.pastelForId(d['id'] as String)
+        : Color((d['color'] as int)),
+  );
 
   @override
   Future<List<LoanItem>> loadActive() async {
-    final snap = await _db.collection(_collection).where('isHistory', isEqualTo: false).orderBy('updatedAt', descending: true).get();
+    final snap = await _db
+        .collection(_collection)
+        .where('isHistory', isEqualTo: false)
+        .orderBy('updatedAt', descending: true)
+        .get();
     return snap.docs.map((d) => _fromDoc(d.data())).toList();
   }
 
   @override
   Future<List<LoanItem>> loadHistory() async {
-    final snap = await _db.collection(_collection).where('isHistory', isEqualTo: true).orderBy('updatedAt', descending: true).get();
+    final snap = await _db
+        .collection(_collection)
+        .where('isHistory', isEqualTo: true)
+        .orderBy('updatedAt', descending: true)
+        .get();
     return snap.docs.map((d) => _fromDoc(d.data())).toList();
   }
 
-  Future<void> _writeBatch(List<LoanItem> items, {required bool isHistory}) async {
+  Future<void> _writeBatch(
+    List<LoanItem> items, {
+    required bool isHistory,
+  }) async {
     final batch = _db.batch();
     for (final item in items) {
       final ref = _db.collection(_collection).doc(item.id);
@@ -67,7 +104,10 @@ class FirestorePersistence implements PersistenceService {
   }
 
   @override
-  Future<void> saveAll({required List<LoanItem> active, required List<LoanItem> history}) async {
+  Future<void> saveAll({
+    required List<LoanItem> active,
+    required List<LoanItem> history,
+  }) async {
     // Use a batched approach: overwrite all provided docs. Note: doesn't delete removed docs.
     final batch = _db.batch();
     for (final item in active) {

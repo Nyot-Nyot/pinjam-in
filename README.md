@@ -43,3 +43,39 @@ Catatan: beberapa plugin/platform native mungkin memerlukan konfigurasi tambahan
 -   Ada kontrol geser kustom pada tampilan Home untuk menandai item selesai; perubahan besar pada widget tersebut berisiko menimbulkan masalah layout jika diperbaiki tidak hati-hati.
 
 ---
+
+## Emulator & seeding (development)
+
+Jika Anda ingin menjalankan aplikasi melawan Firebase Emulator set lokal, ikuti langkah ini:
+
+1. Pastikan `firebase-tools` terpasang (`npm i -g firebase-tools`) dan Anda berada di root proyek.
+2. Mulai emulator (Firestore, Storage, Auth):
+
+```fish
+npm run start:emulators
+```
+
+3. Di terminal lain, jalankan seeder untuk menulis dokumen contoh ke Firestore dan (opsional) membuat akun test di Auth emulator:
+
+```fish
+# tulis koleksi contoh
+npm run seed
+
+# buat user Auth via admin emulator endpoint (jika emulator Auth dapat dijangkau)
+npm run seed:auth-admin
+
+# atau jalankan keduanya berurutan
+npm run seed:all
+```
+
+4. Catatan konektivitas:
+
+-   Jika Anda menjalankan aplikasi pada Android emulator, host pada device dapat mengakses host machine via `10.0.2.2`. Anda dapat mem-passing host ke seeder jika perlu:
+
+```fish
+node scripts/seed_auth_admin.js --authHost 10.0.2.2:9099 --firestoreHost 10.0.2.2:8080
+```
+
+-   Jika seeder tidak dapat membuat akun Auth, periksa output `npm run start:emulators` untuk memastikan Auth emulator aktif dan perhatikan alamat host/port yang dilaporkan oleh emulator UI.
+
+5. Setelah seeding selesai, buka Emulator UI pada http://localhost:4000 untuk memeriksa data dan akun.

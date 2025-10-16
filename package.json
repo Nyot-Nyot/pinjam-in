@@ -1,0 +1,11 @@
+{
+	"name": "pinjam-in-tools",
+	"version": "0.1.0",
+	"private": true,
+	"scripts": {
+		"start:emulators": "firebase emulators:start --only firestore,storage,auth",
+		"seed": "node scripts/seed_firestore.js",
+		"seed:auth-admin": "node scripts/seed_auth_admin.js",
+		"seed:all": "npm run seed && npm run seed:auth-admin"
+	}
+}

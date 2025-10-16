@@ -7,7 +7,8 @@ class LoanItem {
     required this.id,
     required this.title,
     required this.borrower,
-    required this.daysRemaining,
+    this.borrowDate,
+    this.targetReturnDate,
     this.note,
     this.contact,
     this.imagePath,
@@ -17,7 +18,8 @@ class LoanItem {
   final String id;
   final String title;
   final String borrower;
-  final int? daysRemaining;
+  final DateTime? borrowDate;
+  final DateTime? targetReturnDate;
   final String? note;
   final String? contact;
   final String? imagePath;
@@ -27,7 +29,10 @@ class LoanItem {
     'id': id,
     'title': title,
     'borrower': borrower,
+    // Keep daysRemaining for backward compatibility, computed from targetReturnDate
     'daysRemaining': daysRemaining,
+    'borrowDate': borrowDate?.toIso8601String(),
+    'targetReturnDate': targetReturnDate?.toIso8601String(),
     'note': note,
     'contact': contact,
     'imagePath': imagePath,
@@ -38,14 +43,36 @@ class LoanItem {
     id: j['id'] as String,
     title: j['title'] as String,
     borrower: j['borrower'] as String,
-    daysRemaining: j['daysRemaining'] == null
-        ? null
-        : (j['daysRemaining'] as num).toInt(),
+    borrowDate: j['borrowDate'] == null
+        ? (j['borrowDate'] is String
+              ? DateTime.tryParse(j['borrowDate'] as String)
+              : null)
+        : (j['borrowDate'] is String
+              ? DateTime.tryParse(j['borrowDate'] as String)
+              : null),
+    targetReturnDate: j['targetReturnDate'] == null
+        ? (j['targetReturnDate'] is String
+              ? DateTime.tryParse(j['targetReturnDate'] as String)
+              : null)
+        : (j['targetReturnDate'] is String
+              ? DateTime.tryParse(j['targetReturnDate'] as String)
+              : null),
     note: j['note'] as String?,
     contact: j['contact'] as String?,
     imagePath: j['imagePath'] as String?,
     color: Color((j['color'] as int?) ?? pastelPalette[0].toARGB32()),
   );
+
+  /// Computed remaining days from now until [targetReturnDate]. Returns null
+  /// when no targetReturnDate is set.
+  int? get daysRemaining {
+    try {
+      if (targetReturnDate == null) return null;
+      return targetReturnDate!.difference(DateTime.now()).inDays;
+    } catch (_) {
+      return null;
+    }
+  }
 
   // A small pastel palette used across the app.
   static const List<Color> pastelPalette = [

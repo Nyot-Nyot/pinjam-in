@@ -23,8 +23,10 @@ android {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.pinjam_in"
         // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+    // For more information, see: https://flutter.dev/to/review-gradle-config.
+    // cloud_firestore and some other plugins require minSdk >= 23. Override the
+    // Flutter default (21) here to meet plugin requirements.
+    minSdk = 23
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

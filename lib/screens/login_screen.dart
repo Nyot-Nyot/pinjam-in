@@ -1,3 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -10,10 +13,32 @@ import '../services/shared_prefs_persistence.dart';
 const String _logoAsset = 'assets/images/logo-purple.svg';
 const String _enterIconAsset = 'assets/images/enter.svg';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   static const double _cardWidth = 329.6;
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  late final TextEditingController _emailController;
+  late final TextEditingController _passwordController;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController();
+    _passwordController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,15 +54,17 @@ class LoginScreen extends StatelessWidget {
                   padding: const EdgeInsets.only(left: 32.0, right: 32.0),
                   child: Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: _cardWidth),
+                      constraints: const BoxConstraints(
+                        maxWidth: LoginScreen._cardWidth,
+                      ),
                       child: Column(
                         mainAxisSize: MainAxisSize.max,
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          // Top container with icon and headings
+                          // Rounded icon container (112)
                           SizedBox(
-                            width: _cardWidth,
+                            width: LoginScreen._cardWidth,
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.center,
@@ -103,7 +130,7 @@ class LoginScreen extends StatelessWidget {
 
                           // Form
                           SizedBox(
-                            width: _cardWidth,
+                            width: LoginScreen._cardWidth,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
@@ -143,14 +170,16 @@ class LoginScreen extends StatelessWidget {
                                           ),
                                         ],
                                       ),
-                                      child: Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: Text(
-                                          'nama@email.com',
-                                          style: GoogleFonts.arimo(
-                                            fontSize: 16.0,
-                                            color: const Color(0xFF4A3D5C),
-                                          ),
+                                      child: TextField(
+                                        controller: _emailController,
+                                        keyboardType:
+                                            TextInputType.emailAddress,
+                                        decoration: InputDecoration.collapsed(
+                                          hintText: 'nama@email.com',
+                                        ),
+                                        style: GoogleFonts.arimo(
+                                          fontSize: 16.0,
+                                          color: const Color(0xFF4A3D5C),
                                         ),
                                       ),
                                     ),
@@ -195,14 +224,15 @@ class LoginScreen extends StatelessWidget {
                                           ),
                                         ],
                                       ),
-                                      child: Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: Text(
-                                          'Masukkan kata sandi',
-                                          style: GoogleFonts.arimo(
-                                            fontSize: 16.0,
-                                            color: const Color(0xFF4A3D5C),
-                                          ),
+                                      child: TextField(
+                                        controller: _passwordController,
+                                        obscureText: true,
+                                        decoration: InputDecoration.collapsed(
+                                          hintText: 'Masukkan kata sandi',
+                                        ),
+                                        style: GoogleFonts.arimo(
+                                          fontSize: 16.0,
+                                          color: const Color(0xFF4A3D5C),
                                         ),
                                       ),
                                     ),
@@ -231,16 +261,62 @@ class LoginScreen extends StatelessWidget {
                                         0.12,
                                       ),
                                     ),
-                                    onPressed: () {
-                                      // Skip authentication for now — navigate directly to Home
-                                      Navigator.of(context).pushReplacement(
-                                        MaterialPageRoute(
-                                          builder: (_) => HomeScreen(
-                                            persistence:
-                                                SharedPrefsPersistence(),
-                                          ),
-                                        ),
+                                    onPressed: () async {
+                                      final messenger = ScaffoldMessenger.of(
+                                        context,
                                       );
+                                      final navigator = Navigator.of(context);
+                                      // Use Firebase (emulator) when running in debug and
+                                      // Firebase was initialized successfully. This
+                                      // allows desktop/Linux builds to use the local
+                                      // emulator when available.
+                                      final useFirestore =
+                                          kDebugMode &&
+                                          Firebase.apps.isNotEmpty;
+
+                                      if (useFirestore) {
+                                        // Try signing in via FirebaseAuth which is pointed at the emulator in debug
+                                        try {
+                                          final email = _emailController.text
+                                              .trim();
+                                          final password =
+                                              _passwordController.text;
+                                          await FirebaseAuth.instance
+                                              .signInWithEmailAndPassword(
+                                                email: email,
+                                                password: password,
+                                              );
+
+                                          // On success navigate into the app. HomeScreen
+                                          // will pick the appropriate persistence.
+                                          if (!mounted) return;
+                                          navigator.pushReplacement(
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  const HomeScreen(),
+                                            ),
+                                          );
+                                        } catch (e) {
+                                          messenger.showSnackBar(
+                                            SnackBar(
+                                              content: Text('Login gagal: $e'),
+                                            ),
+                                          );
+                                          // Leave the user on the login screen after a
+                                          // failed sign-in so they can see the error.
+                                        }
+                                      } else {
+                                        final persistence =
+                                            SharedPrefsPersistence();
+                                        if (!mounted) return;
+                                        navigator.pushReplacement(
+                                          MaterialPageRoute(
+                                            builder: (_) => HomeScreen(
+                                              persistence: persistence,
+                                            ),
+                                          ),
+                                        );
+                                      }
                                     },
                                     child: Row(
                                       mainAxisAlignment:
@@ -280,7 +356,7 @@ class LoginScreen extends StatelessWidget {
 
                           // Footer: signup
                           SizedBox(
-                            width: _cardWidth,
+                            width: LoginScreen._cardWidth,
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [

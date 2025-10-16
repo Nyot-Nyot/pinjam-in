@@ -88,7 +88,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                       background: const Color(0xFF8530E4),
                       iconColor: Colors.white,
                       onTap: () async {
-                        final navigator = Navigator.of(context);
+                        final localContext = context;
+                        final navigator = Navigator.of(localContext);
                         if (!widget.isInHistory) {
                           navigator.pop<Map<String, dynamic>>({
                             'action': 'edit',
@@ -97,9 +98,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                           return;
                         }
 
-                        // ignore: use_build_context_synchronously
                         final choice = await showModalBottomSheet<String>(
-                          context: context,
+                          context: localContext,
                           builder: (ctx) => SafeArea(
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
@@ -142,7 +142,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                         } else if (choice == 'delete') {
                           if (!mounted) return;
                           // safe: we checked mounted immediately before showing the dialog
-                          // ignore: use_build_context_synchronously
                           final confirm = await showDialog<bool>(
                             context: context,
                             builder: (ctx) => AlertDialog(
@@ -166,6 +165,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                             ),
                           );
                           if (confirm == true) {
+                            // navigator captured earlier, safe to use
                             navigator.pop<Map<String, dynamic>>({
                               'action': 'delete',
                               'item': widget.item,

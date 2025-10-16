@@ -32,30 +32,9 @@ class _HomeScreenState extends State<HomeScreen> {
   late final FocusNode _searchFocusNode;
   Timer? _searchDebounce;
 
-  final List<LoanItem> _active = [
-    LoanItem(
-      id: '1',
-      title: 'Power Bank Xiaomi 10000mAh',
-      borrower: 'Andi Wijaya',
-      daysRemaining: -9,
-      note: 'Kapasitas sudah berkurang, harap kembalikan sebelum 10 Okt',
-      color: LoanItem.pastelForId('1'),
-    ),
-    LoanItem(
-      id: '2',
-      title: 'Buku: Clean Code',
-      borrower: 'Siti Rahmawati',
-      daysRemaining: -4,
-      color: LoanItem.pastelForId('2'),
-    ),
-    LoanItem(
-      id: '3',
-      title: 'Kabel HDMI 2 Meter',
-      borrower: 'Budi Santoso',
-      daysRemaining: -12,
-      color: LoanItem.pastelForId('3'),
-    ),
-  ];
+  // Start with empty lists; data will be populated by the configured
+  // PersistenceService implementation (SharedPrefs or Firestore).
+  final List<LoanItem> _active = [];
 
   final List<LoanItem> _history = [];
 

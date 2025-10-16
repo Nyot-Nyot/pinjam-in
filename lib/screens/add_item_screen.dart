@@ -12,8 +12,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../models/loan_item.dart';
-import 'image_crop_preview.dart';
 import '../services/image_service.dart';
+import 'image_crop_preview.dart';
 
 class AddItemScreen extends StatefulWidget {
   /// If [initial] is provided, the screen will be used to edit that item (fields are prefilled).
@@ -1374,9 +1374,15 @@ class _AddItemScreenState extends State<AddItemScreen> {
                         // Upload to Firebase Storage and use returned URL (skip if already a URL)
                         try {
                           final pathToUpload = finalImagePath;
-                          if (pathToUpload != null && !pathToUpload.startsWith('http')) {
+                          if (pathToUpload != null &&
+                              !pathToUpload.startsWith('http')) {
                             final svc = ImageService();
-                            final url = await svc.uploadImage(pathToUpload, widget.initial?.id ?? DateTime.now().millisecondsSinceEpoch.toString());
+                            final url = await svc.uploadImage(
+                              pathToUpload,
+                              widget.initial?.id ??
+                                  DateTime.now().millisecondsSinceEpoch
+                                      .toString(),
+                            );
                             finalImagePath = url;
                           }
                         } catch (_) {
@@ -1390,7 +1396,11 @@ class _AddItemScreenState extends State<AddItemScreen> {
                             DateTime.now().millisecondsSinceEpoch.toString(),
                         title: title,
                         borrower: borrower,
-                        daysRemaining: daysRemaining,
+                        borrowDate:
+                            widget.initial?.borrowDate ?? DateTime.now(),
+                        targetReturnDate: daysRemaining == null
+                            ? null
+                            : DateTime.now().add(Duration(days: daysRemaining)),
                         note: _noteController.text.trim().isEmpty
                             ? null
                             : _noteController.text.trim(),

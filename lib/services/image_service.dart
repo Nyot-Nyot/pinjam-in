@@ -6,7 +6,8 @@ import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 
 class ImageService {
-  ImageService({FirebaseStorage? storage}) : _storage = storage ?? FirebaseStorage.instance;
+  ImageService({FirebaseStorage? storage})
+    : _storage = storage ?? FirebaseStorage.instance;
 
   final FirebaseStorage _storage;
 
@@ -31,9 +32,14 @@ class ImageService {
       final decoded = img.decodeImage(bytes);
       if (decoded != null) {
         final thumb = img.copyResize(decoded, width: 300);
-        final thumbBytes = Uint8List.fromList(img.encodeJpg(thumb, quality: 80));
+        final thumbBytes = Uint8List.fromList(
+          img.encodeJpg(thumb, quality: 80),
+        );
         final thumbRef = _storage.ref(thumbPath);
-        await thumbRef.putData(thumbBytes, SettableMetadata(contentType: 'image/jpeg'));
+        await thumbRef.putData(
+          thumbBytes,
+          SettableMetadata(contentType: 'image/jpeg'),
+        );
       }
     } catch (_) {
       // non-fatal
