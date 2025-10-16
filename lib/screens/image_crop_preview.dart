@@ -1,6 +1,9 @@
 import 'dart:io';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 
@@ -19,6 +22,7 @@ class ImageCropPreview extends StatefulWidget {
 
 class _ImageCropPreviewState extends State<ImageCropPreview> {
   final TransformationController _ctr = TransformationController();
+  final GlobalKey _repaintKey = GlobalKey();
   late img.Image? _decoded;
   bool _working = false;
 
@@ -37,30 +41,55 @@ class _ImageCropPreviewState extends State<ImageCropPreview> {
   }
 
   Future<String?> _doCrop(Size containerSize) async {
-    if (_decoded == null) return null;
     setState(() => _working = true);
     try {
-      final original = _decoded!;
+      final boundary =
+          _repaintKey.currentContext?.findRenderObject()
+              as RenderRepaintBoundary?;
+      if (boundary == null) return null;
 
-      // Determine how the image is fitted into the container when using BoxFit.contain
-      // no fitted scale needed for center crop
+      final dpr = MediaQuery.of(context).devicePixelRatio;
+      final ui.Image captured = await boundary.toImage(pixelRatio: dpr);
+      final byteData = await captured.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
+      if (byteData == null) return null;
+      final bytes = byteData.buffer.asUint8List();
 
-      // For now do a simple center-square crop of the original image. This
-      // avoids complex matrix inversion mapping from the InteractiveViewer
-      // coordinates and provides a reliable crop preview that the user can
-      // reposition by re-tapping/zooming and then resetting if needed.
-      final minSide = original.width < original.height
-          ? original.width
-          : original.height;
-      final cropSide = (minSide * 0.8).round();
-      final left = ((original.width - cropSide) / 2).round();
-      final top = ((original.height - cropSide) / 2).round();
+      final full = img.decodeImage(bytes);
+      if (full == null) return null;
+
+      final logicalSize = boundary.size;
+      final cw = logicalSize.width;
+      final ch = logicalSize.height;
+      final overlaySize = (cw < ch ? cw : ch) * 0.7;
+      final left = (cw - overlaySize) / 2;
+      final top = (ch - overlaySize) / 2;
+
+      final leftPx = (left * dpr).round();
+      final topPx = (top * dpr).round();
+      var wPx = (overlaySize * dpr).round();
+      var hPx = (overlaySize * dpr).round();
+
+      final inset = (2.0 * dpr).round();
+      final x = math.max(0, leftPx + inset);
+      final y = math.max(0, topPx + inset);
+      wPx = math.max(1, wPx - inset * 2);
+      hPx = math.max(1, hPx - inset * 2);
+
+      final maxW = full.width;
+      final maxH = full.height;
+      final cropX = math.min(x, maxW - 1);
+      final cropY = math.min(y, maxH - 1);
+      final cropW = math.min(wPx, maxW - cropX);
+      final cropH = math.min(hPx, maxH - cropY);
+
       final cropped = img.copyCrop(
-        original,
-        x: left,
-        y: top,
-        width: cropSide,
-        height: cropSide,
+        full,
+        x: cropX,
+        y: cropY,
+        width: cropW,
+        height: cropH,
       );
 
       final dir = await getApplicationDocumentsDirectory();
@@ -110,61 +139,61 @@ class _ImageCropPreviewState extends State<ImageCropPreview> {
                       child: Center(
                         child: Container(
                           color: Colors.black,
-                          child: Stack(
-                            children: [
-                              InteractiveViewer(
-                                transformationController: _ctr,
-                                panEnabled: true,
-                                scaleEnabled: true,
-                                minScale: 0.5,
-                                maxScale: 5.0,
-                                child: Center(
-                                  // Center the image so it's always placed in the
-                                  // middle of the available area. Use BoxFit.contain
-                                  // to preserve aspect ratio and keep it fully visible.
-                                  child: Image.file(
-                                    File(widget.imagePath),
-                                    fit: BoxFit.contain,
+                          child: RepaintBoundary(
+                            key: _repaintKey,
+                            child: Stack(
+                              children: [
+                                InteractiveViewer(
+                                  transformationController: _ctr,
+                                  panEnabled: true,
+                                  scaleEnabled: true,
+                                  minScale: 0.5,
+                                  maxScale: 5.0,
+                                  child: Center(
+                                    child: Image.file(
+                                      File(widget.imagePath),
+                                      fit: BoxFit.contain,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              // centered square overlay
-                              LayoutBuilder(
-                                builder: (c2, cc) {
-                                  final cw = cc.maxWidth;
-                                  final ch = cc.maxHeight;
-                                  final size = (cw < ch ? cw : ch) * 0.7;
-                                  final left = (cw - size) / 2;
-                                  final top = (ch - size) / 2;
-                                  return IgnorePointer(
-                                    child: Stack(
-                                      children: [
-                                        Positioned.fill(
-                                          child: Container(
-                                            color: Colors.black54,
-                                          ),
-                                        ),
-                                        Positioned(
-                                          left: left,
-                                          top: top,
-                                          width: size,
-                                          height: size,
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              border: Border.all(
-                                                color: Colors.white70,
-                                                width: 2,
-                                              ),
-                                              color: Colors.transparent,
+                                // centered square overlay
+                                LayoutBuilder(
+                                  builder: (c2, cc) {
+                                    final cw = cc.maxWidth;
+                                    final ch = cc.maxHeight;
+                                    final size = (cw < ch ? cw : ch) * 0.7;
+                                    final left = (cw - size) / 2;
+                                    final top = (ch - size) / 2;
+                                    return IgnorePointer(
+                                      child: Stack(
+                                        children: [
+                                          Positioned.fill(
+                                            child: Container(
+                                              color: Colors.black54,
                                             ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
+                                          Positioned(
+                                            left: left,
+                                            top: top,
+                                            width: size,
+                                            height: size,
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                border: Border.all(
+                                                  color: Colors.white70,
+                                                  width: 2,
+                                                ),
+                                                color: Colors.transparent,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -192,7 +221,6 @@ class _ImageCropPreviewState extends State<ImageCropPreview> {
                               onPressed: _working
                                   ? null
                                   : () async {
-                                      // perform crop based on current visible box
                                       final navigator = Navigator.of(context);
                                       final cropPath = await _doCrop(
                                         Size(

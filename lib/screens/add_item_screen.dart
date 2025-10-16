@@ -59,6 +59,13 @@ class _AddItemScreenState extends State<AddItemScreen> {
       text: widget.initial?.contact ?? '',
     );
 
+    // If editing an existing item, show its image preview (validate file exists)
+    _pickedImagePath = widget.initial?.imagePath;
+    // validate asynchronously in case the file was removed externally
+    if (_pickedImagePath != null) {
+      _validatePickedImagePath(_pickedImagePath!);
+    }
+
     if (widget.initial?.daysRemaining != null) {
       _selectedDate = DateTime.now().add(
         Duration(days: widget.initial!.daysRemaining!),
@@ -88,6 +95,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
       _noteController.text = widget.initial?.note ?? '';
       _contactController.text = widget.initial?.contact ?? '';
       _pickedImagePath = widget.initial?.imagePath;
+      if (_pickedImagePath != null) {
+        _validatePickedImagePath(_pickedImagePath!);
+      }
       if (widget.initial?.daysRemaining != null) {
         _selectedDate = DateTime.now().add(
           Duration(days: widget.initial!.daysRemaining!),
@@ -99,6 +109,20 @@ class _AddItemScreenState extends State<AddItemScreen> {
     }
   }
 
+  // Asynchronously verify that the image file still exists. If not, clear
+  // the picked image to avoid showing a broken preview.
+  Future<void> _validatePickedImagePath(String path) async {
+    try {
+      final f = File(path);
+      final exists = await f.exists();
+      if (!exists && mounted) {
+        setState(() => _pickedImagePath = null);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _pickedImagePath = null);
+    }
+  }
+
   void _applyPreset(int days) {
     setState(() {
       _selectedDate = DateTime.now().add(Duration(days: days));
@@ -107,6 +131,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
   Future<void> _pickPhoto() async {
     final localContext = context;
+    final navigator = Navigator.of(localContext);
     try {
       // On mobile, open camera directly.
       if (Platform.isAndroid || Platform.isIOS) {
@@ -119,7 +144,6 @@ class _AddItemScreenState extends State<AddItemScreen> {
         if (!mounted) return;
         // Open crop preview and use returned path if user confirmed a crop.
         final picked = image.path;
-        final navigator = Navigator.of(localContext);
         final result = await navigator.push<String?>(
           MaterialPageRoute(
             builder: (_) => ImageCropPreview(imagePath: picked),
@@ -142,7 +166,6 @@ class _AddItemScreenState extends State<AddItemScreen> {
       final path = res.files.first.path;
       if (path == null) return;
       if (!mounted) return;
-      final navigator = Navigator.of(context);
       final result = await navigator.push<String?>(
         MaterialPageRoute(builder: (_) => ImageCropPreview(imagePath: path)),
       );
@@ -159,7 +182,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
       if (Platform.isLinux && err.toLowerCase().contains('zenity')) {
         if (!mounted) return;
         showDialog<void>(
-          context: localContext,
+          context: context,
           builder: (ctx) => AlertDialog(
             title: const Text('Picker foto tidak tersedia'),
             content: SingleChildScrollView(
@@ -187,14 +210,14 @@ class _AddItemScreenState extends State<AddItemScreen> {
               ),
               TextButton(
                 onPressed: () async {
-                  final navigator = Navigator.of(ctx);
-                  final messenger = ScaffoldMessenger.of(ctx);
+                  final navigator2 = Navigator.of(ctx);
+                  final messenger2 = ScaffoldMessenger.of(ctx);
                   await Clipboard.setData(
                     const ClipboardData(text: 'sudo apt install zenity'),
                   );
                   if (!mounted) return;
-                  navigator.pop();
-                  messenger.showSnackBar(
+                  navigator2.pop();
+                  messenger2.showSnackBar(
                     const SnackBar(
                       content: Text('Perintah instalasi disalin ke clipboard'),
                     ),
@@ -216,6 +239,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
   }
 
   Future<void> _pickFromCamera() async {
+    final navigator = Navigator.of(context);
     try {
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(
@@ -225,7 +249,6 @@ class _AddItemScreenState extends State<AddItemScreen> {
       if (image == null) return;
       if (!mounted) return;
       final picked = image.path;
-      final navigator = Navigator.of(context);
       final result = await navigator.push<String?>(
         MaterialPageRoute(builder: (_) => ImageCropPreview(imagePath: picked)),
       );
@@ -243,6 +266,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
   }
 
   Future<void> _pickFromGallery() async {
+    final navigator = Navigator.of(context);
     try {
       // On mobile, prefer image_picker gallery for a nicer UI
       if (Platform.isAndroid || Platform.isIOS) {
@@ -254,7 +278,6 @@ class _AddItemScreenState extends State<AddItemScreen> {
         if (image == null) return;
         if (!mounted) return;
         final picked = image.path;
-        final navigator = Navigator.of(context);
         final result = await navigator.push<String?>(
           MaterialPageRoute(
             builder: (_) => ImageCropPreview(imagePath: picked),
@@ -274,7 +297,6 @@ class _AddItemScreenState extends State<AddItemScreen> {
       final path = res.files.first.path;
       if (path == null) return;
       if (!mounted) return;
-      final navigator = Navigator.of(context);
       final result = await navigator.push<String?>(
         MaterialPageRoute(builder: (_) => ImageCropPreview(imagePath: path)),
       );
@@ -284,6 +306,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
     } catch (e) {
       final err = e.toString();
       if (Platform.isLinux && err.toLowerCase().contains('zenity')) {
+        if (!mounted) return;
         showDialog<void>(
           context: context,
           builder: (ctx) => AlertDialog(
@@ -1332,9 +1355,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
                         return;
                       }
 
-                      final int? daysRemaining = _selectedDate == null
-                          ? null
-                          : _selectedDate!.difference(DateTime.now()).inDays;
+                      final int? daysRemaining = _selectedDate
+                          ?.difference(DateTime.now())
+                          .inDays;
 
                       // Capture navigator and onSave callback before any await so
                       // we don't use BuildContext across an async gap.

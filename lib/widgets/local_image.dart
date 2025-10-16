@@ -46,6 +46,25 @@ class LocalImage extends StatelessWidget {
     }
 
     final file = File(path!);
+    try {
+      if (file.existsSync()) {
+        return ClipRRect(
+          borderRadius: borderRadius ?? BorderRadius.zero,
+          child: Image.file(
+            file,
+            width: width,
+            height: height,
+            fit: fit,
+            gaplessPlayback: true,
+            errorBuilder: (ctx, err, st) =>
+                SizedBox(width: width, height: height, child: ph),
+          ),
+        );
+      }
+    } catch (_) {
+      // fall back to async check
+    }
+
     return FutureBuilder<bool>(
       future: file.exists(),
       builder: (context, snap) {
@@ -64,10 +83,11 @@ class LocalImage extends StatelessWidget {
             width: width,
             height: height,
             fit: fit,
-            // Wait until first frame is available; show placeholder before that
+            gaplessPlayback: true,
             frameBuilder: (ctx, child, frame, wasSynchronouslyLoaded) {
-              if (frame == null)
+              if (frame == null) {
                 return SizedBox(width: width, height: height, child: ph);
+              }
               return child;
             },
             errorBuilder: (ctx, err, st) =>

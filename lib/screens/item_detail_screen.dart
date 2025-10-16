@@ -88,11 +88,90 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                       background: const Color(0xFF8530E4),
                       iconColor: Colors.white,
                       onTap: () async {
-                        // Request edit by popping back to the caller with a payload
-                        Navigator.of(context).pop<Map<String, dynamic>>({
-                          'action': 'edit',
-                          'item': widget.item,
-                        });
+                        final navigator = Navigator.of(context);
+                        if (!widget.isInHistory) {
+                          navigator.pop<Map<String, dynamic>>({
+                            'action': 'edit',
+                            'item': widget.item,
+                          });
+                          return;
+                        }
+
+                        // ignore: use_build_context_synchronously
+                        final choice = await showModalBottomSheet<String>(
+                          context: context,
+                          builder: (ctx) => SafeArea(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ListTile(
+                                  leading: const Icon(Icons.edit),
+                                  title: const Text('Edit'),
+                                  onTap: () => Navigator.of(ctx).pop('edit'),
+                                ),
+                                ListTile(
+                                  leading: const Icon(Icons.restore),
+                                  title: const Text('Kembalikan ke Aktif'),
+                                  onTap: () => Navigator.of(ctx).pop('restore'),
+                                ),
+                                ListTile(
+                                  leading: const Icon(Icons.delete_forever),
+                                  title: const Text('Hapus Permanen'),
+                                  onTap: () => Navigator.of(ctx).pop('delete'),
+                                ),
+                                ListTile(
+                                  leading: const Icon(Icons.close),
+                                  title: const Text('Batal'),
+                                  onTap: () => Navigator.of(ctx).pop(null),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+
+                        if (choice == 'edit') {
+                          navigator.pop<Map<String, dynamic>>({
+                            'action': 'edit',
+                            'item': widget.item,
+                          });
+                        } else if (choice == 'restore') {
+                          navigator.pop<Map<String, dynamic>>({
+                            'action': 'restore',
+                            'item': widget.item,
+                          });
+                        } else if (choice == 'delete') {
+                          if (!mounted) return;
+                          // safe: we checked mounted immediately before showing the dialog
+                          // ignore: use_build_context_synchronously
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Hapus permanen'),
+                              content: const Text(
+                                'Item ini akan dihapus permanen. Lanjutkan?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(ctx).pop(false),
+                                  child: const Text('Batal'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.of(ctx).pop(true),
+                                  child: const Text(
+                                    'Hapus',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirm == true) {
+                            navigator.pop<Map<String, dynamic>>({
+                              'action': 'delete',
+                              'item': widget.item,
+                            });
+                          }
+                        }
                       },
                     ),
                   ],

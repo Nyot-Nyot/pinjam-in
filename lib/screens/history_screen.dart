@@ -2,12 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../models/loan_item.dart';
+import '../widgets/local_image.dart';
 import 'item_detail_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({super.key, required this.history});
+  const HistoryScreen({
+    super.key,
+    required this.history,
+    this.onDelete,
+    this.onRestore,
+    this.onRequestEdit,
+  });
 
   final List<LoanItem> history;
+  final ValueChanged<LoanItem>? onDelete;
+  final ValueChanged<LoanItem>? onRestore;
+  final ValueChanged<LoanItem>? onRequestEdit;
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
@@ -116,7 +126,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       separatorBuilder: (_, __) => const SizedBox(height: 12.0),
                       itemBuilder: (context, index) {
                         final item = filtered[index];
-                        return _HistoryCard(item: item);
+                        return _HistoryCard(
+                          item: item,
+                          onDelete: widget.onDelete,
+                          onRestore: widget.onRestore,
+                          onRequestEdit: widget.onRequestEdit,
+                        );
                       },
                     ),
             ),
@@ -128,19 +143,37 @@ class _HistoryScreenState extends State<HistoryScreen> {
 }
 
 class _HistoryCard extends StatelessWidget {
-  const _HistoryCard({required this.item});
+  const _HistoryCard({
+    required this.item,
+    this.onDelete,
+    this.onRestore,
+    this.onRequestEdit,
+  });
 
   final LoanItem item;
+  final ValueChanged<LoanItem>? onDelete;
+  final ValueChanged<LoanItem>? onRestore;
+  final ValueChanged<LoanItem>? onRequestEdit;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        Navigator.of(context).push(
+      onTap: () async {
+        final result = await Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => ItemDetailScreen(item: item, isInHistory: true),
           ),
         );
+        if (result is Map<String, dynamic>) {
+          if (result['action'] == 'delete' && result['item'] is LoanItem) {
+            onDelete?.call(result['item'] as LoanItem);
+          } else if (result['action'] == 'restore' &&
+              result['item'] is LoanItem) {
+            onRestore?.call(result['item'] as LoanItem);
+          } else if (result['action'] == 'edit' && result['item'] is LoanItem) {
+            onRequestEdit?.call(result['item'] as LoanItem);
+          }
+        }
       },
       child: Container(
         constraints: const BoxConstraints(minHeight: 88),
@@ -159,56 +192,61 @@ class _HistoryCard extends StatelessWidget {
           padding: const EdgeInsets.all(12.0),
           child: Row(
             children: [
-              // info column
+              // Left: thumbnail
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: item.imagePath != null
+                      ? LocalImage(
+                          path: item.imagePath,
+                          width: 64,
+                          height: 64,
+                          fit: BoxFit.cover,
+                        )
+                      : const Center(
+                          child: Text('📦', style: TextStyle(fontSize: 24)),
+                        ),
+                ),
+              ),
+
+              const SizedBox(width: 12),
+
+              // Main info
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            item.title,
-                            style: GoogleFonts.arimo(
-                              fontSize: 16,
-                              color: const Color(0xFF0C0315),
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: 26.6,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF45B56E),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Center(
-                            child: Text(
-                              '✓',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                    Text(
+                      item.title,
+                      style: GoogleFonts.arimo(
+                        fontSize: 16,
+                        color: const Color(0xFF0C0315),
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        const SizedBox(width: 4),
                         const Icon(
                           Icons.person,
                           size: 14,
-                          color: Color.fromRGBO(12, 3, 21, 0.7),
+                          color: Color(0xFF4A3D5C),
                         ),
                         const SizedBox(width: 8),
-                        Text(
-                          item.borrower,
-                          style: GoogleFonts.arimo(
-                            fontSize: 14,
-                            color: const Color(0xFF4A3D5C),
+                        Expanded(
+                          child: Text(
+                            item.borrower,
+                            style: GoogleFonts.arimo(
+                              fontSize: 14,
+                              color: const Color(0xFF4A3D5C),
+                            ),
                           ),
                         ),
                       ],
@@ -217,16 +255,22 @@ class _HistoryCard extends StatelessWidget {
                 ),
               ),
 
-              // white photo box
+              // status pill (check) moved to a subtle corner badge
               Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Center(
-                  child: Text('📦', style: TextStyle(fontSize: 24)),
+                margin: const EdgeInsets.only(left: 8),
+                child: Container(
+                  width: 36,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF45B56E),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      '✓',
+                      style: TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                  ),
                 ),
               ),
             ],
