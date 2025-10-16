@@ -234,7 +234,10 @@ class RegisterScreen extends StatelessWidget {
                                           height: 16.0,
                                           child: SvgPicture.asset(
                                             _enterIconAsset,
-                                            color: Colors.white,
+                                            colorFilter: const ColorFilter.mode(
+                                              Colors.white,
+                                              BlendMode.srcIn,
+                                            ),
                                             fit: BoxFit.contain,
                                           ),
                                         ),
