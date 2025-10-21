@@ -9,6 +9,7 @@ import '../services/persistence_service.dart';
 import '../services/shared_prefs_persistence.dart';
 import '../services/supabase_persistence.dart';
 import '../widgets/bottom_nav.dart';
+import '../widgets/empty_state.dart';
 import '../widgets/loan_card.dart';
 import 'add_item_screen.dart';
 import 'history_screen.dart';
@@ -669,81 +670,23 @@ class _HomeScreenState extends State<HomeScreen> {
         // List of loan cards or empty state
         Expanded(
           child: visible.isEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 120,
-                          height: 120,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEBE1F7),
-                            borderRadius: BorderRadius.circular(60),
-                          ),
-                          child: const Icon(
-                            Icons.inbox_outlined,
-                            size: 64,
-                            color: Color(0xFF8530E4),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Text(
-                          'Belum Ada Barang',
-                          style: GoogleFonts.arimo(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF0C0315),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          _query.isEmpty
-                              ? 'Belum ada barang yang dipinjamkan.\nTambahkan barang pertama Anda!'
-                              : 'Tidak ada barang yang cocok\ndengan pencarian Anda.',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.arimo(
-                            fontSize: 15,
-                            color: const Color(0xFF6B5E78),
-                            height: 1.5,
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        if (_query.isEmpty)
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              setState(() => _selectedIndex = 1);
-                              _pageController.animateToPage(
-                                1,
-                                duration: const Duration(milliseconds: 350),
-                                curve: Curves.ease,
-                              );
-                            },
-                            icon: const Icon(Icons.add, size: 20),
-                            label: Text(
-                              'Tambah Barang',
-                              style: GoogleFonts.arimo(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF8530E4),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 32,
-                                vertical: 16,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              elevation: 2,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
+              ? EmptyState(
+                  icon: Icons.inbox_outlined,
+                  title: 'Belum Ada Barang',
+                  message: _query.isEmpty
+                      ? 'Belum ada barang yang dipinjamkan.\nTambahkan barang pertama Anda!'
+                      : 'Tidak ada barang yang cocok\ndengan pencarian Anda.',
+                  actionLabel: _query.isEmpty ? 'Tambah Barang' : null,
+                  onActionPressed: _query.isEmpty
+                      ? () {
+                          setState(() => _selectedIndex = 1);
+                          _pageController.animateToPage(
+                            1,
+                            duration: const Duration(milliseconds: 350),
+                            curve: Curves.ease,
+                          );
+                        }
+                      : null,
                 )
               : Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24.0),
