@@ -667,43 +667,122 @@ class _HomeScreenState extends State<HomeScreen> {
         // small gap between header/search and the list
         const SizedBox(height: 16.0),
 
-        // List of loan cards
+        // List of loan cards or empty state
         Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: ListView.separated(
-              padding: const EdgeInsets.only(top: 8.0, bottom: 24.0),
-              itemCount: visible.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12.0),
-              itemBuilder: (context, index) {
-                final item = visible[index];
-                return _LoanCard(
-                  key: ValueKey(item.id),
-                  item: item,
-                  persistence: _persistence,
-                  onComplete: () => _onItemDismissed(item.id),
-                  onEdit: (updated) {
-                    setState(() {
-                      final i = _active.indexWhere((e) => e.id == updated.id);
-                      if (i != -1) _active[i] = updated;
-                    });
-                    _saveAll();
-                  },
-                  onRequestEdit: (itemToEdit) {
-                    // prepare edit and navigate to Add page
-                    setState(() {
-                      _editingItem = itemToEdit;
-                    });
-                    _pageController.animateToPage(
-                      1,
-                      duration: const Duration(milliseconds: 350),
-                      curve: Curves.ease,
-                    );
-                  },
-                );
-              },
-            ),
-          ),
+          child: visible.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEBE1F7),
+                            borderRadius: BorderRadius.circular(60),
+                          ),
+                          child: const Icon(
+                            Icons.inbox_outlined,
+                            size: 64,
+                            color: Color(0xFF8530E4),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          'Belum Ada Barang',
+                          style: GoogleFonts.arimo(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF0C0315),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          _query.isEmpty
+                              ? 'Belum ada barang yang dipinjamkan.\nTambahkan barang pertama Anda!'
+                              : 'Tidak ada barang yang cocok\ndengan pencarian Anda.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.arimo(
+                            fontSize: 15,
+                            color: const Color(0xFF6B5E78),
+                            height: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        if (_query.isEmpty)
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              setState(() => _selectedIndex = 1);
+                              _pageController.animateToPage(
+                                1,
+                                duration: const Duration(milliseconds: 350),
+                                curve: Curves.ease,
+                              );
+                            },
+                            icon: const Icon(Icons.add, size: 20),
+                            label: Text(
+                              'Tambah Barang',
+                              style: GoogleFonts.arimo(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF8530E4),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 16,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: 2,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                )
+              : Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: ListView.separated(
+                    padding: const EdgeInsets.only(top: 8.0, bottom: 24.0),
+                    itemCount: visible.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12.0),
+                    itemBuilder: (context, index) {
+                      final item = visible[index];
+                      return _LoanCard(
+                        key: ValueKey(item.id),
+                        item: item,
+                        persistence: _persistence,
+                        onComplete: () => _onItemDismissed(item.id),
+                        onEdit: (updated) {
+                          setState(() {
+                            final i = _active.indexWhere(
+                              (e) => e.id == updated.id,
+                            );
+                            if (i != -1) _active[i] = updated;
+                          });
+                          _saveAll();
+                        },
+                        onRequestEdit: (itemToEdit) {
+                          // prepare edit and navigate to Add page
+                          setState(() {
+                            _editingItem = itemToEdit;
+                          });
+                          _pageController.animateToPage(
+                            1,
+                            duration: const Duration(milliseconds: 350),
+                            curve: Curves.ease,
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
         ),
       ],
     );
