@@ -6,7 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../services/supabase_utils.dart';
+import '../services/supabase_persistence.dart';
 
 const String _logoAsset = 'assets/images/logo-purple.svg';
 const String _enterIconAsset = 'assets/images/enter.svg';
@@ -346,7 +346,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                                       email: email,
                                                       password: password,
                                                     );
-                                            final err = authErrorFromResponse(
+                                            final err = SupabasePersistence
+                                                .authErrorFromResponse(
                                               res,
                                             );
                                             if (err != null) {
@@ -463,7 +464,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                                         email: email,
                                                         password: password,
                                                       );
-                                              final err = authErrorFromResponse(
+                                              final err = SupabasePersistence
+                                                  .authErrorFromResponse(
                                                 res,
                                               );
                                               if (err != null) {

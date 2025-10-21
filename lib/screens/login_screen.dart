@@ -11,7 +11,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/persistence_service.dart';
 import '../services/shared_prefs_persistence.dart';
 import '../services/supabase_persistence.dart';
-import '../services/supabase_utils.dart';
 
 // Use local SVG assets placed under assets/images/
 const String _logoAsset = 'assets/images/logo-purple.svg';
@@ -480,9 +479,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                                       email: email,
                                                       password: password,
                                                     );
-                                            final err = authErrorFromResponse(
-                                              res,
-                                            );
+                                            final err =
+                                                SupabasePersistence.authErrorFromResponse(
+                                                  res,
+                                                );
                                             if (err != null) {
                                               if (context.mounted) {
                                                 ScaffoldMessenger.of(
@@ -511,9 +511,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                                         email: email,
                                                         password: password,
                                                       );
-                                              final err = authErrorFromResponse(
-                                                res,
-                                              );
+                                              final err =
+                                                  SupabasePersistence.authErrorFromResponse(
+                                                    res,
+                                                  );
                                               if (err != null) {
                                                 if (context.mounted) {
                                                   ScaffoldMessenger.of(
