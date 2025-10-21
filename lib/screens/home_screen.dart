@@ -387,78 +387,211 @@ class _HomeScreenState extends State<HomeScreen> {
                     e.borrower.toLowerCase().contains(_query.toLowerCase()),
               )
               .toList();
-    return SafeArea(
-      child: Column(
-        children: [
-          // Header area (220 tall in design)
-          Container(
-            height: 220,
-            padding: const EdgeInsets.only(left: 24.0, right: 24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 32.0),
-                Text(
-                  'Pinjaman Aktif',
-                  style: GoogleFonts.arimo(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF0C0315),
-                  ),
-                ),
-                const SizedBox(height: 8.0),
-                Text(
-                  '${visible.length} barang sedang dipinjamkan',
-                  style: GoogleFonts.arimo(
-                    fontSize: 14,
-                    color: const Color(0xFF4A3D5C),
-                  ),
-                ),
-                // Red pill
-                const SizedBox(height: 16.0),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                  decoration: BoxDecoration(
-                    color: const Color(0x1AF62026), // rgba(220,38,38,0.1)
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  width: 110,
-                  height: 28,
-                  child: Row(
+    return Column(
+      children: [
+        // Header area with gradient background
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                const Color(0xFF8530E4),
+                const Color(0xFF9D5FE8),
+                const Color(0xFFB48FEC),
+              ],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF8530E4).withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title with logout button
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Container(
-                        width: 14,
-                        height: 14,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFDC2626),
-                          shape: BoxShape.circle,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Pinjaman Aktif',
+                              style: GoogleFonts.arimo(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 4.0),
+                            Text(
+                              '${visible.length} barang sedang dipinjamkan',
+                              style: GoogleFonts.arimo(
+                                fontSize: 14,
+                                color: Colors.white.withOpacity(0.9),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          '${_active.where((e) => e.computedDaysRemaining != null && e.computedDaysRemaining! < 0).length} terlambat',
-                          style: GoogleFonts.arimo(
-                            fontSize: 12,
-                            color: Colors.red.shade600,
+                      // Logout button
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () async {
+                            final shouldLogout = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: Text(
+                                  'Logout',
+                                  style: GoogleFonts.arimo(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                content: Text(
+                                  'Apakah Anda yakin ingin keluar?',
+                                  style: GoogleFonts.arimo(),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, false),
+                                    child: Text(
+                                      'Batal',
+                                      style: GoogleFonts.arimo(
+                                        color: const Color(0xFF6B5E78),
+                                      ),
+                                    ),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, true),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF8530E4),
+                                    ),
+                                    child: Text(
+                                      'Logout',
+                                      style: GoogleFonts.arimo(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+
+                            if (shouldLogout == true && mounted) {
+                              try {
+                                // Logout from Supabase
+                                if (_persistence is SupabasePersistence) {
+                                  await Supabase.instance.client.auth.signOut();
+                                }
+
+                                if (mounted) {
+                                  // Navigate to login screen
+                                  Navigator.of(
+                                    context,
+                                  ).pushReplacementNamed('/login');
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Gagal logout: $e'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            }
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.logout,
+                              color: Colors.white,
+                              size: 24,
+                            ),
                           ),
                         ),
                       ),
                     ],
                   ),
-                ),
 
-                const SizedBox(height: 16.0),
-
-                // Search input — increased height to match design and more vertical padding
-                Container(
-                  margin: const EdgeInsets.only(top: 12.0),
-                  child: Container(
-                    height: 56.0,
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                  // Red pill for overdue items
+                  const SizedBox(height: 16.0),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12.0,
+                      vertical: 6.0,
+                    ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEBE1F7),
-                      borderRadius: BorderRadius.circular(20.0),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(999),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 14,
+                          height: 14,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFDC2626),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${_active.where((e) => e.computedDaysRemaining != null && e.computedDaysRemaining! < 0).length} terlambat',
+                          style: GoogleFonts.arimo(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFFDC2626),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20.0),
+
+                  // Search input with white background
+                  Container(
+                    height: 56.0,
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16.0),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -466,7 +599,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         const Icon(
                           Icons.search,
                           color: Color(0xFF8530E4),
-                          size: 20,
+                          size: 22,
                         ),
                         const SizedBox(width: 12.0),
                         Expanded(
@@ -513,54 +646,53 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-
-          // small gap between header/search and the list
-          const SizedBox(height: 12.0),
-
-          // List of loan cards
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: ListView.separated(
-                padding: const EdgeInsets.only(top: 8.0, bottom: 24.0),
-                itemCount: visible.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12.0),
-                itemBuilder: (context, index) {
-                  final item = visible[index];
-                  return _LoanCard(
-                    key: ValueKey(item.id),
-                    item: item,
-                    persistence: _persistence,
-                    onComplete: () => _onItemDismissed(item.id),
-                    onEdit: (updated) {
-                      setState(() {
-                        final i = _active.indexWhere((e) => e.id == updated.id);
-                        if (i != -1) _active[i] = updated;
-                      });
-                      _saveAll();
-                    },
-                    onRequestEdit: (itemToEdit) {
-                      // prepare edit and navigate to Add page
-                      setState(() {
-                        _editingItem = itemToEdit;
-                      });
-                      _pageController.animateToPage(
-                        1,
-                        duration: const Duration(milliseconds: 350),
-                        curve: Curves.ease,
-                      );
-                    },
-                  );
-                },
+                ],
               ),
             ),
           ),
-        ],
-      ),
+        ),
+        // small gap between header/search and the list
+        const SizedBox(height: 16.0),
+
+        // List of loan cards
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: ListView.separated(
+              padding: const EdgeInsets.only(top: 8.0, bottom: 24.0),
+              itemCount: visible.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12.0),
+              itemBuilder: (context, index) {
+                final item = visible[index];
+                return _LoanCard(
+                  key: ValueKey(item.id),
+                  item: item,
+                  persistence: _persistence,
+                  onComplete: () => _onItemDismissed(item.id),
+                  onEdit: (updated) {
+                    setState(() {
+                      final i = _active.indexWhere((e) => e.id == updated.id);
+                      if (i != -1) _active[i] = updated;
+                    });
+                    _saveAll();
+                  },
+                  onRequestEdit: (itemToEdit) {
+                    // prepare edit and navigate to Add page
+                    setState(() {
+                      _editingItem = itemToEdit;
+                    });
+                    _pageController.animateToPage(
+                      1,
+                      duration: const Duration(milliseconds: 350),
+                      curve: Curves.ease,
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
 

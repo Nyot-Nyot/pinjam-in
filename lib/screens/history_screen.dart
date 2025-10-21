@@ -57,44 +57,91 @@ class _HistoryScreenState extends State<HistoryScreen> {
               )
               .toList();
 
-    return SafeArea(
-      child: Column(
-        children: [
-          // Header area
-          Container(
-            height: 148,
-            padding: const EdgeInsets.only(left: 24.0, right: 24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 32.0),
-                Text(
-                  'Riwayat Pinjaman',
-                  style: GoogleFonts.arimo(
-                    fontSize: 16,
-                    color: const Color(0xFF0C0315),
+    return Column(
+      children: [
+        // Header area with gradient background
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                const Color(0xFF8530E4),
+                const Color(0xFF9D5FE8),
+                const Color(0xFFB48FEC),
+              ],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF8530E4).withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title
+                  Text(
+                    'Riwayat Pinjaman',
+                    style: GoogleFonts.arimo(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16.0),
-                // Search input (match homepage)
-                Container(
-                  margin: const EdgeInsets.only(top: 12.0),
-                  child: Container(
+                  const SizedBox(height: 4.0),
+                  Text(
+                    '${filtered.length} barang telah dikembalikan',
+                    style: GoogleFonts.arimo(
+                      fontSize: 14,
+                      color: Colors.white.withOpacity(0.9),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+
+                  const SizedBox(height: 20.0),
+
+                  // Search input with white background
+                  Container(
                     height: 56.0,
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEBE1F7),
-                      borderRadius: BorderRadius.circular(20.0),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16.0),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const Icon(Icons.search, color: Color(0xFF8530E4)),
+                        const Icon(
+                          Icons.search,
+                          color: Color(0xFF8530E4),
+                          size: 22,
+                        ),
                         const SizedBox(width: 12.0),
                         Expanded(
                           child: TextField(
                             controller: _tc,
-                            decoration: InputDecoration.collapsed(
+                            textAlignVertical: TextAlignVertical.center,
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
                               hintText: 'Cari riwayat...',
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 14,
+                              ),
                             ),
                             style: GoogleFonts.arimo(
                               fontSize: 15,
@@ -102,46 +149,62 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             ),
                           ),
                         ),
+                        if (_tc.text.isNotEmpty)
+                          IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 32,
+                              minHeight: 32,
+                            ),
+                            icon: const Icon(
+                              Icons.clear,
+                              size: 20,
+                              color: Color(0xFF6B5E78),
+                            ),
+                            onPressed: () {
+                              _tc.clear();
+                            },
+                          ),
                       ],
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
+        ),
 
-          // List area
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: filtered.isEmpty
-                  ? Center(
-                      child: Text(
-                        'Belum ada riwayat',
-                        style: GoogleFonts.arimo(
-                          color: const Color(0xFF6B5E78),
-                        ),
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.only(top: 8.0, bottom: 24.0),
-                      itemCount: filtered.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12.0),
-                      itemBuilder: (context, index) {
-                        final item = filtered[index];
-                        return _HistoryCard(
-                          item: item,
-                          persistence: widget.persistence,
-                          onDelete: widget.onDelete,
-                          onRestore: widget.onRestore,
-                          onRequestEdit: widget.onRequestEdit,
-                        );
-                      },
+        const SizedBox(height: 16.0),
+
+        // List area
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: filtered.isEmpty
+                ? Center(
+                    child: Text(
+                      'Belum ada riwayat',
+                      style: GoogleFonts.arimo(color: const Color(0xFF6B5E78)),
                     ),
-            ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.only(top: 8.0, bottom: 24.0),
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12.0),
+                    itemBuilder: (context, index) {
+                      final item = filtered[index];
+                      return _HistoryCard(
+                        item: item,
+                        persistence: widget.persistence,
+                        onDelete: widget.onDelete,
+                        onRestore: widget.onRestore,
+                        onRequestEdit: widget.onRequestEdit,
+                      );
+                    },
+                  ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

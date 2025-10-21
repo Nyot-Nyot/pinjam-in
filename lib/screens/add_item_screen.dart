@@ -8,9 +8,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image/image.dart' as img;
-import 'package:uuid/uuid.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:uuid/uuid.dart';
 
 import '../models/loan_item.dart';
 import 'image_crop_preview.dart';
@@ -459,14 +459,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
   }
 
   Color _pastelForIndex(int i) {
-    // even stronger, more saturated pastel palette for clearer sections
-    final colors = [
-      const Color(0xFFFF95B8), // vivid warm pink
-      const Color(0xFF7FD8FF), // vivid ice blue
-      const Color(0xFFFFCE6B), // bright peach/yellow
-      const Color(0xFFB78CFF), // stronger lavender
-      const Color(0xFF79F0B0), // bright mint
-    ];
+    // Using updated color palette from LoanItem
+    final colors = LoanItem.pastelPalette;
     return colors[i % colors.length];
   }
 
@@ -1057,15 +1051,27 @@ class _AddItemScreenState extends State<AddItemScreen> {
             ),
 
             const SizedBox(height: 16),
+            // Combined: Nama Peminjam + Kontak
             _sectionCard(
               index: 2,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Nama Peminjam *',
+                    'Informasi Peminjam',
                     style: GoogleFonts.arimo(
                       fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF0C0315),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Nama Peminjam
+                  Text(
+                    'Nama Peminjam *',
+                    style: GoogleFonts.arimo(
+                      fontSize: 13,
                       color: const Color(0xFF0C0315),
                     ),
                   ),
@@ -1097,20 +1103,14 @@ class _AddItemScreenState extends State<AddItemScreen> {
                         style: TextStyle(color: Colors.red.shade700),
                       ),
                     ),
-                ],
-              ),
-            ),
 
-            const SizedBox(height: 12),
-            _sectionCard(
-              index: 3,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                  const SizedBox(height: 16),
+
+                  // Kontak
                   Text(
                     'Kontak (opsional)',
                     style: GoogleFonts.arimo(
-                      fontSize: 14,
+                      fontSize: 13,
                       color: const Color(0xFF0C0315),
                     ),
                   ),
@@ -1153,7 +1153,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
             const SizedBox(height: 12),
             _sectionCard(
-              index: 4,
+              index: 3,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1262,7 +1262,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
             const SizedBox(height: 12),
             _sectionCard(
-              index: 5,
+              index: 0,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
