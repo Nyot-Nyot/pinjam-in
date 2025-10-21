@@ -6,10 +6,11 @@ This project is a coursework (Pemrograman Sistem Bergerak) app to help users kee
 of items they've borrowed and manage their borrowing history.
 
 Features (planned):
-- Add / edit borrowed items
-- Mark items as returned
-- View borrowing history
-- Search and filter items
+
+-   Add / edit borrowed items
+-   Mark items as returned
+-   View borrowing history
+-   Search and filter items
 
 How to run locally
 
