@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../models/loan_item.dart';
 import '../screens/item_detail_screen.dart';
 import '../services/persistence_service.dart';
+import '../theme/app_theme.dart';
 import 'storage_image.dart';
 
 /// A card widget displaying an active loan item with swipe-to-complete gesture.
@@ -107,14 +108,13 @@ class _LoanCardState extends State<LoanCard>
     final statusText = widget.item.computedDaysRemaining == null
         ? 'Tanpa batas'
         : (widget.item.computedDaysRemaining! < 0
-            ? 'Terlambat ${widget.item.computedDaysRemaining!.abs()} hari'
-            : '${widget.item.computedDaysRemaining} hari');
+              ? 'Terlambat ${widget.item.computedDaysRemaining!.abs()} hari'
+              : '${widget.item.computedDaysRemaining} hari');
     final badgeColor = widget.item.computedDaysRemaining == null
-        ? const Color(0xFF6B5E78)
+        ? AppTheme.statusNoLimit
         : (widget.item.computedDaysRemaining! < 0
-            ? Colors.red.shade600
-            : const Color(0xFF8530E4));
-
+              ? AppTheme.statusOverdue
+              : AppTheme.statusOnTime);
     return Container(
       constraints: const BoxConstraints(minHeight: 140),
       decoration: BoxDecoration(
@@ -316,9 +316,7 @@ class _LoanCardState extends State<LoanCard>
                           onHorizontalDragEnd: _onDragEnd,
                           child: const SizedBox(
                             width: knobWidth,
-                            child: Center(
-                              child: _DragKnob(),
-                            ),
+                            child: Center(child: _DragKnob()),
                           ),
                         ),
                       ),
@@ -354,12 +352,7 @@ class _DragKnob extends StatelessWidget {
           ),
         ],
       ),
-      child: Center(
-        child: Icon(
-          Icons.check,
-          color: Colors.green.shade700,
-        ),
-      ),
+      child: Center(child: Icon(Icons.check, color: Colors.green.shade700)),
     );
   }
 }

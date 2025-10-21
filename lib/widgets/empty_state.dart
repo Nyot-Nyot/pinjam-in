@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../theme/app_theme.dart';
+
 /// A reusable empty state widget displaying an icon, title, message, and optional action button.
 ///
 /// Used to show when there's no data to display (e.g., no items, no history).
@@ -42,16 +44,16 @@ class EmptyState extends StatelessWidget {
               width: 120,
               height: 120,
               decoration: BoxDecoration(
-                color: const Color(0xFFEBE1F7),
-                borderRadius: BorderRadius.circular(60),
+                color: AppTheme.primaryPurpleLight,
+                borderRadius: BorderRadius.circular(AppTheme.radiusCircle),
               ),
               child: Icon(
                 icon,
-                size: 64,
-                color: const Color(0xFF8530E4),
+                size: AppTheme.iconXl,
+                color: AppTheme.primaryPurple,
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppTheme.spacingXl),
 
             // Title
             Text(
@@ -59,10 +61,10 @@ class EmptyState extends StatelessWidget {
               style: GoogleFonts.arimo(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF0C0315),
+                color: AppTheme.textPrimary,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppTheme.spacingM),
 
             // Message
             Text(
@@ -70,17 +72,17 @@ class EmptyState extends StatelessWidget {
               textAlign: TextAlign.center,
               style: GoogleFonts.arimo(
                 fontSize: 15,
-                color: const Color(0xFF6B5E78),
+                color: AppTheme.textSecondary,
                 height: 1.5,
               ),
             ),
 
             // Optional action button
             if (actionLabel != null && onActionPressed != null) ...[
-              const SizedBox(height: 32),
+              const SizedBox(height: AppTheme.spacingXxl),
               ElevatedButton.icon(
                 onPressed: onActionPressed,
-                icon: const Icon(Icons.add, size: 20),
+                icon: const Icon(Icons.add, size: AppTheme.iconL),
                 label: Text(
                   actionLabel!,
                   style: GoogleFonts.arimo(
@@ -89,14 +91,14 @@ class EmptyState extends StatelessWidget {
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF8530E4),
+                  backgroundColor: AppTheme.primaryPurple,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 16,
+                    horizontal: AppTheme.spacingXxl,
+                    vertical: AppTheme.spacingL,
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusL),
                   ),
                 ),
               ),
