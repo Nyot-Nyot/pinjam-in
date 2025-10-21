@@ -2,35 +2,44 @@
 
 **Created**: 2025-10-21
 **Last Updated**: 2025-10-21
-**Version**: 1.0
+**Version**: 1.1
 
 ## 1. Feature Description
 
-Users need an application to manage items they have lent to others. Many people forget about items they have lent out, leading to the items being lost without knowing who has them. This feature will allow users to save, edit, and delete records of borrowed items. Users can store a photo of the item, the item's name, the borrower's name, and optionally, the borrower's contact information (integrating with a mobile contact picker). A return date can be set, but it is optional. There is also an optional "notes" field for important details about the transaction, item, or borrower. The homepage will display a list of borrowed items, and a simple swipe gesture on an item will mark it as returned. The application will also feature a dashboard with interesting statistics.
+Users need an application to manage items they have lent to others. This feature allows authenticated users to save, edit, and delete records of borrowed items, with data stored securely in the cloud. Users can store the item's name, the borrower's name, and optionally, a photo of the item and the borrower's contact information. A return date can be set, but it is optional. The homepage will display a list of borrowed items, and a simple swipe gesture on an item will mark it as returned. The application will also feature a dashboard with interesting statistics.
 
 ## 2. User Scenarios
 
-### 2.1. Adding a New Borrowed Item
+### 2.1. User Registration & Login
+
+As a new user, I want to create an account so I can securely save my data.
+
+-   I open the app and choose to sign up.
+-   I provide my email and a password.
+-   I log in to the app and can start using the features.
+
+### 2.2. Adding a New Borrowed Item
 
 As a user, I want to record a new item that I have lent to someone so that I don't forget about it.
 
 -   I open the app and navigate to the "add item" screen.
--   I can take a new photo of the item or select one from my gallery.
+-   I can optionally take a new photo of the item or select one from my gallery.
 -   I enter the name of the item (e.g., "Book - The Hobbit").
 -   I enter the name of the person who borrowed it (e.g., "John Doe").
 -   I have the option to select John Doe's contact from my phone's contact list.
 -   I can optionally set a return date.
--   I can optionally add notes, such as "He borrowed it for his book report."
+-   I can optionally add notes.
 -   I save the item, and it appears on my list of currently borrowed items.
 
-### 2.2. Viewing the List of Borrowed Items
+### 2.3. Viewing the List of Borrowed Items
 
-As a user, I want to see all the items I have lent out on the main screen so I can quickly track them.
+As a user, I want to see all the items I have lent out on the main screen.
 
 -   I open the app and see a list of all items currently on loan.
--   Each item in the list displays the item's photo, name, and the borrower's name.
+-   Each item in the list displays the item's name, and the borrower's name.
+-   If a photo was added, it is displayed. Otherwise, a default box icon is shown.
 
-### 2.3. Marking an Item as Returned
+### 2.4. Marking an Item as Returned
 
 As a user, I want to easily mark an item as returned when I get it back.
 
@@ -38,106 +47,131 @@ As a user, I want to easily mark an item as returned when I get it back.
 -   I swipe on the item's widget.
 -   The item is marked as "returned" and moved from the active list to a history or completed list.
 
-### 2.4. Editing an Existing Item
+### 2.5. Editing an Existing Item
 
-As a user, I want to be able to edit the details of a borrowed item in case I made a mistake or need to update information.
+As a user, I want to be able to edit the details of a borrowed item.
 
 -   I find the item in the list and select it to view its details.
--   I choose to edit the item.
--   I can change the item name, borrower, return date, or notes.
+-   I choose to edit the item and can change its details.
 -   I save the changes.
 
-### 2.5. Deleting a Borrowed Item Record
+### 2.6. Deleting a Borrowed Item Record
 
-As a user, I want to be able to delete a record entirely if it was created by mistake or is no longer relevant.
+As a user, I want to be able to delete a record entirely.
 
 -   I find the item in the list and select it.
 -   I choose the delete option and confirm the action.
--   The item record is permanently removed from the application.
+-   The item record is permanently removed.
 
-### 2.6. Viewing Statistics
+### 2.7. Viewing Statistics
 
 As a user, I want to see interesting statistics about my lending habits.
 
--   I navigate to the statistics or dashboard screen.
+-   I navigate to the dashboard screen.
 -   I can see data such as the total number of items lent, the most frequent borrower, or items that are overdue.
 
 ## 3. Functional Requirements
 
-### 3.1. Item Management
+### 3.1. User Authentication
+
+-   The system must allow users to sign up and log in using an email and password.
+-   All user data must be associated with their account.
+
+### 3.2. Item Management
 
 -   The system must allow users to create, read, update, and delete (CRUD) records of borrowed items.
 -   Each item record must have a field for the item name (required) and borrower name (required).
--   Each item record must support storing one photo.
+-   Each item record must support storing an optional photo. If no photo is provided, the value should be null.
 -   Each item record must have an optional field for a return date.
 -   Each item record must have an optional field for notes.
 -   Each item record must have a status (e.g., "borrowed," "returned").
 
-### 3.2. Homepage / Main List
+### 3.3. Homepage / Main List
 
--   The application's main screen must display a list of all items with the "borrowed" status.
+-   The application's main screen must display a list of all items with the "borrowed" status belonging to the logged-in user.
 -   The list must be searchable by item name and borrower name.
--   Users must be able to mark an item as "returned" using a swipe gesture on the list item.
+-   Users must be able to mark an item as "returned" using a swipe gesture.
 
-### 3.3. Contact Integration
+### 3.4. Contact Integration
 
--   The system should provide an option to link a borrower to a contact from the user's native contact list (Android/iOS). This is an optional feature.
+-   The system should provide an optional field for the borrower's contact information.
+-   On mobile platforms that support it, this should be implemented using a native contact picker.
 
-### 3.4. Statistics Dashboard
+### 3.5. Statistics Dashboard
 
--   The system must provide a screen that displays statistics related to borrowing activities.
--   The statistics must include at least:
-    -   Total items lent.
-    -   Number of items currently on loan vs. returned.
-    -   A list of overdue items. An item is considered "overdue" if it has a return date set and that date is in the past.
+-   The system must provide a screen that displays statistics based on the user's borrowing activities.
+-   Statistics must include total items lent, items on loan vs. returned, and overdue items.
 
-### 3.5. Data Persistence
+### 3.6. Data Persistence
 
--   All data must be stored locally on the user's device.
+-   All data must be persisted in a cloud database (Supabase) and associated with the user's account.
 
 ## 4. Non-Functional Requirements
 
 ### 4.1. Usability
 
 -   The user interface should be intuitive and easy to navigate.
--   Key actions like adding an item and marking it as returned should be quick and require minimal steps.
+-   Key actions should be quick and require minimal steps.
 
 ### 4.2. Performance
 
--   The application should load quickly.
--   The list of borrowed items should scroll smoothly, even with a large number of entries and images.
+-   The application should load quickly and feel responsive.
+-   The list of borrowed items should scroll smoothly.
+
+### 4.3. Security
+
+-   User passwords must be stored securely (handled by Supabase Auth).
+-   Users must only be able to access their own data.
 
 ## 5. Success Criteria
 
--   **Task Completion Rate**: 95% of new users can successfully add a new item and mark it as returned without assistance.
+-   **Task Completion Rate**: 95% of new users can successfully sign up, add an item, and mark it as returned without assistance.
 -   **Time on Task**: A user can add a new borrowed item in under 60 seconds.
--   **Time on Task**: A user can mark an item as returned in under 5 seconds from opening the app.
--   **User Satisfaction**: The app achieves an average rating of 4.5 stars or higher in app stores after the first 1,000 reviews.
--   **Adoption**: The optional "contact picker" feature is used by at least 30% of users when adding a new item.
+-   **User Satisfaction**: The app achieves an average rating of 4.5 stars or higher.
 
-## 6. Key Entities
+## 6. Edge Cases & Assumptions
 
--   **Item**:
-    -   `id`: Unique Identifier
-    -   `name`: String
-    -   `photo_url`: String (local path)
-    -   `borrower_name`: String
-    -   `borrower_contact_id`: String (optional)
-    -   `borrow_date`: Date
-    -   `return_date`: Date (optional)
-    -   `status`: Enum (e.g., 'borrowed', 'returned')
-    -   `notes`: String (optional)
+### 6.1. Edge Cases
 
-## 7. Assumptions
+-   **Permission Denied**: The app should gracefully handle cases where camera, gallery, or contact permissions are denied.
+-   **No Data**: The app should display a clear empty state on screens when no items have been added.
+-   **Invalid Input**: The app must validate required fields and prevent saving if they are empty.
+-   **Network Error**: The app should display a user-friendly message if it cannot connect to the backend.
 
--   Users are on mobile devices (iOS or Android) where contact and camera integration is possible.
--   For the initial version, data will be stored locally. Cloud sync is not in scope.
--   The "statistics" will be simple and based on the locally stored data.
+### 6.2. Assumptions
 
-## 8. Out of Scope
+-   An active internet connection is required for most operations.
+-   Users are on mobile devices where contact and camera integration is possible.
 
--   User accounts and authentication.
--   Cloud synchronization of data between multiple devices.
+## 7. Out of Scope
+
+-   Offline-first mode (data access without an internet connection).
 -   Social features or sharing.
--   Automated reminders or notifications for return dates. (This may be considered for a future version).
+-   Automated reminders or notifications for return dates.
 -   Web or desktop version of the application.
+
+## 8. Key Entities
+
+### 8.1. Item Entity
+
+| Field                 | Type          | Constraints                             | Description                                   |
+| :-------------------- | :------------ | :-------------------------------------- | :-------------------------------------------- |
+| `id`                  | `UUID`        | Primary Key, Not Null                   | Unique identifier for the item record.        |
+| `user_id`             | `UUID`        | Foreign Key (to `auth.users`), Not Null | The user who owns this item record.           |
+| `name`                | `TEXT`        | Not Null, Min 3 chars                   | The name of the borrowed item.                |
+| `photo_url`           | `TEXT`        | Nullable                                | URL to the item's photo in Supabase Storage.  |
+| `borrower_name`       | `TEXT`        | Not Null, Min 3 chars                   | The name of the person who borrowed the item. |
+| `borrower_contact_id` | `TEXT`        | Nullable                                | Contact identifier or manual entry.           |
+| `borrow_date`         | `TIMESTAMPTZ` | Not Null, Default `NOW()`               | The date the item was lent out.               |
+| `return_date`         | `DATE`        | Nullable                                | The expected return date.                     |
+| `status`              | `TEXT`        | Not Null, Default `'borrowed'`          | Current status: `'borrowed'` or `'returned'`. |
+| `notes`               | `TEXT`        | Nullable                                | Optional notes about the transaction.         |
+| `created_at`          | `TIMESTAMPTZ` | Not Null, Default `NOW()`               | Timestamp of when the record was created.     |
+
+### 8.2. User Entity (Supabase Auth)
+
+This entity is managed by Supabase Authentication.
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `UUID` | Primary Key, managed by Supabase. |
+| `email` | `TEXT` | User's email address. |
