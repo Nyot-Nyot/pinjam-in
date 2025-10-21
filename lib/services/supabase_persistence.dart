@@ -10,10 +10,11 @@ import 'persistence_service.dart';
 
 /// Minimal Supabase-backed PersistenceService implementation.
 ///
-/// This implementation assumes a `loans` table with columns roughly:
-/// id (text primary key), title (text), borrower (text), created_at (bigint),
-/// due_date (bigint), returned_at (bigint), note (text), contact (text),
-/// image_url (text), owner_id (text), status (text), days_remaining (int)
+/// This implementation uses the `items` table with schema:
+/// id (UUID primary key), user_id (UUID), name (text), borrower_name (text),
+/// borrower_contact_id (text), borrow_date (timestamptz), return_date (date),
+/// status (text: 'borrowed'|'returned'), notes (text), photo_url (text),
+/// created_at (timestamptz)
 class SupabasePersistence implements PersistenceService {
   SupabasePersistence._(this._client);
 
@@ -43,48 +44,66 @@ class SupabasePersistence implements PersistenceService {
 
   /// Default storage bucket to use for uploaded images. Create this bucket in
   /// your Supabase project (public or with appropriate policies).
-  static const _kImagesBucket = 'public-images';
+  static const _kImagesBucket = 'item_photos';
   // Optional: an external upload server you can run (see server/upload_server)
   static final _kUploadServerUrl = dotenv.env['SUPABASE_UPLOAD_SERVER'];
 
   static Map<String, dynamic> _toMap(LoanItem item) => {
     'id': item.id,
-    'title': item.title,
-    'borrower': item.borrower,
-    'days_remaining': item.daysRemaining,
-    'created_at': item.createdAt?.millisecondsSinceEpoch,
-    'due_date': item.dueDate?.millisecondsSinceEpoch,
-    'returned_at': item.returnedAt?.millisecondsSinceEpoch,
-    'note': item.note,
-    'contact': item.contact,
-    'image_url': item.imageUrl,
-    'owner_id': item.ownerId,
-    'status': item.status,
+    'user_id': item.ownerId,
+    'name': item.title,
+    'borrower_name': item.borrower,
+    'borrower_contact_id': item.contact,
+    'borrow_date': item.createdAt?.toIso8601String(),
+    'return_date': item.returnedAt != null 
+        ? item.returnedAt!.toIso8601String().split('T')[0]  // Date only
+        : null,
+    'status': item.status == 'active' ? 'borrowed' : item.status,
+    'notes': item.note,
+    'photo_url': item.imageUrl,
+    'created_at': item.createdAt?.toIso8601String(),
   };
 
-  static LoanItem _fromMap(Map<String, dynamic> m) => LoanItem.fromJson({
-    'id': m['id'] as String,
-    'title': m['title'] as String,
-    'borrower': m['borrower'] as String,
-    'daysRemaining': m['days_remaining'] as int?,
-    'createdAt': m['created_at'] as int?,
-    'dueDate': m['due_date'] as int?,
-    'returnedAt': m['returned_at'] as int?,
-    'note': m['note'] as String?,
-    'contact': m['contact'] as String?,
-    'imagePath': null,
-    'imageUrl': m['image_url'] as String?,
-    'ownerId': m['owner_id'] as String?,
-    'status': m['status'] as String?,
-  });
+  static LoanItem _fromMap(Map<String, dynamic> m) {
+    // Parse timestamps
+    DateTime? parseTimestamp(dynamic value) {
+      if (value == null) return null;
+      if (value is String) return DateTime.tryParse(value);
+      if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+      return null;
+    }
+
+    final borrowDate = parseTimestamp(m['borrow_date']);
+    final returnDate = parseTimestamp(m['return_date']);
+    final createdAt = parseTimestamp(m['created_at']) ?? borrowDate;
+    
+    // Map 'borrowed' status to 'active' for internal use
+    final status = (m['status'] as String?) == 'borrowed' ? 'active' : (m['status'] as String? ?? 'active');
+
+    return LoanItem.fromJson({
+      'id': m['id'] as String,
+      'title': m['name'] as String,
+      'borrower': m['borrower_name'] as String,
+      'daysRemaining': null,  // Will be computed from due_date if needed
+      'createdAt': createdAt?.millisecondsSinceEpoch,
+      'dueDate': borrowDate?.millisecondsSinceEpoch,
+      'returnedAt': returnDate?.millisecondsSinceEpoch,
+      'note': m['notes'] as String?,
+      'contact': m['borrower_contact_id'] as String?,
+      'imagePath': null,
+      'imageUrl': m['photo_url'] as String?,
+      'ownerId': m['user_id'] as String?,
+      'status': status,
+    });
+  }
 
   @override
   Future<List<LoanItem>> loadActive() async {
     final res = await _client
-        .from('loans')
+        .from('items')
         .select()
-        .eq('status', 'active')
-        .order('due_date', ascending: true)
+        .eq('status', 'borrowed')
+        .order('borrow_date', ascending: false)
         .limit(100);
 
     // The supabase client may return either a raw List or a response wrapper
@@ -108,9 +127,9 @@ class SupabasePersistence implements PersistenceService {
   @override
   Future<List<LoanItem>> loadHistory() async {
     final res = await _client
-        .from('loans')
+        .from('items')
         .select()
-        .neq('status', 'active')
+        .eq('status', 'returned')
         .order('created_at', ascending: false)
         .limit(200);
     try {
@@ -147,7 +166,7 @@ class SupabasePersistence implements PersistenceService {
       }
       final m = _toMap(itemToUpsert);
       try {
-        final res = await _client.from('loans').upsert(m);
+        final res = await _client.from('items').upsert(m);
         // some versions return List, some return wrapper with .error/.data
         if (res is Map && res['error'] != null) {
           throw Exception(res['error']);
@@ -173,7 +192,7 @@ class SupabasePersistence implements PersistenceService {
       }
       final m = _toMap(itemToUpsert);
       try {
-        final res = await _client.from('loans').upsert(m);
+        final res = await _client.from('items').upsert(m);
         if (res is Map && res['error'] != null) throw Exception(res['error']);
       } catch (e) {
         throw Exception('Failed to upsert history item ${item.id}: $e');
@@ -203,8 +222,9 @@ class SupabasePersistence implements PersistenceService {
       );
     }
 
-    // Create a deterministic object name to avoid collisions
-    final key = 'items/$itemId/${DateTime.now().millisecondsSinceEpoch}.jpg';
+    // Create a deterministic object name following RLS policy pattern: user_id/item_id.jpg
+    // This allows RLS policy to check: auth.uid()::text = (storage.foldername(name))[1]
+    final key = '$uid/$itemId.jpg';
 
     // Try to upload using several possible APIs and inspect responses.
     final from = (storage as dynamic).from(_kImagesBucket);
