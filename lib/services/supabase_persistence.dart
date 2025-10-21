@@ -55,8 +55,8 @@ class SupabasePersistence implements PersistenceService {
     'borrower_name': item.borrower,
     'borrower_contact_id': item.contact,
     'borrow_date': item.createdAt?.toIso8601String(),
-    'return_date': item.returnedAt != null 
-        ? item.returnedAt!.toIso8601String().split('T')[0]  // Date only
+    'return_date': item.returnedAt != null
+        ? item.returnedAt!.toIso8601String().split('T')[0] // Date only
         : null,
     'status': item.status == 'active' ? 'borrowed' : item.status,
     'notes': item.note,
@@ -76,15 +76,17 @@ class SupabasePersistence implements PersistenceService {
     final borrowDate = parseTimestamp(m['borrow_date']);
     final returnDate = parseTimestamp(m['return_date']);
     final createdAt = parseTimestamp(m['created_at']) ?? borrowDate;
-    
+
     // Map 'borrowed' status to 'active' for internal use
-    final status = (m['status'] as String?) == 'borrowed' ? 'active' : (m['status'] as String? ?? 'active');
+    final status = (m['status'] as String?) == 'borrowed'
+        ? 'active'
+        : (m['status'] as String? ?? 'active');
 
     return LoanItem.fromJson({
       'id': m['id'] as String,
       'title': m['name'] as String,
       'borrower': m['borrower_name'] as String,
-      'daysRemaining': null,  // Will be computed from due_date if needed
+      'daysRemaining': null, // Will be computed from due_date if needed
       'createdAt': createdAt?.millisecondsSinceEpoch,
       'dueDate': borrowDate?.millisecondsSinceEpoch,
       'returnedAt': returnDate?.millisecondsSinceEpoch,

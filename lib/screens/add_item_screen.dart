@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image/image.dart' as img;
+import 'package:uuid/uuid.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -1380,7 +1381,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                       final newItem = LoanItem(
                         id:
                             widget.initial?.id ??
-                            DateTime.now().millisecondsSinceEpoch.toString(),
+                            const Uuid().v4(),
                         title: title,
                         borrower: borrower,
                         daysRemaining: daysRemaining,
