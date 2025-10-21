@@ -77,50 +77,62 @@ class BottomNav extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      GestureDetector(
-                        onTap: () => onTap(0),
-                        child: SizedBox(
-                          width: 64,
-                          height: 64,
-                          child: Center(
-                            child: Icon(
-                              Icons.home,
-                              color: selectedIndex == 0
-                                  ? Colors.white
-                                  : const Color(0xFF0C0315),
-                              size: 26.4,
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => onTap(0),
+                          borderRadius: BorderRadius.circular(20.0),
+                          child: SizedBox(
+                            width: 64,
+                            height: 64,
+                            child: Center(
+                              child: Icon(
+                                Icons.home,
+                                color: selectedIndex == 0
+                                    ? Colors.white
+                                    : const Color(0xFF0C0315),
+                                size: 26.4,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                      GestureDetector(
-                        onTap: () => onTap(1),
-                        child: SizedBox(
-                          width: 64,
-                          height: 64,
-                          child: Center(
-                            child: Icon(
-                              Icons.add,
-                              color: selectedIndex == 1
-                                  ? Colors.white
-                                  : const Color(0xFF0C0315),
-                              size: 24.0,
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => onTap(1),
+                          borderRadius: BorderRadius.circular(20.0),
+                          child: SizedBox(
+                            width: 64,
+                            height: 64,
+                            child: Center(
+                              child: Icon(
+                                Icons.add,
+                                color: selectedIndex == 1
+                                    ? Colors.white
+                                    : const Color(0xFF0C0315),
+                                size: 24.0,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                      GestureDetector(
-                        onTap: () => onTap(2),
-                        child: SizedBox(
-                          width: 64,
-                          height: 64,
-                          child: Center(
-                            child: Icon(
-                              Icons.history,
-                              color: selectedIndex == 2
-                                  ? Colors.white
-                                  : const Color(0xFF0C0315),
-                              size: 24.0,
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => onTap(2),
+                          borderRadius: BorderRadius.circular(20.0),
+                          child: SizedBox(
+                            width: 64,
+                            height: 64,
+                            child: Center(
+                              child: Icon(
+                                Icons.history,
+                                color: selectedIndex == 2
+                                    ? Colors.white
+                                    : const Color(0xFF0C0315),
+                                size: 24.0,
+                              ),
                             ),
                           ),
                         ),

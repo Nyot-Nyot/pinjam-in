@@ -873,6 +873,7 @@ class _LoanCardState extends State<_LoanCard>
                     if (result is LoanItem) widget.onEdit?.call(result);
                   },
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Left visual: show image if available, otherwise placeholder
                       Container(
@@ -901,7 +902,7 @@ class _LoanCardState extends State<_LoanCard>
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
                               widget.item.title,
@@ -911,6 +912,7 @@ class _LoanCardState extends State<_LoanCard>
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
                                 color: const Color(0xFF0C0315),
+                                height: 1.3,
                               ),
                             ),
                             const SizedBox(height: 6),

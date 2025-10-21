@@ -264,6 +264,7 @@ class _HistoryCard extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(12.0),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Left: thumbnail
               Container(
@@ -292,12 +293,15 @@ class _HistoryCard extends StatelessWidget {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       item.title,
                       style: GoogleFonts.arimo(
                         fontSize: 16,
+                        fontWeight: FontWeight.w700,
                         color: const Color(0xFF0C0315),
+                        height: 1.3,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
