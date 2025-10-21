@@ -23,12 +23,12 @@ These tasks set up the foundational structure of the project.
 
 This phase implements the authentication layer, which is a prerequisite for all other features.
 
--   [ ] T006 [P] Create an `AuthRepository` interface in `lib/src/features/auth/domain/repositories/auth_repository.dart`.
--   [ ] T007 [P] Implement `AuthRepositoryImpl` in `lib/src/features/auth/data/repositories/auth_repository_impl.dart` to handle Supabase login, logout, and session state.
--   [ ] T008 [P] Create Riverpod providers for the auth repository and auth state stream in `lib/src/features/auth/presentation/manager/auth_providers.dart`.
--   [ ] T009 Create a `LoginPage` UI in `lib/src/features/auth/presentation/pages/login_page.dart` with email/password fields.
--   [ ] T010 Create a `SplashPage` in `lib/src/features/auth/presentation/pages/splash_page.dart` to redirect users based on auth state.
--   [ ] T011 Implement login and logout functionality, connecting the UI to the auth providers.
+-   [x] T006 [P] Create an `AuthRepository` interface in `lib/src/features/auth/domain/repositories/auth_repository.dart`.
+-   [x] T007 [P] Implement `AuthRepositoryImpl` in `lib/src/features/auth/data/repositories/auth_repository_impl.dart` to handle Supabase login, logout, and session state.
+-   [x] T008 [P] Create Riverpod providers for the auth repository and auth state stream in `lib/src/features/auth/presentation/manager/auth_providers.dart`.
+-   [x] T009 Create a `LoginPage` UI in `lib/src/features/auth/presentation/pages/login_page.dart` with email/password fields.
+-   [x] T010 Create a `SplashPage` in `lib/src/features/auth/presentation/pages/splash_page.dart` to redirect users based on auth state.
+-   [x] T011 Implement login and logout functionality, connecting the UI to the auth providers.
 
 ## Phase 3: User Story 1 - Add a New Borrowed Item
 
