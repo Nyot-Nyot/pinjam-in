@@ -84,8 +84,15 @@ class SupabasePersistence implements PersistenceService {
     'borrower_name': item.borrower,
     'borrower_contact_id': item.contact,
     'borrow_date': item.createdAt?.toIso8601String(),
+    'due_date': item.dueDate != null
+        ? item.dueDate!.toLocal().toIso8601String().split(
+            'T',
+          )[0] // Date only in local time
+        : null,
     'return_date': item.returnedAt != null
-        ? item.returnedAt!.toIso8601String().split('T')[0] // Date only
+        ? item.returnedAt!.toLocal().toIso8601String().split(
+            'T',
+          )[0] // Date only in local time
         : null,
     'status': item.status == 'active' ? 'borrowed' : item.status,
     'notes': item.note,
@@ -103,6 +110,7 @@ class SupabasePersistence implements PersistenceService {
     }
 
     final borrowDate = parseTimestamp(m['borrow_date']);
+    final dueDate = parseTimestamp(m['due_date']);
     final returnDate = parseTimestamp(m['return_date']);
     final createdAt = parseTimestamp(m['created_at']) ?? borrowDate;
 
@@ -117,7 +125,7 @@ class SupabasePersistence implements PersistenceService {
       'borrower': m['borrower_name'] as String,
       'daysRemaining': null, // Will be computed from due_date if needed
       'createdAt': createdAt?.millisecondsSinceEpoch,
-      'dueDate': borrowDate?.millisecondsSinceEpoch,
+      'dueDate': dueDate?.millisecondsSinceEpoch,
       'returnedAt': returnDate?.millisecondsSinceEpoch,
       'note': m['notes'] as String?,
       'contact': m['borrower_contact_id'] as String?,

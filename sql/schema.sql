@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS public.items (
   borrower_name TEXT NOT NULL CHECK (char_length(borrower_name) >= 3),
   borrower_contact_id TEXT,
   borrow_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  due_date DATE,
   return_date DATE,
   status TEXT NOT NULL DEFAULT 'borrowed' CHECK (status IN ('borrowed', 'returned')),
   notes TEXT,

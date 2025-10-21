@@ -1384,7 +1384,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
                         borrower: borrower,
                         daysRemaining: daysRemaining,
                         createdAt: widget.initial?.createdAt ?? now,
-                        dueDate: _selectedDate?.toUtc(),
+                        dueDate:
+                            _selectedDate, // Keep as local date, don't convert to UTC
                         returnedAt: widget.initial?.returnedAt,
                         note: _noteController.text.trim().isEmpty
                             ? null

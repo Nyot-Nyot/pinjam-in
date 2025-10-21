@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+
 class BottomNav extends StatelessWidget {
   const BottomNav({
     super.key,
@@ -36,26 +38,22 @@ class BottomNav extends StatelessWidget {
 
     return Container(
       decoration: const BoxDecoration(
-        color: Color(0xFFEBE1F7),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
-        boxShadow: [
-          BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.12),
-            offset: Offset(0, -4),
-            blurRadius: 16,
-          ),
-        ],
+        color: AppTheme.backgroundCard,
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppTheme.radiusXxl),
+        ),
+        boxShadow: AppTheme.shadowMedium,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Divider(color: Color(0xFFE6DBF8), height: 1),
+          const Divider(color: AppTheme.borderLight, height: 1),
           Padding(
             padding: const EdgeInsets.only(
-              top: 12.0,
-              left: 20.0,
-              right: 20.0,
-              bottom: 12.0,
+              top: AppTheme.spacingM,
+              left: AppTheme.radiusXxl,
+              right: AppTheme.radiusXxl,
+              bottom: AppTheme.spacingM,
             ),
             child: SizedBox(
               height: 72,
@@ -69,8 +67,8 @@ class BottomNav extends StatelessWidget {
                       width: 64,
                       height: 64,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF8530E4),
-                        borderRadius: BorderRadius.circular(20.0),
+                        color: AppTheme.primaryPurple,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusXxl),
                       ),
                     ),
                   ),

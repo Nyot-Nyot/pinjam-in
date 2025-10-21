@@ -131,8 +131,15 @@ class LoanItem {
   int? get computedDaysRemaining {
     if (returnedAt != null) return null;
     if (dueDate != null) {
-      final now = DateTime.now().toUtc();
-      return dueDate!.toUtc().difference(now).inDays;
+      // Compare dates in local time since dueDate is stored as DATE (not TIMESTAMP)
+      final now = DateTime.now();
+      final due = dueDate!.toLocal();
+
+      // Normalize to start of day for accurate day calculation
+      final nowDate = DateTime(now.year, now.month, now.day);
+      final dueDateNormalized = DateTime(due.year, due.month, due.day);
+
+      return dueDateNormalized.difference(nowDate).inDays;
     }
     return daysRemaining;
   }

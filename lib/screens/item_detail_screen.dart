@@ -25,6 +25,30 @@ class ItemDetailScreen extends StatefulWidget {
 }
 
 class _ItemDetailScreenState extends State<ItemDetailScreen> {
+  String _formatDate(DateTime? date) {
+    if (date == null) return '-';
+    final local = date.toLocal();
+    return '${local.day} ${_monthName(local.month)} ${local.year}';
+  }
+
+  String _monthName(int m) {
+    const names = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Agu',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Des',
+    ];
+    return names[(m - 1).clamp(0, 11)];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -383,13 +407,15 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                     // Info tiles
                     _infoRow(
                       'Tanggal Pinjam',
-                      '1 Okt 2025',
+                      _formatDate(widget.item.createdAt),
                       Icons.calendar_today,
                     ),
                     const SizedBox(height: 8),
                     _infoRow(
                       'Target Kembali',
-                      '5 Okt 2025',
+                      widget.item.dueDate != null
+                          ? _formatDate(widget.item.dueDate)
+                          : 'Tanpa batas',
                       Icons.calendar_today_outlined,
                     ),
                     const SizedBox(height: 8),

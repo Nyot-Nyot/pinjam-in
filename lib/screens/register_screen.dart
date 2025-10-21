@@ -346,10 +346,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                                       email: email,
                                                       password: password,
                                                     );
-                                            final err = SupabasePersistence
-                                                .authErrorFromResponse(
-                                              res,
-                                            );
+                                            final err =
+                                                SupabasePersistence.authErrorFromResponse(
+                                                  res,
+                                                );
                                             if (err != null) {
                                               if (context.mounted) {
                                                 ScaffoldMessenger.of(
@@ -464,10 +464,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                                         email: email,
                                                         password: password,
                                                       );
-                                              final err = SupabasePersistence
-                                                  .authErrorFromResponse(
-                                                res,
-                                              );
+                                              final err =
+                                                  SupabasePersistence.authErrorFromResponse(
+                                                    res,
+                                                  );
                                               if (err != null) {
                                                 if (context.mounted) {
                                                   ScaffoldMessenger.of(

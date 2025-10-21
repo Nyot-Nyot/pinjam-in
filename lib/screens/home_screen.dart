@@ -8,6 +8,7 @@ import '../models/loan_item.dart';
 import '../services/persistence_service.dart';
 import '../services/shared_prefs_persistence.dart';
 import '../services/supabase_persistence.dart';
+import '../theme/app_theme.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/loan_card.dart';
@@ -405,18 +406,18 @@ class _HomeScreenState extends State<HomeScreen> {
         // Header area with gradient background
         Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
+            gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                const Color(0xFF8530E4),
-                const Color(0xFF9D5FE8),
-                const Color(0xFFB48FEC),
+                AppTheme.primaryPurple,
+                Color(0xFF9D5FE8),
+                Color(0xFFB48FEC),
               ],
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF8530E4).withOpacity(0.3),
+                color: AppTheme.primaryPurple.withOpacity(0.3),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -483,7 +484,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     child: Text(
                                       'Batal',
                                       style: GoogleFonts.arimo(
-                                        color: const Color(0xFF6B5E78),
+                                        color: AppTheme.textSecondary,
                                       ),
                                     ),
                                   ),
@@ -491,7 +492,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     onPressed: () =>
                                         Navigator.pop(context, true),
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF8530E4),
+                                      backgroundColor: AppTheme.primaryPurple,
                                     ),
                                     child: Text(
                                       'Logout',
@@ -611,10 +612,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         const Icon(
                           Icons.search,
-                          color: Color(0xFF8530E4),
+                          color: AppTheme.primaryPurple,
                           size: 22,
                         ),
-                        const SizedBox(width: 12.0),
+                        const SizedBox(width: AppTheme.spacingM),
                         Expanded(
                           child: Semantics(
                             textField: true,
