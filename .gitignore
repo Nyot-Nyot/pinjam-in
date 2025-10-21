@@ -1,26 +1,3 @@
-.dart_tool/
-.idea/
-.gradle/
-build/
-/.dart_tool/
-/.packages
-/.pub-cache/
-/.vscode/
-android/.gradle/
-**/generated_plugin_registrant.*
-ios/Flutter/Flutter.podspec
-**/Flutter/Flutter.framework
-**/Flutter/Flutter.podspec
-**/Flutter/engine/
-**/Flutter/Flutter.podspec
-*.iml
-*.lock
-pubspec.lock
-*.log
-*.keystore
-fastlane/report.xml
-coverage/
-**/local.properties
 # Miscellaneous
 *.class
 *.log
@@ -66,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Local environment variables (do NOT commit your real keys)
+.env
