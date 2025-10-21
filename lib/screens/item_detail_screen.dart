@@ -140,9 +140,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                             'item': widget.item,
                           });
                         } else if (choice == 'delete') {
-                          if (!mounted) return;
-                          // safe: we checked mounted immediately before showing the dialog
-                          // ignore: use_build_context_synchronously
+                          // Ask for confirmation; capture result then check mounted
                           final confirm = await showDialog<bool>(
                             context: context,
                             builder: (ctx) => AlertDialog(
@@ -165,6 +163,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                               ],
                             ),
                           );
+
+                          if (!mounted) return;
                           if (confirm == true) {
                             navigator.pop<Map<String, dynamic>>({
                               'action': 'delete',

@@ -16,4 +16,14 @@ abstract class PersistenceService {
   }) async {
     await Future.wait([saveActive(active), saveHistory(history)]);
   }
+
+  /// Optional image upload helper for persistence backends that support
+  /// remote storage (e.g. Supabase Storage). Implementations that don't
+  /// support uploads can return null.
+  Future<String?> uploadImage(String localPath, String itemId) async => null;
+
+  /// Optional: return the currently-authenticated user's id when the
+  /// persistence backend supports authentication (e.g. Supabase).
+  /// Default implementations return null.
+  Future<String?> currentUserId() async => null;
 }

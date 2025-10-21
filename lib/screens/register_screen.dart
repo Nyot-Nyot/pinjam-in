@@ -1,14 +1,61 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../services/supabase_utils.dart';
 
 const String _logoAsset = 'assets/images/logo-purple.svg';
 const String _enterIconAsset = 'assets/images/enter.svg';
 
-class RegisterScreen extends StatelessWidget {
+class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
   static const double _cardWidth = 329.6;
+
+  @override
+  State<RegisterScreen> createState() => _RegisterScreenState();
+}
+
+class _RegisterScreenState extends State<RegisterScreen> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = false;
+
+  String? _safeDotenv(String key) {
+    try {
+      if (dotenv.env.isEmpty) {
+        try {
+          dotenv.load(fileName: '.env');
+        } catch (_) {}
+      }
+      final v = dotenv.env[key];
+      if (v == null) return null;
+      final trimmed = v.trim();
+      if (trimmed.length >= 2 &&
+          ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+              (trimmed.startsWith("'") && trimmed.endsWith("'")))) {
+        return trimmed.substring(1, trimmed.length - 1);
+      }
+      return trimmed;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  // use auth error helper from services/supabase_utils.dart
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +71,9 @@ class RegisterScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 32.0),
                   child: Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: _cardWidth),
+                      constraints: const BoxConstraints(
+                        maxWidth: RegisterScreen._cardWidth,
+                      ),
                       child: Column(
                         mainAxisSize: MainAxisSize.max,
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -78,9 +127,9 @@ class RegisterScreen extends StatelessWidget {
 
                           const SizedBox(height: 40.0),
 
-                          // Form fields (static placeholders)
+                          // Form fields
                           SizedBox(
-                            width: _cardWidth,
+                            width: RegisterScreen._cardWidth,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
@@ -110,14 +159,18 @@ class RegisterScreen extends StatelessWidget {
                                       ),
                                     ],
                                   ),
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: Text(
-                                      'Nama Anda',
-                                      style: GoogleFonts.arimo(
+                                  child: TextField(
+                                    controller: _nameController,
+                                    decoration: InputDecoration.collapsed(
+                                      hintText: 'Nama Anda',
+                                      hintStyle: GoogleFonts.arimo(
                                         fontSize: 16.0,
                                         color: const Color(0xFF4A3D5C),
                                       ),
+                                    ),
+                                    style: GoogleFonts.arimo(
+                                      fontSize: 16.0,
+                                      color: const Color(0xFF4A3D5C),
                                     ),
                                   ),
                                 ),
@@ -150,14 +203,19 @@ class RegisterScreen extends StatelessWidget {
                                       ),
                                     ],
                                   ),
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: Text(
-                                      'nama@email.com',
-                                      style: GoogleFonts.arimo(
+                                  child: TextField(
+                                    controller: _emailController,
+                                    keyboardType: TextInputType.emailAddress,
+                                    decoration: InputDecoration.collapsed(
+                                      hintText: 'nama@email.com',
+                                      hintStyle: GoogleFonts.arimo(
                                         fontSize: 16.0,
                                         color: const Color(0xFF4A3D5C),
                                       ),
+                                    ),
+                                    style: GoogleFonts.arimo(
+                                      fontSize: 16.0,
+                                      color: const Color(0xFF4A3D5C),
                                     ),
                                   ),
                                 ),
@@ -190,14 +248,19 @@ class RegisterScreen extends StatelessWidget {
                                       ),
                                     ],
                                   ),
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: Text(
-                                      'Minimal 6 karakter',
-                                      style: GoogleFonts.arimo(
+                                  child: TextField(
+                                    controller: _passwordController,
+                                    obscureText: true,
+                                    decoration: InputDecoration.collapsed(
+                                      hintText: 'Minimal 6 karakter',
+                                      hintStyle: GoogleFonts.arimo(
                                         fontSize: 16.0,
                                         color: const Color(0xFF4A3D5C),
                                       ),
+                                    ),
+                                    style: GoogleFonts.arimo(
+                                      fontSize: 16.0,
+                                      color: const Color(0xFF4A3D5C),
                                     ),
                                   ),
                                 ),
@@ -224,7 +287,250 @@ class RegisterScreen extends StatelessWidget {
                                         0.12,
                                       ),
                                     ),
-                                    onPressed: () {},
+                                    onPressed: () async {
+                                      if (_isLoading) return;
+                                      setState(() => _isLoading = true);
+
+                                      final email = _emailController.text
+                                          .trim();
+                                      final password = _passwordController.text;
+
+                                      final env = Platform.environment;
+                                      final supabaseUrl =
+                                          _safeDotenv('SUPABASE_URL') ??
+                                          env['SUPABASE_URL'] ??
+                                          const String.fromEnvironment(
+                                            'SUPABASE_URL',
+                                            defaultValue: '',
+                                          );
+                                      final supabaseKey =
+                                          _safeDotenv('SUPABASE_ANON_KEY') ??
+                                          env['SUPABASE_ANON_KEY'] ??
+                                          const String.fromEnvironment(
+                                            'SUPABASE_ANON_KEY',
+                                            defaultValue: '',
+                                          );
+
+                                      bool created = false;
+
+                                      if (supabaseUrl.isNotEmpty &&
+                                          supabaseKey.isNotEmpty) {
+                                        try {
+                                          try {
+                                            await Supabase.initialize(
+                                              url: supabaseUrl,
+                                              anonKey: supabaseKey,
+                                            );
+                                          } catch (e) {
+                                            final s = e.toString();
+                                            if (s.contains(
+                                                  'already initialized',
+                                                ) ||
+                                                s.contains(
+                                                  'already been initialized',
+                                                ) ||
+                                                s.contains(
+                                                  'this instance is already initialized',
+                                                )) {
+                                              // ignore: supabase already initialized
+                                            } else {
+                                              rethrow;
+                                            }
+                                          }
+                                          final client =
+                                              Supabase.instance.client;
+                                          try {
+                                            final res =
+                                                await (client.auth as dynamic)
+                                                    .signUp(
+                                                      email: email,
+                                                      password: password,
+                                                    );
+                                            final err = authErrorFromResponse(
+                                              res,
+                                            );
+                                            if (err != null) {
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      'Daftar gagal: ${err.toString()}',
+                                                    ),
+                                                  ),
+                                                );
+                                              }
+                                            } else {
+                                              // Sign-up succeeded. Attempt to store the
+                                              // user's display name into the `users` table
+                                              // so other parts of the app can read it.
+                                              var profileInserted = false;
+                                              try {
+                                                final name = _nameController
+                                                    .text
+                                                    .trim();
+                                                if (name.isNotEmpty) {
+                                                  final tbl =
+                                                      (client as dynamic).from(
+                                                        'users',
+                                                      );
+                                                  String? uid;
+                                                  try {
+                                                    final userObj =
+                                                        (res as dynamic).user ??
+                                                        (res as dynamic)
+                                                            .data
+                                                            ?.user;
+                                                    uid =
+                                                        userObj?.id as String?;
+                                                  } catch (_) {}
+
+                                                  final payload = {
+                                                    if (uid != null) 'id': uid,
+                                                    'email': _emailController
+                                                        .text
+                                                        .trim(),
+                                                    'display_name': name,
+                                                    'created_at': DateTime.now()
+                                                        .toUtc()
+                                                        .millisecondsSinceEpoch,
+                                                  };
+
+                                                  try {
+                                                    await (tbl as dynamic)
+                                                        .insert(payload);
+                                                    profileInserted = true;
+                                                  } catch (_) {
+                                                    try {
+                                                      await (tbl as dynamic)
+                                                          .insert({
+                                                            'email':
+                                                                _emailController
+                                                                    .text
+                                                                    .trim(),
+                                                            'display_name':
+                                                                name,
+                                                            'created_at':
+                                                                DateTime.now()
+                                                                    .toUtc()
+                                                                    .millisecondsSinceEpoch,
+                                                          });
+                                                      profileInserted = true;
+                                                    } catch (_) {
+                                                      profileInserted = false;
+                                                    }
+                                                  }
+                                                } else {
+                                                  // nothing to write but treat as success
+                                                  profileInserted = true;
+                                                }
+                                              } catch (_) {
+                                                profileInserted = false;
+                                              }
+
+                                              created = true;
+                                              // Provide user feedback about profile insert
+                                              if (context.mounted) {
+                                                if (profileInserted) {
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
+                                                    const SnackBar(
+                                                      content: Text(
+                                                        'Akun dibuat dan profil tersimpan',
+                                                      ),
+                                                    ),
+                                                  );
+                                                } else {
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
+                                                    const SnackBar(
+                                                      content: Text(
+                                                        'Akun dibuat, tetapi gagal menyimpan profil (silakan periksa koneksi).',
+                                                      ),
+                                                    ),
+                                                  );
+                                                }
+                                              }
+                                            }
+                                          } catch (_) {
+                                            try {
+                                              final res =
+                                                  await (client.auth as dynamic)
+                                                      .signUp(
+                                                        email: email,
+                                                        password: password,
+                                                      );
+                                              final err = authErrorFromResponse(
+                                                res,
+                                              );
+                                              if (err != null) {
+                                                if (context.mounted) {
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        'Daftar gagal: ${err.toString()}',
+                                                      ),
+                                                    ),
+                                                  );
+                                                }
+                                              } else {
+                                                created = true;
+                                              }
+                                            } catch (e) {
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      'Daftar error: $e',
+                                                    ),
+                                                  ),
+                                                );
+                                              }
+                                            }
+                                          }
+                                        } catch (e) {
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'Supabase init failed: $e',
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      } else {
+                                        // Supabase not configured: do NOT simulate success.
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Supabase belum dikonfigurasi. Tambahkan SUPABASE_URL dan SUPABASE_ANON_KEY di .env sebelum mendaftar.',
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      }
+
+                                      setState(() => _isLoading = false);
+
+                                      if (!created) return;
+
+                                      // Return the email to prefill login
+                                      if (!context.mounted) return;
+                                      Navigator.pop(context, email);
+                                    },
                                     child: Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
@@ -261,7 +567,7 @@ class RegisterScreen extends StatelessWidget {
 
                           // Footer -> navigate back to login
                           SizedBox(
-                            width: _cardWidth,
+                            width: RegisterScreen._cardWidth,
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [

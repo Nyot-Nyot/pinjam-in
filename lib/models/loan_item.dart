@@ -139,4 +139,36 @@ class LoanItem {
     }
     return daysRemaining;
   }
+
+  LoanItem copyWith({
+    String? id,
+    String? title,
+    String? borrower,
+    int? daysRemaining,
+    DateTime? createdAt,
+    DateTime? dueDate,
+    DateTime? returnedAt,
+    String? note,
+    String? contact,
+    String? imagePath,
+    String? imageUrl,
+    String? ownerId,
+    String? status,
+  }) {
+    return LoanItem(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      borrower: borrower ?? this.borrower,
+      daysRemaining: daysRemaining ?? this.daysRemaining,
+      createdAt: createdAt ?? this.createdAt,
+      dueDate: dueDate ?? this.dueDate,
+      returnedAt: returnedAt ?? this.returnedAt,
+      note: note ?? this.note,
+      contact: contact ?? this.contact,
+      imagePath: imagePath ?? this.imagePath,
+      imageUrl: imageUrl ?? this.imageUrl,
+      ownerId: ownerId ?? this.ownerId,
+      status: status ?? this.status,
+    );
+  }
 }

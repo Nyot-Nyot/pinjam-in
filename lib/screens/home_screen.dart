@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/loan_item.dart';
 import '../services/persistence_service.dart';
 import '../services/shared_prefs_persistence.dart';
+import '../services/supabase_persistence.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/local_image.dart';
 import 'add_item_screen.dart';
@@ -64,13 +66,51 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // persistence keys moved to SharedPrefsPersistence implementation
 
-  PersistenceService get _persistence =>
-      widget.persistence ?? SharedPrefsPersistence();
+  PersistenceService get _persistence {
+    // If a persistence impl was passed explicitly, use it.
+    if (widget.persistence != null) return widget.persistence!;
+
+    // Prefer Supabase persistence if the Supabase client is initialized.
+    try {
+      final client = Supabase.instance.client;
+      return SupabasePersistence.fromClient(client);
+    } catch (_) {}
+
+    // Fallback to shared prefs local persistence.
+    return SharedPrefsPersistence();
+  }
 
   Future<void> _saveAll() async {
     try {
       await _persistence.saveAll(active: _active, history: _history);
-    } catch (_) {}
+    } catch (e) {
+      // If the SupabasePersistence signaled unauthenticated / RLS 403
+      // fall back to local shared prefs and notify the user.
+      final msg = e.toString();
+      if (msg.contains('Tidak terautentikasi') || msg.contains('RLS')) {
+        // Fallback: save locally
+        final local = SharedPrefsPersistence();
+        try {
+          await local.saveAll(active: _active, history: _history);
+        } catch (_) {}
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Gagal menyimpan ke server (autentikasi). Data disimpan secara lokal. Silakan masuk untuk menyinkronkan.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      // Surface other persistence errors to the user so failures aren't silent
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.showSnackBar(
+        SnackBar(content: Text('Gagal menyimpan data: $e')),
+      );
+      // Re-throw so callers can also handle if needed
+      rethrow;
+    }
   }
 
   Future<void> _loadAll() async {
@@ -91,7 +131,12 @@ class _HomeScreenState extends State<HomeScreen> {
       final idx = _active.indexWhere((e) => e.id == id);
       if (idx != -1) {
         final item = _active.removeAt(idx);
-        _history.add(item);
+        // mark as returned so the persistence backend stores correct status
+        final returned = item.copyWith(
+          status: 'returned',
+          returnedAt: DateTime.now().toUtc(),
+        );
+        _history.add(returned);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${item.title} dipindahkan ke Riwayat'),
@@ -99,9 +144,12 @@ class _HomeScreenState extends State<HomeScreen> {
               label: 'Undo',
               onPressed: () {
                 setState(() {
-                  // restore to the top of active list
+                  // restore to the top of active list and clear returned metadata
                   _history.removeWhere((h) => h.id == item.id);
-                  _active.insert(0, item);
+                  _active.insert(
+                    0,
+                    item.copyWith(status: 'active', returnedAt: null),
+                  );
                 });
                 _saveAll();
               },
@@ -126,16 +174,100 @@ class _HomeScreenState extends State<HomeScreen> {
           // embed Add screen so bottom nav stays visible; use onSave to receive items
           AddItemScreen(
             initial: _editingItem,
-            onSave: (newItem) {
+
+            onSave: (newItem) async {
+              // Ensure we know the current user id for owner assignment and
+              // for diagnosing upload permission problems.
+              String? uid;
+              try {
+                uid = await _persistence.currentUserId();
+              } catch (_) {
+                uid = null;
+              }
+
+              // If the item has a local image path, attempt upload and show
+              // any errors to the user so they're not silent.
+              String? imageUrl = newItem.imageUrl;
+              if (newItem.imagePath != null) {
+                try {
+                  final res = await _persistence.uploadImage(
+                    newItem.imagePath!,
+                    newItem.id,
+                  );
+                  if (res != null) {
+                    imageUrl = res;
+                  } else {
+                    // Upload returned null (no URL) — treat as failure and
+                    // abort saving to avoid RLS/upsert errors.
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Gagal mengunggah gambar (tidak ada URL dikembalikan). Silakan coba lagi. User id: ${uid ?? '<anonymous>'}',
+                          ),
+                          duration: const Duration(seconds: 5),
+                        ),
+                      );
+                    }
+                    return;
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Gagal mengunggah gambar: $e. Pastikan Anda sudah login dan bucket storage membolehkan upload. (user: ${uid ?? '<anon>'})',
+                        ),
+                        duration: const Duration(seconds: 6),
+                      ),
+                    );
+                  }
+                  // Abort saving since upload failed
+                  return;
+                }
+              }
+
+              // Build the item and assign ownerId immediately so saveAll
+              // includes it in the upsert payload.
+              final itemToSave = LoanItem(
+                id: newItem.id,
+                title: newItem.title,
+                borrower: newItem.borrower,
+                daysRemaining: newItem.daysRemaining,
+                createdAt: newItem.createdAt,
+                dueDate: newItem.dueDate,
+                returnedAt: newItem.returnedAt,
+                note: newItem.note,
+                contact: newItem.contact,
+                imagePath: newItem.imagePath,
+                imageUrl: imageUrl,
+                ownerId: newItem.ownerId ?? uid,
+                status: newItem.status,
+              );
+
               setState(() {
                 if (_editingItem != null) {
-                  final i = _active.indexWhere((e) => e.id == newItem.id);
-                  if (i != -1) _active[i] = newItem;
+                  final i = _active.indexWhere((e) => e.id == itemToSave.id);
+                  if (i != -1) _active[i] = itemToSave;
                 } else {
-                  _active.insert(0, newItem);
+                  _active.insert(0, itemToSave);
                 }
                 _editingItem = null;
               });
+              // Ensure ownerId is set to current user if backend supports auth
+              try {
+                final uid = await _persistence.currentUserId();
+                if (uid != null) {
+                  setState(() {
+                    final idx = _active.indexWhere(
+                      (e) => e.id == itemToSave.id,
+                    );
+                    if (idx != -1) {
+                      _active[idx] = _active[idx].copyWith(ownerId: uid);
+                    }
+                  });
+                }
+              } catch (_) {}
               _saveAll();
               _pageController.animateToPage(
                 0,
@@ -183,9 +315,16 @@ class _HomeScreenState extends State<HomeScreen> {
             onRestore: (item) {
               setState(() {
                 _history.removeWhere((h) => h.id == item.id);
-                _active.insert(0, item);
+                // Clear returned metadata when restoring
+                final restored = item.copyWith(
+                  status: 'active',
+                  returnedAt: null,
+                );
+                _active.insert(0, restored);
               });
-              _saveAll();
+              try {
+                _saveAll();
+              } catch (_) {}
             },
             onRequestEdit: (item) {
               setState(() => _editingItem = item);

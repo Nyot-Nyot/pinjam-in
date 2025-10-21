@@ -68,4 +68,17 @@ class SharedPrefsPersistence implements PersistenceService {
   }) async {
     await Future.wait([saveActive(active), saveHistory(history)]);
   }
+
+  @override
+  Future<String?> uploadImage(String localPath, String itemId) async {
+    // Shared preferences backend doesn't support remote uploads. Return null
+    // so callers can fall back to the local path.
+    return null;
+  }
+
+  @override
+  Future<String?> currentUserId() async {
+    // No auth for local persistence
+    return null;
+  }
 }
