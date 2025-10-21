@@ -13,11 +13,11 @@ The strategy is to build the application in layers, starting with a solid founda
 
 These tasks set up the foundational structure of the project.
 
--   [ ] T001 Create project folder structure as defined in `plan.md`.
--   [ ] T002 Add dependencies (`supabase_flutter`, `flutter_riverpod`, `image_picker`, `flutter_contacts`) to `pubspec.yaml`.
--   [ ] T003 Initialize Supabase in `lib/main.dart` using credentials from environment variables.
--   [ ] T004 Set up basic app theme, colors, and typography in a `lib/src/core/theme` directory.
--   [ ] T005 Create a `lib/src/core/utils/router.dart` for app navigation (e.g., using GoRouter).
+-   [x] T001 Create project folder structure as defined in `plan.md`.
+-   [x] T002 Add dependencies (`supabase_flutter`, `flutter_riverpod`, `image_picker`, `flutter_contacts`) to `pubspec.yaml`.
+-   [x] T003 Initialize Supabase in `lib/main.dart` using credentials from environment variables.
+-   [x] T004 Set up basic app theme, colors, and typography in a `lib/src/core/theme` directory.
+-   [x] T005 Create a `lib/src/core/utils/router.dart` for app navigation (e.g., using GoRouter).
 
 ## Phase 2: Authentication (Foundational)
 
