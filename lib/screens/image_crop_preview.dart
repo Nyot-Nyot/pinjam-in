@@ -167,11 +167,47 @@ class _ImageCropPreviewState extends State<ImageCropPreview> {
                                     return IgnorePointer(
                                       child: Stack(
                                         children: [
-                                          Positioned.fill(
+                                          // Top overlay (above crop box)
+                                          Positioned(
+                                            left: 0,
+                                            top: 0,
+                                            right: 0,
+                                            height: top,
                                             child: Container(
                                               color: Colors.black54,
                                             ),
                                           ),
+                                          // Bottom overlay (below crop box)
+                                          Positioned(
+                                            left: 0,
+                                            top: top + size,
+                                            right: 0,
+                                            bottom: 0,
+                                            child: Container(
+                                              color: Colors.black54,
+                                            ),
+                                          ),
+                                          // Left overlay (left of crop box)
+                                          Positioned(
+                                            left: 0,
+                                            top: top,
+                                            width: left,
+                                            height: size,
+                                            child: Container(
+                                              color: Colors.black54,
+                                            ),
+                                          ),
+                                          // Right overlay (right of crop box)
+                                          Positioned(
+                                            left: left + size,
+                                            top: top,
+                                            right: 0,
+                                            height: size,
+                                            child: Container(
+                                              color: Colors.black54,
+                                            ),
+                                          ),
+                                          // Crop box border (transparent inside)
                                           Positioned(
                                             left: left,
                                             top: top,

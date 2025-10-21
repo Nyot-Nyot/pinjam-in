@@ -1379,9 +1379,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
                       final now = DateTime.now().toUtc();
                       final newItem = LoanItem(
-                        id:
-                            widget.initial?.id ??
-                            const Uuid().v4(),
+                        id: widget.initial?.id ?? const Uuid().v4(),
                         title: title,
                         borrower: borrower,
                         daysRemaining: daysRemaining,

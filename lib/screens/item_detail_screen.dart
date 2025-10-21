@@ -4,17 +4,20 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/loan_item.dart';
+import '../services/persistence_service.dart';
 import '../services/share_service.dart';
-import '../widgets/local_image.dart';
+import '../widgets/storage_image.dart';
 
 class ItemDetailScreen extends StatefulWidget {
   const ItemDetailScreen({
     super.key,
     required this.item,
+    required this.persistence,
     this.isInHistory = false,
   });
 
   final LoanItem item;
+  final PersistenceService persistence;
   final bool isInHistory;
 
   @override
@@ -36,16 +39,14 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                 height: 320,
                 width: double.infinity,
                 color: const Color(0xFFD9CCE8),
-                child: widget.item.imagePath != null
-                    ? LocalImage(
-                        path: widget.item.imagePath,
-                        width: double.infinity,
-                        height: 320,
-                        fit: BoxFit.cover,
-                      )
-                    : const Center(
-                        child: Text('📦', style: TextStyle(fontSize: 120)),
-                      ),
+                child: StorageImage(
+                  imagePath: widget.item.imagePath,
+                  imageUrl: widget.item.imageUrl,
+                  persistence: widget.persistence,
+                  width: double.infinity,
+                  height: 320,
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
           ),

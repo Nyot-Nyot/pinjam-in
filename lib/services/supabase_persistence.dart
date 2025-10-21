@@ -224,9 +224,11 @@ class SupabasePersistence implements PersistenceService {
       );
     }
 
-    // Create a deterministic object name following RLS policy pattern: user_id/item_id.jpg
+    // Create object name following RLS policy pattern: user_id/{filename}
+    // Add timestamp to avoid 409 Duplicate errors when updating item photos
     // This allows RLS policy to check: auth.uid()::text = (storage.foldername(name))[1]
-    final key = '$uid/$itemId.jpg';
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final key = '$uid/${itemId}_$timestamp.jpg';
 
     // Try to upload using several possible APIs and inspect responses.
     final from = (storage as dynamic).from(_kImagesBucket);
@@ -375,6 +377,51 @@ class SupabasePersistence implements PersistenceService {
         return user?.id as String?;
       } catch (_) {}
     } catch (_) {}
+    return null;
+  }
+
+  /// Get a signed URL for a photo stored in the bucket.
+  /// The photoUrl should be the storage path (e.g., "user_id/item_id_timestamp.jpg")
+  /// Returns a signed URL that works with private buckets.
+  Future<String?> getSignedUrl(String photoUrl) async {
+    if (photoUrl.isEmpty) return null;
+
+    try {
+      final storage = _client.storage;
+      final from = (storage as dynamic).from(_kImagesBucket);
+
+      // Extract just the path if it's a full URL
+      String path = photoUrl;
+      if (photoUrl.contains('/storage/v1/object/')) {
+        // Extract path from full URL
+        final parts = photoUrl.split('/storage/v1/object/');
+        if (parts.length > 1) {
+          // Remove bucket prefix (public/bucket_name/ or authenticated/bucket_name/)
+          final afterObject = parts[1];
+          final pathParts = afterObject.split('/');
+          if (pathParts.length > 2) {
+            path = pathParts.sublist(2).join('/');
+          }
+        }
+      }
+
+      // Create a signed URL valid for 1 year
+      final signed = await (from as dynamic).createSignedUrl(
+        path,
+        60 * 60 * 24 * 365, // 1 year in seconds
+      );
+
+      if (signed is Map &&
+          (signed['signedURL'] != null || signed['signedUrl'] != null)) {
+        return (signed['signedURL'] ?? signed['signedUrl']) as String;
+      }
+      if (signed is String) {
+        return signed;
+      }
+    } catch (e) {
+      print('Error creating signed URL for $photoUrl: $e');
+    }
+
     return null;
   }
 }

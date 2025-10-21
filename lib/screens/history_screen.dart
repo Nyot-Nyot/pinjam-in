@@ -2,19 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../models/loan_item.dart';
-import '../widgets/local_image.dart';
+import '../services/persistence_service.dart';
+import '../widgets/storage_image.dart';
 import 'item_detail_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({
     super.key,
     required this.history,
+    required this.persistence,
     this.onDelete,
     this.onRestore,
     this.onRequestEdit,
   });
 
   final List<LoanItem> history;
+  final PersistenceService persistence;
   final ValueChanged<LoanItem>? onDelete;
   final ValueChanged<LoanItem>? onRestore;
   final ValueChanged<LoanItem>? onRequestEdit;
@@ -128,6 +131,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         final item = filtered[index];
                         return _HistoryCard(
                           item: item,
+                          persistence: widget.persistence,
                           onDelete: widget.onDelete,
                           onRestore: widget.onRestore,
                           onRequestEdit: widget.onRequestEdit,
@@ -145,12 +149,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
 class _HistoryCard extends StatelessWidget {
   const _HistoryCard({
     required this.item,
+    required this.persistence,
     this.onDelete,
     this.onRestore,
     this.onRequestEdit,
   });
 
   final LoanItem item;
+  final PersistenceService persistence;
   final ValueChanged<LoanItem>? onDelete;
   final ValueChanged<LoanItem>? onRestore;
   final ValueChanged<LoanItem>? onRequestEdit;
@@ -161,7 +167,11 @@ class _HistoryCard extends StatelessWidget {
       onTap: () async {
         final result = await Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => ItemDetailScreen(item: item, isInHistory: true),
+            builder: (_) => ItemDetailScreen(
+              item: item,
+              persistence: persistence,
+              isInHistory: true,
+            ),
           ),
         );
         if (result is Map<String, dynamic>) {
@@ -202,16 +212,14 @@ class _HistoryCard extends StatelessWidget {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(14),
-                  child: item.imagePath != null
-                      ? LocalImage(
-                          path: item.imagePath,
-                          width: 64,
-                          height: 64,
-                          fit: BoxFit.cover,
-                        )
-                      : const Center(
-                          child: Text('📦', style: TextStyle(fontSize: 24)),
-                        ),
+                  child: StorageImage(
+                    imagePath: item.imagePath,
+                    imageUrl: item.imageUrl,
+                    persistence: persistence,
+                    width: 64,
+                    height: 64,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
 

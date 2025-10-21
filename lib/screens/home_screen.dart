@@ -9,7 +9,7 @@ import '../services/persistence_service.dart';
 import '../services/shared_prefs_persistence.dart';
 import '../services/supabase_persistence.dart';
 import '../widgets/bottom_nav.dart';
-import '../widgets/local_image.dart';
+import '../widgets/storage_image.dart';
 import 'add_item_screen.dart';
 import 'history_screen.dart';
 import 'item_detail_screen.dart';
@@ -286,6 +286,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           HistoryScreen(
             history: _history,
+            persistence: _persistence,
             onDelete: (item) {
               // Find index so we can restore to same position on undo
               final idx = _history.indexWhere((h) => h.id == item.id);
@@ -533,6 +534,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   return _LoanCard(
                     key: ValueKey(item.id),
                     item: item,
+                    persistence: _persistence,
                     onComplete: () => _onItemDismissed(item.id),
                     onEdit: (updated) {
                       setState(() {
@@ -588,12 +590,14 @@ class _LoanCard extends StatefulWidget {
   const _LoanCard({
     super.key,
     required this.item,
+    required this.persistence,
     this.onComplete,
     this.onEdit,
     this.onRequestEdit,
   });
 
   final LoanItem item;
+  final PersistenceService persistence;
   final VoidCallback? onComplete;
   final ValueChanged<LoanItem>? onEdit;
   final ValueChanged<LoanItem>? onRequestEdit;
@@ -710,7 +714,10 @@ class _LoanCardState extends State<_LoanCard>
                   onTap: () async {
                     final result = await Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => ItemDetailScreen(item: widget.item),
+                        builder: (_) => ItemDetailScreen(
+                          item: widget.item,
+                          persistence: widget.persistence,
+                        ),
                       ),
                     );
 
@@ -745,20 +752,14 @@ class _LoanCardState extends State<_LoanCard>
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(14.0),
-                          child: widget.item.imagePath != null
-                              ? LocalImage(
-                                  path: widget.item.imagePath,
-                                  width: 64,
-                                  height: 64,
-                                  fit: BoxFit.cover,
-                                  borderRadius: BorderRadius.circular(14.0),
-                                )
-                              : const Center(
-                                  child: Text(
-                                    '📦',
-                                    style: TextStyle(fontSize: 24),
-                                  ),
-                                ),
+                          child: StorageImage(
+                            imagePath: widget.item.imagePath,
+                            imageUrl: widget.item.imageUrl,
+                            persistence: widget.persistence,
+                            width: 64,
+                            height: 64,
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
 
