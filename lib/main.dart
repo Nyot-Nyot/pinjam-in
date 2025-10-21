@@ -32,6 +32,7 @@ Future<void> main() async {
     if (url.isNotEmpty && key.isNotEmpty) {
       try {
         // Supabase.initialize may throw if already initialized; ignore that case.
+        // Session persistence is enabled by default in supabase_flutter
         await Supabase.initialize(url: url, anonKey: key);
         if (kDebugMode) print('[supabase] initialized from main.dart');
       } catch (e) {

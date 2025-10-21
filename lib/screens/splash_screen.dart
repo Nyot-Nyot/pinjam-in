@@ -1,9 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pinjam_in/screens/home_screen.dart';
 import 'package:pinjam_in/screens/login_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../services/supabase_persistence.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -41,11 +46,60 @@ class _SplashScreenState extends State<SplashScreen>
 
     Timer(const Duration(milliseconds: 2000), () {
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        );
+        _checkAuthAndNavigate();
       }
     });
+  }
+
+  Future<void> _checkAuthAndNavigate() async {
+    try {
+      // Check if Supabase is initialized and user has active session
+      final supabaseUrl = dotenv.env['SUPABASE_URL'];
+      final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
+
+      if (supabaseUrl != null && supabaseAnonKey != null) {
+        // Try to initialize or get existing Supabase instance
+        SupabaseClient? client;
+        try {
+          client = Supabase.instance.client;
+        } catch (_) {
+          // Not initialized yet, try to initialize
+          try {
+            await Supabase.initialize(
+              url: supabaseUrl,
+              anonKey: supabaseAnonKey,
+            );
+            client = Supabase.instance.client;
+          } catch (_) {
+            // Initialization failed, go to login
+          }
+        }
+
+        // Check if user is already logged in
+        if (client != null && client.auth.currentSession != null) {
+          // User is logged in, go to home screen
+          if (mounted) {
+            final persistence = SupabasePersistence.fromClient(client);
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (_) => HomeScreen(persistence: persistence),
+              ),
+            );
+            return;
+          }
+        }
+      }
+    } catch (e) {
+      // If anything fails, just go to login screen
+      print('Error checking auth: $e');
+    }
+
+    // No active session or error, go to login screen
+    if (mounted) {
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
+    }
   }
 
   @override
