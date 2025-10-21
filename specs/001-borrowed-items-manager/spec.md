@@ -1,126 +1,143 @@
-# Feature Specification: Borrowed items manager
+# Specification: Borrowed Items Manager
 
-**Feature Branch**: `001-borrowed-items-manager`
 **Created**: 2025-10-21
-**Status**: Draft
-**Input**: User description: "Buat aplikasi manajemen barang yang pernah dipinjam. banyak orang lupa dengan barang yang pernah dia pinjamkan dan berujung pada hilangnya barang tersebut tanpa tau ke siapa barang tersebut pergi. dengan ini user bisa menyimpan, mengedit, dan menghapus barang yg dipinjam dan pernah dipinjam. user bisa menyimpan foto barang, nama barang, nama peminjam, dan mungkin kontak peminjam (opsional) integrasi dengan contact picker di mobile. tanggal kembali (opsional) bisa kosong atau ada tanggalnya, dan juga notes untuk mencatat hal penting mengenai kejadian, keputusan, ciri ciri barang, atau ciri ciri peminjam dan notes ini opsional juga. di homepage user bisa melihat list barang yg pernah dipinjam, dan hanya dengan sekali swipe saja pada widget yg disediakan maka barang sudah langsung dianggap selesai dipinjam."
+**Last Updated**: 2025-10-21
+**Version**: 1.0
 
-## User Scenarios & Testing _(mandatory)_
+## 1. Feature Description
 
-### User Story 1 - Quick mark returned (Priority: P1)
+Users need an application to manage items they have lent to others. Many people forget about items they have lent out, leading to the items being lost without knowing who has them. This feature will allow users to save, edit, and delete records of borrowed items. Users can store a photo of the item, the item's name, the borrower's name, and optionally, the borrower's contact information (integrating with a mobile contact picker). A return date can be set, but it is optional. There is also an optional "notes" field for important details about the transaction, item, or borrower. The homepage will display a list of borrowed items, and a simple swipe gesture on an item will mark it as returned. The application will also feature a dashboard with interesting statistics.
 
-Sebagai pengguna, saya ingin melihat daftar barang yang pernah dipinjam pada halaman utama dan menandai sebuah barang sebagai "kembali" hanya dengan satu kali swipe, sehingga saya dapat menandai pengembalian dengan cepat tanpa navigasi tambahan.
+## 2. User Scenarios
 
-**Why this priority**: Ini adalah fungsi inti aplikasi — menandai kembali mengurangi risiko kehilangan barang dan menyediakan nilai langsung.
+### 2.1. Adding a New Borrowed Item
 
-**Independent Test**: Pada perangkat nyata atau emulator, buka homepage, lakukan swipe pada entri, dan verifikasi status berubah ke "kembali" dan item dipindahkan/ditandai sesuai desain.
+As a user, I want to record a new item that I have lent to someone so that I don't forget about it.
 
-**Acceptance Scenarios**:
+-   I open the app and navigate to the "add item" screen.
+-   I can take a new photo of the item or select one from my gallery.
+-   I enter the name of the item (e.g., "Book - The Hobbit").
+-   I enter the name of the person who borrowed it (e.g., "John Doe").
+-   I have the option to select John Doe's contact from my phone's contact list.
+-   I can optionally set a return date.
+-   I can optionally add notes, such as "He borrowed it for his book report."
+-   I save the item, and it appears on my list of currently borrowed items.
 
-1. **Given** daftar berisi item belum kembali, **When** pengguna men-swipe item ke arah yang disepakati, **Then** item ditandai sebagai "kembali" dan waktu pengembalian dicatat (opsional).
-2. **Given** item sudah ditandai kembali, **When** pengguna melihat daftar, **Then** item ditampilkan di bagian history atau dengan label "kembali" sesuai desain.
+### 2.2. Viewing the List of Borrowed Items
 
----
+As a user, I want to see all the items I have lent out on the main screen so I can quickly track them.
 
-### User Story 2 - Add / Edit / Delete item (Priority: P2)
+-   I open the app and see a list of all items currently on loan.
+-   Each item in the list displays the item's photo, name, and the borrower's name.
 
-Sebagai pengguna, saya ingin menambahkan barang baru yang dipinjam (dengan foto, nama barang, nama peminjam, dan optional kontak), mengubah informasi tersebut, dan menghapus entri sehingga data tetap akurat.
+### 2.3. Marking an Item as Returned
 
-**Why this priority**: Menyimpan metadata barang adalah fungsi pembangun nilai; tanpa ini, daftar tidak berguna.
+As a user, I want to easily mark an item as returned when I get it back.
 
-**Independent Test**: Tambah entri baru lengkap, tutup aplikasi, buka kembali, dan verifikasi data tersimpan; edit kolom lalu verifikasi update; hapus entri dan verifikasi penghapusan.
+-   From the homepage list, I find the item that has been returned.
+-   I swipe on the item's widget.
+-   The item is marked as "returned" and moved from the active list to a history or completed list.
 
-**Acceptance Scenarios**:
+### 2.4. Editing an Existing Item
 
-1. **Given** form penambahan barang, **When** pengguna mengisi nama barang, nama peminjam, (opsional) pilih kontak dari contact picker, (opsional) tambahkan foto dan notes lalu submit, **Then** entri baru muncul di daftar utama.
-2. **Given** entri ada, **When** pengguna membuka layar edit dan mengubah informasi, **Then** perubahan disimpan dan tercermin di daftar.
-3. **Given** entri ada, **When** pengguna memilih hapus dan mengonfirmasi, **Then** entri dihapus dari penyimpanan dan tidak muncul kembali.
+As a user, I want to be able to edit the details of a borrowed item in case I made a mistake or need to update information.
 
----
+-   I find the item in the list and select it to view its details.
+-   I choose to edit the item.
+-   I can change the item name, borrower, return date, or notes.
+-   I save the changes.
 
-### User Story 3 - History, Search & Filters (Priority: P3)
+### 2.5. Deleting a Borrowed Item Record
 
-Sebagai pengguna, saya ingin melihat riwayat barang yang pernah dipinjam, mencari dan memfilter daftar berdasarkan nama barang, nama peminjam, atau status (dipinjam/kembali), sehingga saya dapat menemukan entri lama dengan mudah.
+As a user, I want to be able to delete a record entirely if it was created by mistake or is no longer relevant.
 
-**Why this priority**: Berguna untuk manajemen jangka panjang dan menemukan data lama ketika diperlukan.
+-   I find the item in the list and select it.
+-   I choose the delete option and confirm the action.
+-   The item record is permanently removed from the application.
 
-**Independent Test**: Tambah beberapa item dengan variasi data, gunakan pencarian dan filter, dan verifikasi hasil sesuai kriteria.
+### 2.6. Viewing Statistics
 
-**Acceptance Scenarios**:
+As a user, I want to see interesting statistics about my lending habits.
 
-1. **Given** banyak entri, **When** pengguna mengetik kata kunci, **Then** daftar difilter dan menampilkan hanya entri yang cocok.
+-   I navigate to the statistics or dashboard screen.
+-   I can see data such as the total number of items lent, the most frequent borrower, or items that are overdue.
 
----
+## 3. Functional Requirements
 
-### Edge Cases
+### 3.1. Item Management
 
--   Item tanpa foto: form harus menerima entri tanpa foto.
--   Tanggal kembali kosong: entri boleh tidak memiliki tanggal kembali.
--   Kontak eksternal tidak tersedia: contact picker gagal atau pengguna menolak izin — pengguna masih dapat menyimpan nama peminjam sebagai teks biasa.
--   Duplikasi entri: jika pengguna menambahkan entri mirip, sistem tidak otomatis menggabungkan; deteksi duplikat adalah tambahan.
+-   The system must allow users to create, read, update, and delete (CRUD) records of borrowed items.
+-   Each item record must have a field for the item name (required) and borrower name (required).
+-   Each item record must support storing one photo.
+-   Each item record must have an optional field for a return date.
+-   Each item record must have an optional field for notes.
+-   Each item record must have a status (e.g., "borrowed," "returned").
 
-## Requirements _(mandatory)_
+### 3.2. Homepage / Main List
 
-### Functional Requirements
+-   The application's main screen must display a list of all items with the "borrowed" status.
+-   The list must be searchable by item name and borrower name.
+-   Users must be able to mark an item as "returned" using a swipe gesture on the list item.
 
--   **FR-001**: System MUST allow users to create a borrowed-item entry with fields: item name, borrower name, optional contact, optional return date, optional notes, and optional photo.
--   **FR-002**: System MUST persist entries locally so that data survives app restarts.
--   **FR-003**: System MUST allow users to edit existing entries and save changes.
--   **FR-004**: System MUST allow users to delete entries (with a confirmation step).
--   **FR-005**: System MUST allow marking an item as returned via a single swipe action on the list view.
--   **FR-006**: System SHOULD allow selecting a contact from the device contact picker (optional integration). If the contact picker is used, storing contact details MUST be optional and comply with user consent.
--   **FR-007**: System MUST provide a searchable and filterable list by item name, borrower name, and status.
+### 3.3. Contact Integration
 
-_Notes on unclear scope and assumptions are recorded below._
+-   The system should provide an option to link a borrower to a contact from the user's native contact list (Android/iOS). This is an optional feature.
 
-### Key Entities _(include if feature involves data)_
+### 3.4. Statistics Dashboard
 
--   **BorrowedItem**: id, item_name, borrower_name, photo_ref, contact_ref (optional), return_date (optional), notes (optional), status (borrowed/returned), created_at, returned_at
--   **Contact**: id (platform reference), display_name, phone/email (stored only with consent)
--   **Note**: free-form text attached to a BorrowedItem
+-   The system must provide a screen that displays statistics related to borrowing activities.
+-   The statistics must include at least:
+    -   Total items lent.
+    -   Number of items currently on loan vs. returned.
+    -   A list of overdue items. An item is considered "overdue" if it has a return date set and that date is in the past.
 
-## Success Criteria _(mandatory)_
+### 3.5. Data Persistence
 
-### Measurable Outcomes
+-   All data must be stored locally on the user's device.
 
--   **SC-001**: 95% of users in a small usability test (N>=20) can mark an item as returned using a single swipe within their first session.
--   **SC-002**: A typical user can add a new borrowed item (including taking/attaching a photo) in under 60 seconds.
--   **SC-003**: Data persistence: items remain available after app restart for at least 1000 stored entries without data loss.
--   **SC-004**: Search/filter returns relevant results for queries of at least 3 characters with acceptable latency for a mobile device (perceived instant by user).
--   **SC-005**: Privacy: optional contact data can be removed by the user and is not transmitted off-device without explicit opt-in.
+## 4. Non-Functional Requirements
 
-## Assumptions
+### 4.1. Usability
 
--   The app WILL support multi-device sync and requires user authentication (account-based) to enable sync and cloud backup. (You requested auth + sync.)
--   Photo storage WILL use cloud storage (not local) as requested; ensure privacy and storage limits are defined in implementation.
--   Contact picker behavior: Android-only contact picker is supported. On Android, when a contact is selected the app WILL store contact details (display name and phone number) but ONLY with explicit user consent. On non-Android platforms, the UI MUST present a phone-number input field as fallback.
+-   The user interface should be intuitive and easy to navigate.
+-   Key actions like adding an item and marking it as returned should be quick and require minimal steps.
 
-## Sync & Data Handling Decisions (resolved)
+### 4.2. Performance
 
--   Sync model: Full sync with account-based authentication is REQUIRED. This implies server-side components, authentication flows, and a migration/backup plan. See new requirements FR-008 and FR-009.
--   Photo storage: Cloud-hosting for photos is REQUIRED. Photos uploaded by the user are backed up to cloud storage tied to the user's account.
--   Contact handling: Android contact picker integration is supported; saved contact details require explicit consent and a deletion UI.
+-   The application should load quickly.
+-   The list of borrowed items should scroll smoothly, even with a large number of entries and images.
 
----
+## 5. Success Criteria
 
-### User Story 4 - Statistics & Insights (Priority: P3)
+-   **Task Completion Rate**: 95% of new users can successfully add a new item and mark it as returned without assistance.
+-   **Time on Task**: A user can add a new borrowed item in under 60 seconds.
+-   **Time on Task**: A user can mark an item as returned in under 5 seconds from opening the app.
+-   **User Satisfaction**: The app achieves an average rating of 4.5 stars or higher in app stores after the first 1,000 reviews.
+-   **Adoption**: The optional "contact picker" feature is used by at least 30% of users when adding a new item.
 
-Sebagai pengguna, saya ingin melihat statistik ringkasan (mis. jumlah item dipinjam, jumlah item kembali, items per borrower, trending notes) sehingga saya dapat memahami pola peminjaman dan menemukan anomali.
+## 6. Key Entities
 
-**Why this priority**: Menambah nilai dengan memberikan wawasan; berguna untuk power users dan pencegahan kehilangan barang.
+-   **Item**:
+    -   `id`: Unique Identifier
+    -   `name`: String
+    -   `photo_url`: String (local path)
+    -   `borrower_name`: String
+    -   `borrower_contact_id`: String (optional)
+    -   `borrow_date`: Date
+    -   `return_date`: Date (optional)
+    -   `status`: Enum (e.g., 'borrowed', 'returned')
+    -   `notes`: String (optional)
 
-**Independent Test**: Setelah beberapa entri dibuat, buka layar Statistik dan verifikasi angka-angka agregat berjumlah benar sesuai data sumber.
+## 7. Assumptions
 
-**Acceptance Scenarios**:
+-   Users are on mobile devices (iOS or Android) where contact and camera integration is possible.
+-   For the initial version, data will be stored locally. Cloud sync is not in scope.
+-   The "statistics" will be simple and based on the locally stored data.
 
-1. **Given** dataset berisi entri, **When** pengguna membuka halaman Statistik, **Then** ditampilkan ringkasan jumlah total dipinjam, jumlah kembali, top borrowers, dan grafik sederhana per waktu.
+## 8. Out of Scope
 
----
-
-## Additional Functional Requirements (new)
-
--   **FR-008**: System MUST support account-based authentication to enable cross-device sync.
--   **FR-009**: System MUST support cloud backup/sync of item data and photos tied to the user's account; sync operations MUST be opt-in per account and respect user privacy settings.
--   **FR-010**: System MUST provide a deletion UI for stored contact PII and obey user consent choices.
-
-**End of spec**
+-   User accounts and authentication.
+-   Cloud synchronization of data between multiple devices.
+-   Social features or sharing.
+-   Automated reminders or notifications for return dates. (This may be considered for a future version).
+-   Web or desktop version of the application.
