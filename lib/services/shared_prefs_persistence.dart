@@ -81,4 +81,10 @@ class SharedPrefsPersistence implements PersistenceService {
     // No auth for local persistence
     return null;
   }
+
+  @override
+  Future<void> deleteItem(String itemId) async {
+    // For SharedPreferences, deletion is handled by saveAll() which stores
+    // the entire list. No separate delete operation needed.
+  }
 }

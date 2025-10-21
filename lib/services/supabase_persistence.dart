@@ -424,4 +424,66 @@ class SupabasePersistence implements PersistenceService {
 
     return null;
   }
+
+  @override
+  Future<void> deleteItem(String itemId) async {
+    try {
+      // First, get the item to check if it has a photo
+      final queryRes = await _client
+          .from('items')
+          .select('photo_url')
+          .eq('id', itemId)
+          .maybeSingle();
+
+      String? photoUrl;
+      if (queryRes is Map<String, dynamic> && queryRes['photo_url'] != null) {
+        photoUrl = queryRes['photo_url'] as String;
+      }
+
+      // If there's a photo, delete it from storage
+      if (photoUrl != null && photoUrl.isNotEmpty) {
+        try {
+          // Extract the file path from the URL
+          // URL format: https://[project].supabase.co/storage/v1/object/public/item_photos/[path]
+          // or: https://[project].supabase.co/storage/v1/object/sign/item_photos/[path]?token=...
+          String? storagePath;
+
+          if (photoUrl.contains('/storage/v1/object/')) {
+            final parts = photoUrl.split('/storage/v1/object/');
+            if (parts.length > 1) {
+              final afterObject = parts[1];
+              // Remove 'public/' or 'sign/' prefix
+              final pathParts = afterObject.split('/');
+              if (pathParts.length > 2) {
+                // Skip 'public' or 'sign', then bucket name, get the rest
+                storagePath = pathParts.sublist(2).join('/');
+                // Remove query parameters if present (for signed URLs)
+                if (storagePath.contains('?')) {
+                  storagePath = storagePath.split('?')[0];
+                }
+              }
+            }
+          }
+
+          if (storagePath != null && storagePath.isNotEmpty) {
+            // Delete from storage bucket
+            await _client.storage.from(_kImagesBucket).remove([storagePath]);
+
+            print('Photo deleted successfully from storage: $storagePath');
+          }
+        } catch (storageError) {
+          // Log but don't fail the whole operation if storage deletion fails
+          print('Warning: Failed to delete photo from storage: $storageError');
+        }
+      }
+
+      // Delete the item record from database
+      final res = await _client.from('items').delete().eq('id', itemId);
+      if (res is Map && res['error'] != null) {
+        throw Exception(res['error']);
+      }
+    } catch (e) {
+      throw Exception('Failed to delete item $itemId: $e');
+    }
+  }
 }

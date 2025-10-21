@@ -26,4 +26,8 @@ abstract class PersistenceService {
   /// persistence backend supports authentication (e.g. Supabase).
   /// Default implementations return null.
   Future<String?> currentUserId() async => null;
+
+  /// Delete an item permanently from the persistence backend.
+  /// Implementations that don't support deletion can do nothing.
+  Future<void> deleteItem(String itemId) async {}
 }

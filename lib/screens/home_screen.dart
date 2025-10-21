@@ -287,17 +287,18 @@ class _HomeScreenState extends State<HomeScreen> {
           HistoryScreen(
             history: _history,
             persistence: _persistence,
-            onDelete: (item) {
+            onDelete: (item) async {
               // Find index so we can restore to same position on undo
               final idx = _history.indexWhere((h) => h.id == item.id);
               if (idx == -1) return;
+
               setState(() {
                 _history.removeAt(idx);
               });
               _saveAll();
 
               final messenger = ScaffoldMessenger.of(context);
-              messenger.showSnackBar(
+              final snackbar = messenger.showSnackBar(
                 SnackBar(
                   content: Text('"${item.title}" dihapus permanen'),
                   action: SnackBarAction(
@@ -312,6 +313,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   duration: const Duration(seconds: 5),
                 ),
               );
+
+              // Wait for snackbar to be dismissed before permanently deleting from DB
+              snackbar.closed.then((reason) async {
+                if (reason != SnackBarClosedReason.action) {
+                  // User didn't press undo, so delete from database permanently
+                  try {
+                    await _persistence.deleteItem(item.id);
+                  } catch (e) {
+                    print('Error deleting item from database: $e');
+                  }
+                }
+              });
             },
             onRestore: (item) {
               setState(() {
