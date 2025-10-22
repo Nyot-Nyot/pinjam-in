@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
@@ -17,6 +16,7 @@ import '../models/loan_item.dart';
 import '../theme/app_colors.dart';
 import '../utils/date_helper.dart';
 import '../utils/error_handler.dart';
+import '../widgets/date_picker_modal.dart';
 import 'image_crop_preview.dart';
 
 class AddItemScreen extends StatefulWidget {
@@ -465,351 +465,14 @@ class _AddItemScreenState extends State<AddItemScreen> {
   }
 
   Future<void> _pickCustomDate() async {
-    // Simpler approach using CupertinoPicker per column for reliability.
-    final now = DateTime.now();
-    final initial = _selectedDate ?? now;
+    final initial = _selectedDate ?? DateTime.now();
+    final picked = await DatePickerModal.show(
+      context: context,
+      initialDate: initial,
+    );
 
-    int daysInMonth(int y, int m) => DateTime(y, m + 1, 0).day;
-
-    final startYear = initial.year - 20;
-    final yearCount = 41; // cover startYear .. startYear+40
-
-    int curDay = initial.day;
-    int curMonth = initial.month;
-    int curYear = initial.year;
-
-    // We'll use a custom dialog so we can control the transition (slide up/down)
-    // and implement debounced haptic feedback when each wheel selection settles.
-    final FixedExtentScrollController dayController =
-        FixedExtentScrollController(initialItem: initial.day - 1);
-    final FixedExtentScrollController monthController =
-        FixedExtentScrollController(initialItem: initial.month - 1);
-    final FixedExtentScrollController yearController =
-        FixedExtentScrollController(initialItem: initial.year - startYear);
-
-    Timer? dayDebounce;
-    Timer? monthDebounce;
-    Timer? yearDebounce;
-
-    void scheduleHaptic(
-      Timer? Function() getTimer,
-      void Function(Timer?) setTimer,
-    ) {
-      // cancel previous then schedule
-      final t = getTimer();
-      t?.cancel();
-      final newT = Timer(AppConstants.hapticFeedbackDelay, () {
-        HapticFeedback.selectionClick();
-      });
-      setTimer(newT);
-    }
-
-    try {
-      await showGeneralDialog<void>(
-        context: context,
-        barrierDismissible: true,
-        barrierLabel: 'Pilih Tanggal Pengembalian',
-        barrierColor: Colors.black54,
-        transitionDuration: AppConstants.dialogTransitionDuration,
-        pageBuilder: (ctx, anim1, anim2) {
-          return StatefulBuilder(
-            builder: (ctx, setModalState) {
-              return SafeArea(
-                child: Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    padding: const EdgeInsets.all(12),
-                    height: 360,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEBE1F7),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      children: [
-                        // small drag handle
-                        Center(
-                          child: Container(
-                            width: 48,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFD9CCE8),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Pilih Tanggal Pengembalian',
-                              style: GoogleFonts.arimo(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF0C0315),
-                              ).copyWith(decoration: TextDecoration.none),
-                            ),
-                            // shared element from calendar icon -> modal
-                            Hero(
-                              tag: 'date-picker-hero',
-                              child: Material(
-                                type: MaterialType.transparency,
-                                child: Container(
-                                  width: 44,
-                                  height: 44,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF8530E4),
-                                    borderRadius: BorderRadius.circular(999),
-                                  ),
-                                  child: const Icon(
-                                    Icons.calendar_today,
-                                    color: Colors.white,
-                                    size: 18,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Scroll untuk memilih tanggal',
-                          style: GoogleFonts.arimo(
-                            fontSize: 14,
-                            color: const Color(0xFF4A3D5C),
-                          ).copyWith(decoration: TextDecoration.none),
-                        ),
-                        const SizedBox(height: 12),
-
-                        Expanded(
-                          child: Row(
-                            children: [
-                              // Day
-                              Expanded(
-                                child: CupertinoPicker.builder(
-                                  scrollController: dayController,
-                                  itemExtent: 36,
-                                  onSelectedItemChanged: (i) {
-                                    setModalState(() => curDay = i + 1);
-                                    scheduleHaptic(
-                                      () => dayDebounce,
-                                      (t) => dayDebounce = t,
-                                    );
-                                  },
-                                  childCount: 31,
-                                  itemBuilder: (context, i) {
-                                    final isCenter = (i + 1) == curDay;
-                                    return Center(
-                                      child: Text(
-                                        '${i + 1}',
-                                        style: GoogleFonts.arimo(
-                                          fontSize: isCenter ? 20 : 16,
-                                          color: isCenter
-                                              ? const Color(0xFF8530E4)
-                                              : const Color(0x660C0315),
-                                          fontWeight: isCenter
-                                              ? FontWeight.w700
-                                              : FontWeight.w400,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-
-                              // Month
-                              Expanded(
-                                child: CupertinoPicker.builder(
-                                  scrollController: monthController,
-                                  itemExtent: 36,
-                                  onSelectedItemChanged: (i) {
-                                    setModalState(() => curMonth = i + 1);
-                                    scheduleHaptic(
-                                      () => monthDebounce,
-                                      (t) => monthDebounce = t,
-                                    );
-                                  },
-                                  childCount: 12,
-                                  itemBuilder: (context, i) {
-                                    final name = _monthName(i + 1);
-                                    final isCenter = (i + 1) == curMonth;
-                                    return Center(
-                                      child: Text(
-                                        name,
-                                        style: GoogleFonts.arimo(
-                                          fontSize: isCenter ? 18 : 14,
-                                          color: isCenter
-                                              ? const Color(0xFF8530E4)
-                                              : const Color(0x660C0315),
-                                          fontWeight: isCenter
-                                              ? FontWeight.w700
-                                              : FontWeight.w400,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-
-                              // Year
-                              Expanded(
-                                child: CupertinoPicker.builder(
-                                  scrollController: yearController,
-                                  itemExtent: 36,
-                                  onSelectedItemChanged: (i) {
-                                    setModalState(
-                                      () => curYear = startYear + i,
-                                    );
-                                    scheduleHaptic(
-                                      () => yearDebounce,
-                                      (t) => yearDebounce = t,
-                                    );
-                                  },
-                                  childCount: yearCount,
-                                  itemBuilder: (context, i) {
-                                    final y = startYear + i;
-                                    final isCenter = y == curYear;
-                                    return Center(
-                                      child: Text(
-                                        '$y',
-                                        style: GoogleFonts.arimo(
-                                          fontSize: isCenter ? 18 : 14,
-                                          color: isCenter
-                                              ? const Color(0xFF8530E4)
-                                              : const Color(0x660C0315),
-                                          fontWeight: isCenter
-                                              ? FontWeight.w700
-                                              : FontWeight.w400,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Semantics(
-                                button: true,
-                                label: 'Batal memilih tanggal',
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(20),
-                                    onTap: () => Navigator.of(ctx).pop(),
-                                    child: Container(
-                                      height: 48,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFD9CCE8),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          'Batal',
-                                          style:
-                                              GoogleFonts.arimo(
-                                                color: const Color(0xFF0C0315),
-                                                fontSize: 16,
-                                              ).copyWith(
-                                                decoration: TextDecoration.none,
-                                              ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Semantics(
-                                button: true,
-                                label: 'Konfirmasi tanggal',
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(20),
-                                    onTap: () {
-                                      // clamp day to selected month/year
-                                      final maxD = daysInMonth(
-                                        curYear,
-                                        curMonth,
-                                      );
-                                      final selDay = curDay.clamp(1, maxD);
-                                      final picked = DateTime(
-                                        curYear,
-                                        curMonth,
-                                        selDay,
-                                      );
-                                      HapticFeedback.mediumImpact();
-                                      Navigator.of(ctx).pop();
-                                      if (!mounted) return;
-                                      setState(() => _selectedDate = picked);
-                                    },
-                                    child: Container(
-                                      height: 48,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF8530E4),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          'Konfirmasi',
-                                          style:
-                                              GoogleFonts.arimo(
-                                                color: Colors.white,
-                                                fontSize: 16,
-                                              ).copyWith(
-                                                decoration: TextDecoration.none,
-                                              ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
-        },
-        transitionBuilder: (ctx, anim, secAnim, child) {
-          // use a slightly springy curve for a friendlier feel
-          final curved = CurvedAnimation(
-            parent: anim,
-            curve: Curves.easeOutBack,
-          );
-          return SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0, 1),
-              end: Offset.zero,
-            ).animate(curved),
-            child: child,
-          );
-        },
-      );
-    } finally {
-      dayDebounce?.cancel();
-      monthDebounce?.cancel();
-      yearDebounce?.cancel();
-      dayController.dispose();
-      monthController.dispose();
-      yearController.dispose();
+    if (picked != null && mounted) {
+      setState(() => _selectedDate = picked);
     }
   }
 
@@ -878,7 +541,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
   Widget build(BuildContext context) {
     final selectedDateLabel = _selectedDate == null
         ? 'Belum ada tanggal'
-        : '${_selectedDate!.day} ${_monthName(_selectedDate!.month)} ${_selectedDate!.year}';
+        : DateHelper.formatDate(_selectedDate!);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6EFFD),
@@ -1453,22 +1116,4 @@ class _AddItemScreenState extends State<AddItemScreen> {
       ),
     ),
   );
-
-  String _monthName(int m) {
-    const names = [
-      'Januari',
-      'Februari',
-      'Maret',
-      'April',
-      'Mei',
-      'Juni',
-      'Juli',
-      'Agustus',
-      'September',
-      'Oktober',
-      'November',
-      'Desember',
-    ];
-    return names[(m - 1).clamp(0, 11)];
-  }
 }

@@ -109,33 +109,41 @@
 
 #### Tasks:
 
-**3.1 AddItemScreen Refactoring** (1,495 → ~300 baris)
+**3.1 AddItemScreen Refactoring** (1,495 → 1,120 baris, -355 lines)
 
--   [ ] 3.1.1 Extract `_DatePickerModal` ke `lib/widgets/date_picker_modal.dart`
--   [ ] 3.1.2 Extract image picker logic ke `lib/widgets/image_picker_section.dart`
--   [ ] 3.1.3 Extract form fields ke `lib/widgets/loan_form_fields.dart`
--   [ ] 3.1.4 Extract contact picker logic ke `lib/services/contact_service.dart`
--   [ ] 3.1.5 Simplify AddItemScreen menjadi composition dari widgets kecil
+-   [x] 3.1.1 Extract `_DatePickerModal` ke `lib/widgets/date_picker_modal.dart` ✅
+-   [ ] 3.1.2 Extract image picker logic ke `lib/widgets/image_picker_section.dart` (DEFERRED)
+-   [ ] 3.1.3 Extract form fields ke `lib/widgets/loan_form_fields.dart` (DEFERRED)
+-   [ ] 3.1.4 Extract contact picker logic ke `lib/services/contact_service.dart` (DEFERRED)
+-   [ ] 3.1.5 Simplify AddItemScreen menjadi composition dari widgets kecil (DEFERRED)
 
-**3.2 HomeScreen Refactoring** (755 → ~400 baris)
+**3.2 HomeScreen Refactoring** (726 → target ~400 baris)
 
--   [ ] 3.2.1 Extract header section ke `lib/widgets/home_header.dart`
--   [ ] 3.2.2 Extract search bar ke `lib/widgets/search_bar_widget.dart`
--   [ ] 3.2.3 Extract overdue badge ke `lib/widgets/overdue_badge.dart`
--   [ ] 3.2.4 Simplify HomeScreen logic
+-   [ ] 3.2.1 Extract header section ke `lib/widgets/home_header.dart` (TODO)
+-   [ ] 3.2.2 Extract search bar ke `lib/widgets/search_bar_widget.dart` (TODO)
+-   [ ] 3.2.3 Extract overdue badge ke `lib/widgets/overdue_badge.dart` (TODO)
+-   [ ] 3.2.4 Simplify HomeScreen logic (TODO)
 
 **3.3 Auth Screens Refactoring**
 
--   [ ] 3.3.1 Extract common auth UI ke `lib/widgets/auth/` folder
--   [ ] 3.3.2 Create `auth_form_field.dart` untuk input fields
--   [ ] 3.3.3 Create `auth_button.dart` untuk buttons
--   [ ] 3.3.4 Refactor LoginScreen & RegisterScreen
+-   [ ] 3.3.1 Extract common auth UI ke `lib/widgets/auth/` folder (TODO)
+-   [ ] 3.3.2 Create `auth_form_field.dart` untuk input fields (TODO)
+-   [ ] 3.3.3 Create `auth_button.dart` untuk buttons (TODO)
+-   [ ] 3.3.4 Refactor LoginScreen & RegisterScreen (TODO)
 
-**Success Criteria**:
+**Success Criteria**: ⚠️ **PARTIAL**
 
--   ✅ Tidak ada file screen yang >500 baris
--   ✅ Widgets reusable & testable
--   ✅ Code lebih readable
+-   ⚠️ Tidak ada file screen yang >500 baris (AddItemScreen: 1,120, HomeScreen: 726)
+-   ✅ DatePickerModal widget reusable & testable
+-   ✅ Code lebih readable dengan extracted DatePickerModal
+
+**Status**: 🔄 **IN PROGRESS** (14 Januari 2025)
+
+**Progress Summary**:
+
+-   ✅ **DatePickerModal extracted** - 370 lines, reduced AddItemScreen by 355 lines
+-   ⏸️ **Other extractions deferred** - Complex interdependencies, better handled in Phase 4 with state management
+-   📝 **Recommendation**: Complete Phase 4 (State Management) first, then revisit remaining extractions
 
 ---
 
@@ -226,12 +234,12 @@
 ### Overall Progress
 
 -   [x] Phase 1: Cleanup & Documentation (8/8) ✅ **COMPLETED**
--   [ ] Phase 2: Extract Constants & Utilities (0/8)
--   [ ] Phase 3: Split Large Widgets (0/13)
+-   [x] Phase 2: Extract Constants & Utilities (8/8) ✅ **COMPLETED**
+-   [~] Phase 3: Split Large Widgets (1/13) 🔄 **IN PROGRESS**
 -   [ ] Phase 4: State Management & Architecture (0/10)
 -   [ ] Phase 5: Performance & Polish (0/15)
 
-**Total Tasks**: 8/54 (15%)
+**Total Tasks**: 17/54 (31%)
 
 ---
 
