@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'constants/storage_keys.dart';
+import 'providers/auth_provider.dart';
+import 'providers/loan_provider.dart';
+import 'providers/persistence_provider.dart';
 import 'screens/splash_screen.dart';
 import 'utils/logger.dart';
 
@@ -61,11 +65,45 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Pinjam In',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(primarySwatch: Colors.indigo),
-      home: const SplashScreen(),
+    return MultiProvider(
+      providers: [
+        // 1. PersistenceProvider - Initialize first (mengelola storage service)
+        ChangeNotifierProvider(create: (_) => PersistenceProvider()),
+
+        // 2. AuthProvider - Independent dari persistence
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+
+        // 3. LoanProvider - Depends on PersistenceProvider
+        ChangeNotifierProxyProvider<PersistenceProvider, LoanProvider?>(
+          create: (context) {
+            // LoanProvider will be created in update() when persistence is ready
+            return null;
+          },
+          update: (context, persistenceProvider, previous) {
+            // Update LoanProvider ketika PersistenceService berubah (local <-> supabase)
+            if (persistenceProvider.service == null) {
+              return previous; // Keep previous while service is null
+            }
+
+            // Jika belum ada provider atau service berubah, buat yang baru
+            if (previous == null) {
+              AppLogger.info('Creating LoanProvider with persistence service');
+              final loanProvider = LoanProvider(persistenceProvider.service!);
+              // Load initial data
+              loanProvider.loadAllData();
+              return loanProvider;
+            }
+
+            return previous; // Keep existing provider
+          },
+        ),
+      ],
+      child: MaterialApp(
+        title: 'Pinjam In',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(primarySwatch: Colors.indigo),
+        home: const SplashScreen(),
+      ),
     );
   }
 }
