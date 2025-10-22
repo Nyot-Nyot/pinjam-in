@@ -1,9 +1,9 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'screens/splash_screen.dart';
+import 'utils/logger.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,15 +15,14 @@ Future<void> main() async {
   try {
     final u = dotenv.env['SUPABASE_URL'];
     final k = dotenv.env['SUPABASE_ANON_KEY'];
-    // Use prints so they appear in the device logs (only in debug builds)
-    if (kDebugMode) {
-      try {
-        print('[dotenv] SUPABASE_URL present: ${u != null && u.isNotEmpty}');
-        print(
-          '[dotenv] SUPABASE_ANON_KEY present: ${k != null && k.isNotEmpty}',
-        );
-      } catch (_) {}
-    }
+    AppLogger.debug(
+      'SUPABASE_URL present: ${u != null && u.isNotEmpty}',
+      'dotenv',
+    );
+    AppLogger.debug(
+      'SUPABASE_ANON_KEY present: ${k != null && k.isNotEmpty}',
+      'dotenv',
+    );
   } catch (_) {}
   // Try to initialize Supabase once at startup if dotenv provides credentials.
   try {
@@ -34,20 +33,23 @@ Future<void> main() async {
         // Supabase.initialize may throw if already initialized; ignore that case.
         // Session persistence is enabled by default in supabase_flutter
         await Supabase.initialize(url: url, anonKey: key);
-        if (kDebugMode) print('[supabase] initialized from main.dart');
+        AppLogger.success('initialized from main.dart', 'supabase');
       } catch (e) {
         final s = e.toString();
         if (s.contains('already initialized') ||
             s.contains('this instance is already initialized') ||
             s.contains('already been initialized')) {
           // already initialized elsewhere, ignore
-          if (kDebugMode) print('[supabase] already initialized earlier');
+          AppLogger.info('already initialized earlier', 'supabase');
         } else {
-          if (kDebugMode) print('[supabase] initialize error: $e');
+          AppLogger.error('initialize error', e, 'supabase');
         }
       }
     } else {
-      print('[supabase] credentials missing in dotenv, skipping init in main');
+      AppLogger.warning(
+        'credentials missing in dotenv, skipping init in main',
+        'supabase',
+      );
     }
   } catch (_) {}
   runApp(const MainApp());

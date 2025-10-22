@@ -9,6 +9,7 @@ import 'package:pinjam_in/screens/login_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/supabase_persistence.dart';
+import '../utils/logger.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -91,7 +92,7 @@ class _SplashScreenState extends State<SplashScreen>
       }
     } catch (e) {
       // If anything fails, just go to login screen
-      print('Error checking auth: $e');
+      AppLogger.error('Error checking auth', e, 'SplashScreen');
     }
 
     // No active session or error, go to login screen

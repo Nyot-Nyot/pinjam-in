@@ -33,6 +33,15 @@ migrate_working_dir/
 .pub/
 /build/
 
+# Generated files
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+
+# Code coverage
+coverage/
+*.lcov
+
 # Symbolication related
 app.*.symbols
 
@@ -46,3 +55,35 @@ app.*.map.json
 
 # Local environment variables (do NOT commit your real keys)
 .env
+
+# Local test files
+test_driver/
+integration_test/screenshots/
+
+# Node modules (for server/)
+node_modules/
+server/**/node_modules/
+functions/**/node_modules/
+
+# Package locks
+server/package-lock.json
+functions/package-lock.json
+
+# macOS
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Linux
+.directory
+*~
+
+# Temporary files
+*.tmp
+*.temp
+.cache/

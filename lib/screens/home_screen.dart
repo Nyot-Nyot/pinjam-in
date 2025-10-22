@@ -9,6 +9,7 @@ import '../services/persistence_service.dart';
 import '../services/shared_prefs_persistence.dart';
 import '../services/supabase_persistence.dart';
 import '../theme/app_theme.dart';
+import '../utils/logger.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/loan_card.dart';
@@ -35,33 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late final FocusNode _searchFocusNode;
   Timer? _searchDebounce;
 
-  final List<LoanItem> _active = [
-    LoanItem(
-      id: '1',
-      title: 'Power Bank Xiaomi 10000mAh',
-      borrower: 'Andi Wijaya',
-      daysRemaining: -9,
-      note: 'Kapasitas sudah berkurang, harap kembalikan sebelum 10 Okt',
-      createdAt: DateTime.now().toUtc().subtract(const Duration(days: 20)),
-      dueDate: DateTime.now().toUtc().add(const Duration(days: -9)),
-    ),
-    LoanItem(
-      id: '2',
-      title: 'Buku: Clean Code',
-      borrower: 'Siti Rahmawati',
-      daysRemaining: -4,
-      createdAt: DateTime.now().toUtc().subtract(const Duration(days: 10)),
-      dueDate: DateTime.now().toUtc().add(const Duration(days: -4)),
-    ),
-    LoanItem(
-      id: '3',
-      title: 'Kabel HDMI 2 Meter',
-      borrower: 'Budi Santoso',
-      daysRemaining: -12,
-      createdAt: DateTime.now().toUtc().subtract(const Duration(days: 30)),
-      dueDate: DateTime.now().toUtc().add(const Duration(days: -12)),
-    ),
-  ];
+  final List<LoanItem> _active = [];
 
   final List<LoanItem> _history = [];
 
@@ -322,7 +297,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   try {
                     await _persistence.deleteItem(item.id);
                   } catch (e) {
-                    print('Error deleting item from database: $e');
+                    AppLogger.error(
+                      'Error deleting item from database',
+                      e,
+                      'HomeScreen',
+                    );
                   }
                 }
               });

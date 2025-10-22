@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/loan_item.dart';
+import '../utils/logger.dart';
 import 'persistence_service.dart';
 
 /// Minimal Supabase-backed PersistenceService implementation.
@@ -456,7 +457,11 @@ class SupabasePersistence implements PersistenceService {
         return signed;
       }
     } catch (e) {
-      print('Error creating signed URL for $photoUrl: $e');
+      AppLogger.error(
+        'Error creating signed URL for $photoUrl',
+        e,
+        'SupabasePersistence',
+      );
     }
 
     return null;
@@ -506,11 +511,17 @@ class SupabasePersistence implements PersistenceService {
             // Delete from storage bucket
             await _client.storage.from(_kImagesBucket).remove([storagePath]);
 
-            print('Photo deleted successfully from storage: $storagePath');
+            AppLogger.success(
+              'Photo deleted successfully from storage: $storagePath',
+              'SupabasePersistence',
+            );
           }
         } catch (storageError) {
           // Log but don't fail the whole operation if storage deletion fails
-          print('Warning: Failed to delete photo from storage: $storageError');
+          AppLogger.warning(
+            'Failed to delete photo from storage: $storageError',
+            'SupabasePersistence',
+          );
         }
       }
 

@@ -1,0 +1,291 @@
+# 📋 Refactoring Task - Pinjam In
+
+**Tanggal Analisis**: 22 Oktober 2025
+**Tujuan**: Membuat codebase lebih clean, maintainable, dan performant
+
+---
+
+## 📊 Hasil Analisis Codebase
+
+### File yang Terlalu Besar (>500 baris)
+
+-   ❌ `lib/screens/add_item_screen.dart` - **1,495 baris** (SANGAT BESAR)
+-   ❌ `lib/screens/home_screen.dart` - **755 baris** (BESAR)
+-   ❌ `lib/screens/login_screen.dart` - **686 baris** (BESAR)
+-   ⚠️ `lib/screens/register_screen.dart` - **609 baris** (MEDIUM-BESAR)
+-   ⚠️ `lib/services/supabase_persistence.dart` - **527 baris** (MEDIUM-BESAR)
+
+### Dokumentasi Duplikat
+
+-   `docs/SUPABASE.md` dan `sql/supabase_schema.md` - Konten identik
+-   `sql/schema.sql` dan `sql/supabase_schema.sql` - Kemungkinan overlap
+
+### Issues yang Ditemukan
+
+1. **Debug print statements** masih banyak tersebar (17 print statements)
+2. **Hardcoded dummy data** di HomeScreen (3 item dummy)
+3. **Duplikasi logic** untuk date handling di berbagai file
+4. **No state management** - semua pakai setState manual
+5. **Error handling** yang tidak konsisten
+6. **Tidak ada constants file** - magic numbers & strings tersebar
+7. **Widget monolith** - file AddItemScreen terlalu kompleks
+8. **Tidak ada utility functions** - logic berulang tidak di-extract
+9. **Tidak ada lokalisasi** - semua string hardcoded dalam bahasa Indonesia
+10. **Server & functions folders** tidak jelas digunakan atau tidak
+
+---
+
+## 🎯 Strategi Refactoring (5 Phase)
+
+### **PHASE 1: Cleanup & Documentation** ⚡ (QUICK WINS)
+
+**Estimasi**: 1-2 jam
+**Prioritas**: HIGH
+**Tujuan**: Remove technical debt yang mudah, cleanup code
+
+#### Tasks:
+
+-   [x] 1.1 Remove/Replace semua debug print statements dengan proper logging
+-   [x] 1.2 Hapus hardcoded dummy data di HomeScreen
+-   [x] 1.3 Consolidate dokumentasi duplikat (merge SUPABASE.md)
+-   [x] 1.4 Cleanup unused imports
+-   [x] 1.5 Verify & cleanup `server/` dan `functions/` folder (apakah masih dipakai?)
+-   [x] 1.6 Verify & cleanup `sql/migrations/` folder
+-   [x] 1.7 Update README.md dengan struktur project yang lebih clear
+-   [x] 1.8 Add .gitignore entries untuk file build yang tidak perlu
+
+**Success Criteria**:
+
+-   ✅ Tidak ada print statements di production code
+-   ✅ Dokumentasi tidak duplikat
+-   ✅ README up-to-date
+
+**Status**: ✅ **COMPLETED** (22 Oktober 2025)
+
+---
+
+### **PHASE 2: Extract Constants & Utilities** 🔧
+
+**Estimasi**: 2-3 jam
+**Prioritas**: HIGH
+**Tujuan**: Centralize constants, create utility functions
+
+#### Tasks:
+
+-   [ ] 2.1 Create `lib/constants/app_constants.dart` untuk magic numbers & strings
+-   [ ] 2.2 Create `lib/constants/storage_keys.dart` untuk SharedPrefs & Storage keys
+-   [ ] 2.3 Create `lib/utils/date_helper.dart` untuk date formatting & calculations
+-   [ ] 2.4 Create `lib/utils/validation_helper.dart` untuk form validations
+-   [ ] 2.5 Create `lib/utils/logger.dart` untuk centralized logging
+-   [ ] 2.6 Create `lib/utils/error_handler.dart` untuk consistent error handling
+-   [ ] 2.7 Extract color palette dari LoanItem ke `lib/theme/app_colors.dart`
+-   [ ] 2.8 Refactor semua file untuk menggunakan constants & utils
+
+**Success Criteria**:
+
+-   ✅ Tidak ada magic numbers/strings di screens
+-   ✅ Date logic ter-centralize
+-   ✅ Error handling konsisten
+
+---
+
+### **PHASE 3: Split Large Widgets** 🧩
+
+**Estimasi**: 4-5 jam
+**Prioritas**: HIGH
+**Tujuan**: Break down monolithic widget files
+
+#### Tasks:
+
+**3.1 AddItemScreen Refactoring** (1,495 → ~300 baris)
+
+-   [ ] 3.1.1 Extract `_DatePickerModal` ke `lib/widgets/date_picker_modal.dart`
+-   [ ] 3.1.2 Extract image picker logic ke `lib/widgets/image_picker_section.dart`
+-   [ ] 3.1.3 Extract form fields ke `lib/widgets/loan_form_fields.dart`
+-   [ ] 3.1.4 Extract contact picker logic ke `lib/services/contact_service.dart`
+-   [ ] 3.1.5 Simplify AddItemScreen menjadi composition dari widgets kecil
+
+**3.2 HomeScreen Refactoring** (755 → ~400 baris)
+
+-   [ ] 3.2.1 Extract header section ke `lib/widgets/home_header.dart`
+-   [ ] 3.2.2 Extract search bar ke `lib/widgets/search_bar_widget.dart`
+-   [ ] 3.2.3 Extract overdue badge ke `lib/widgets/overdue_badge.dart`
+-   [ ] 3.2.4 Simplify HomeScreen logic
+
+**3.3 Auth Screens Refactoring**
+
+-   [ ] 3.3.1 Extract common auth UI ke `lib/widgets/auth/` folder
+-   [ ] 3.3.2 Create `auth_form_field.dart` untuk input fields
+-   [ ] 3.3.3 Create `auth_button.dart` untuk buttons
+-   [ ] 3.3.4 Refactor LoginScreen & RegisterScreen
+
+**Success Criteria**:
+
+-   ✅ Tidak ada file screen yang >500 baris
+-   ✅ Widgets reusable & testable
+-   ✅ Code lebih readable
+
+---
+
+### **PHASE 4: State Management & Architecture** 🏗️
+
+**Estimasi**: 5-6 jam
+**Prioritas**: MEDIUM
+**Tujuan**: Implement proper state management & clean architecture
+
+#### Tasks:
+
+**4.1 Setup State Management**
+
+-   [ ] 4.1.1 Add `provider` atau `riverpod` ke pubspec.yaml
+-   [ ] 4.1.2 Create `lib/providers/loan_provider.dart` untuk loan state
+-   [ ] 4.1.3 Create `lib/providers/auth_provider.dart` untuk auth state
+-   [ ] 4.1.4 Create `lib/providers/persistence_provider.dart`
+
+**4.2 Refactor Services Layer**
+
+-   [ ] 4.2.1 Create interface `lib/repositories/loan_repository.dart`
+-   [ ] 4.2.2 Refactor PersistenceService menjadi Repository pattern
+-   [ ] 4.2.3 Add dependency injection setup
+
+**4.3 Migrate Screens to Provider**
+
+-   [ ] 4.3.1 Migrate HomeScreen ke Provider
+-   [ ] 4.3.2 Migrate AddItemScreen ke Provider
+-   [ ] 4.3.3 Migrate HistoryScreen ke Provider
+-   [ ] 4.3.4 Remove manual setState calls
+
+**Success Criteria**:
+
+-   ✅ State management ter-centralize
+-   ✅ Tidak ada business logic di UI layer
+-   ✅ Code lebih testable
+
+---
+
+### **PHASE 5: Performance & Polish** ⚡
+
+**Estimasi**: 3-4 jam
+**Prioritas**: MEDIUM
+**Tujuan**: Optimize performance & improve UX
+
+#### Tasks:
+
+**5.1 Performance Optimization**
+
+-   [ ] 5.1.1 Add `const` constructors dimana memungkinkan
+-   [ ] 5.1.2 Implement lazy loading untuk images
+-   [ ] 5.1.3 Add caching untuk Supabase queries
+-   [ ] 5.1.4 Optimize ListView builders dengan key optimization
+-   [ ] 5.1.5 Add debouncing untuk search (sudah ada, verify)
+
+**5.2 Error Handling & UX**
+
+-   [ ] 5.2.1 Add loading states untuk semua async operations
+-   [ ] 5.2.2 Add retry mechanism untuk network errors
+-   [ ] 5.2.3 Improve error messages (lebih user-friendly)
+-   [ ] 5.2.4 Add offline mode indicator
+
+**5.3 Code Quality**
+
+-   [ ] 5.3.1 Run `flutter analyze` dan fix semua warnings
+-   [ ] 5.3.2 Run `dart format` pada semua files
+-   [ ] 5.3.3 Add documentation comments untuk public APIs
+-   [ ] 5.3.4 Review & optimize imports
+
+**5.4 Testing Setup** (Optional)
+
+-   [ ] 5.4.1 Setup testing framework
+-   [ ] 5.4.2 Add unit tests untuk utilities
+-   [ ] 5.4.3 Add widget tests untuk reusable widgets
+-   [ ] 5.4.4 Add integration test untuk critical flows
+
+**Success Criteria**:
+
+-   ✅ Aplikasi lebih responsive
+-   ✅ Error handling yang baik
+-   ✅ Code quality score tinggi
+-   ✅ (Optional) Test coverage >50%
+
+---
+
+## 📈 Progress Tracking
+
+### Overall Progress
+
+-   [x] Phase 1: Cleanup & Documentation (8/8) ✅ **COMPLETED**
+-   [ ] Phase 2: Extract Constants & Utilities (0/8)
+-   [ ] Phase 3: Split Large Widgets (0/13)
+-   [ ] Phase 4: State Management & Architecture (0/10)
+-   [ ] Phase 5: Performance & Polish (0/15)
+
+**Total Tasks**: 8/54 (15%)
+
+---
+
+## 🎨 Benefits After Refactoring
+
+### Code Quality
+
+-   ✅ File size <500 baris (easier to maintain)
+-   ✅ Separation of concerns (Clean Architecture)
+-   ✅ Reusable widgets & utilities
+-   ✅ Testable code
+
+### Performance
+
+-   ✅ Faster rebuilds (const constructors)
+-   ✅ Better memory management (lazy loading)
+-   ✅ Optimized state updates (Provider)
+
+### Developer Experience
+
+-   ✅ Easier to add new features
+-   ✅ Less bug-prone code
+-   ✅ Better code navigation
+-   ✅ Consistent patterns
+
+### Maintainability
+
+-   ✅ Clear documentation
+-   ✅ No duplicate code
+-   ✅ Centralized configuration
+-   ✅ Easier debugging
+
+---
+
+## 📝 Notes
+
+### Before Starting Each Phase
+
+1. Create a new branch: `refactor/phase-X`
+2. Run tests (jika ada) untuk ensure baseline
+3. Commit frequently dengan meaningful messages
+
+### During Refactoring
+
+-   ⚠️ Test aplikasi setelah setiap major change
+-   ⚠️ Jangan refactor terlalu banyak sekaligus
+-   ⚠️ Pastikan aplikasi masih berjalan setelah setiap task
+
+### After Completing Each Phase
+
+1. Run `flutter analyze` dan fix issues
+2. Run `dart format .`
+3. Test semua fitur aplikasi
+4. Merge ke main branch
+5. Update progress di file ini
+
+---
+
+## 🔗 Related Files
+
+-   `README.md` - Project documentation
+-   `pubspec.yaml` - Dependencies
+-   `analysis_options.yaml` - Linter rules
+
+---
+
+**Last Updated**: 22 Oktober 2025
+**Analyzed By**: GitHub Copilot
+**Project**: Pinjam In - Pemrograman Sistem Bergerak
