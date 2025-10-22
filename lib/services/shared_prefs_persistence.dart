@@ -2,18 +2,16 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../constants/storage_keys.dart';
 import '../models/loan_item.dart';
 import 'persistence_service.dart';
 
 class SharedPrefsPersistence implements PersistenceService {
-  static const _kActiveKey = 'loan_active_v1';
-  static const _kHistoryKey = 'loan_history_v1';
-
   @override
   Future<List<LoanItem>> loadActive() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final a = prefs.getString(_kActiveKey);
+      final a = prefs.getString(StorageKeys.activeLoansKey);
       if (a == null) return [];
       final list = jsonDecode(a) as List<dynamic>;
       return list
@@ -28,7 +26,7 @@ class SharedPrefsPersistence implements PersistenceService {
   Future<List<LoanItem>> loadHistory() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final h = prefs.getString(_kHistoryKey);
+      final h = prefs.getString(StorageKeys.historyLoansKey);
       if (h == null) return [];
       final list = jsonDecode(h) as List<dynamic>;
       return list
@@ -44,7 +42,7 @@ class SharedPrefsPersistence implements PersistenceService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(
-        _kActiveKey,
+        StorageKeys.activeLoansKey,
         jsonEncode(active.map((e) => e.toJson()).toList()),
       );
     } catch (_) {}
@@ -55,7 +53,7 @@ class SharedPrefsPersistence implements PersistenceService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(
-        _kHistoryKey,
+        StorageKeys.historyLoansKey,
         jsonEncode(history.map((e) => e.toJson()).toList()),
       );
     } catch (_) {}

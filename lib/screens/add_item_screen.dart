@@ -12,7 +12,11 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
+import '../constants/app_constants.dart';
 import '../models/loan_item.dart';
+import '../theme/app_colors.dart';
+import '../utils/date_helper.dart';
+import '../utils/error_handler.dart';
 import 'image_crop_preview.dart';
 
 class AddItemScreen extends StatefulWidget {
@@ -71,9 +75,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
     if (widget.initial?.dueDate != null) {
       _selectedDate = widget.initial!.dueDate!.toLocal();
     } else if (widget.initial?.daysRemaining != null) {
-      _selectedDate = DateTime.now().add(
-        Duration(days: widget.initial!.daysRemaining!),
-      );
+      _selectedDate = DateHelper.addDaysToNow(widget.initial!.daysRemaining!);
     }
   }
 
@@ -105,9 +107,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
       if (widget.initial?.dueDate != null) {
         _selectedDate = widget.initial!.dueDate!.toLocal();
       } else if (widget.initial?.daysRemaining != null) {
-        _selectedDate = DateTime.now().add(
-          Duration(days: widget.initial!.daysRemaining!),
-        );
+        _selectedDate = DateHelper.addDaysToNow(widget.initial!.daysRemaining!);
       } else {
         _selectedDate = null;
       }
@@ -131,7 +131,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
   void _applyPreset(int days) {
     setState(() {
-      _selectedDate = DateTime.now().add(Duration(days: days));
+      _selectedDate = DateHelper.addDaysToNow(days);
     });
   }
 
@@ -217,16 +217,14 @@ class _AddItemScreenState extends State<AddItemScreen> {
               TextButton(
                 onPressed: () async {
                   final navigator2 = Navigator.of(ctx);
-                  final messenger2 = ScaffoldMessenger.of(ctx);
                   await Clipboard.setData(
                     const ClipboardData(text: 'sudo apt install zenity'),
                   );
                   if (!mounted) return;
                   navigator2.pop();
-                  messenger2.showSnackBar(
-                    const SnackBar(
-                      content: Text('Perintah instalasi disalin ke clipboard'),
-                    ),
+                  ErrorHandler.showInfo(
+                    ctx,
+                    'Perintah instalasi disalin ke clipboard',
                   );
                 },
                 child: const Text('Salin perintah apt'),
@@ -238,9 +236,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
       }
 
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Gagal memilih foto: $e')));
+      ErrorHandler.showError(context, 'Gagal memilih foto: $e');
     }
   }
 
@@ -265,9 +261,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Gagal mengambil foto: $e')));
+      ErrorHandler.showError(context, 'Gagal mengambil foto: $e');
     }
   }
 
@@ -343,16 +337,14 @@ class _AddItemScreenState extends State<AddItemScreen> {
               TextButton(
                 onPressed: () async {
                   final navigator = Navigator.of(ctx);
-                  final messenger = ScaffoldMessenger.of(ctx);
                   await Clipboard.setData(
                     const ClipboardData(text: 'sudo apt install zenity'),
                   );
                   if (!mounted) return;
                   navigator.pop();
-                  messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text('Perintah instalasi disalin ke clipboard'),
-                    ),
+                  ErrorHandler.showInfo(
+                    ctx,
+                    'Perintah instalasi disalin ke clipboard',
                   );
                 },
                 child: const Text('Salin perintah apt'),
@@ -364,9 +356,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
       }
 
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Gagal memilih foto: $e')));
+      ErrorHandler.showError(context, 'Gagal memilih foto: $e');
     }
   }
 
@@ -432,8 +422,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
           : decoded;
 
       if (!await imagesDir.exists()) await imagesDir.create(recursive: true);
-      final outPath =
-          '${imagesDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final outPath = '${imagesDir.path}/${DateHelper.timestamp()}.jpg';
       final jpg = img.encodeJpg(processed, quality: 85);
       final outFile = File(outPath);
       await outFile.writeAsBytes(jpg);
@@ -459,8 +448,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
   }
 
   Color _pastelForIndex(int i) {
-    // Using updated color palette from LoanItem
-    final colors = LoanItem.pastelPalette;
+    // Using updated color palette from AppColors
+    final colors = AppColors.pastelPalette;
     return colors[i % colors.length];
   }
 
@@ -509,7 +498,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
       // cancel previous then schedule
       final t = getTimer();
       t?.cancel();
-      final newT = Timer(const Duration(milliseconds: 120), () {
+      final newT = Timer(AppConstants.hapticFeedbackDelay, () {
         HapticFeedback.selectionClick();
       });
       setTimer(newT);
@@ -521,7 +510,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
         barrierDismissible: true,
         barrierLabel: 'Pilih Tanggal Pengembalian',
         barrierColor: Colors.black54,
-        transitionDuration: const Duration(milliseconds: 260),
+        transitionDuration: AppConstants.dialogTransitionDuration,
         pageBuilder: (ctx, anim1, anim2) {
           return StatefulBuilder(
             builder: (ctx, setModalState) {
@@ -829,18 +818,14 @@ class _AddItemScreenState extends State<AddItemScreen> {
       final permitted = await FlutterContacts.requestPermission();
       if (!mounted) return;
       if (!permitted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Izin kontak ditolak')));
+        ErrorHandler.showError(context, 'Izin kontak ditolak');
         return;
       }
 
       final contacts = await FlutterContacts.getContacts(withProperties: true);
       if (!mounted) return;
       if (contacts.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tidak ada kontak di perangkat')),
-        );
+        ErrorHandler.showInfo(context, 'Tidak ada kontak di perangkat');
         return;
       }
 
@@ -882,9 +867,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
           ),
         );
       } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Gagal memilih kontak: $e')));
+        ErrorHandler.showError(context, 'Gagal memilih kontak: $e');
       }
     }
   }
@@ -1346,24 +1329,21 @@ class _AddItemScreenState extends State<AddItemScreen> {
                       });
 
                       if (_titleError || _borrowerError) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Periksa field wajib yang diberi tanda.',
-                            ),
-                          ),
+                        ErrorHandler.showError(
+                          context,
+                          'Periksa field wajib yang diberi tanda.',
                         );
                         _scrollController.animateTo(
                           0,
-                          duration: const Duration(milliseconds: 300),
+                          duration: AppConstants.quickTransitionDuration,
                           curve: Curves.ease,
                         );
                         return;
                       }
 
-                      final int? daysRemaining = _selectedDate
-                          ?.difference(DateTime.now())
-                          .inDays;
+                      final int? daysRemaining = _selectedDate != null
+                          ? DateHelper.daysUntil(_selectedDate!)
+                          : null;
 
                       // Capture navigator and onSave callback before any await so
                       // we don't use BuildContext across an async gap.

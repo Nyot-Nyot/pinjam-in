@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'constants/storage_keys.dart';
 import 'screens/splash_screen.dart';
 import 'utils/logger.dart';
 
@@ -13,8 +14,8 @@ Future<void> main() async {
   } catch (_) {}
   // Debug: show whether dotenv loaded expected keys (visible in flutter run logs)
   try {
-    final u = dotenv.env['SUPABASE_URL'];
-    final k = dotenv.env['SUPABASE_ANON_KEY'];
+    final u = dotenv.env[StorageKeys.envSupabaseUrl];
+    final k = dotenv.env[StorageKeys.envSupabaseAnonKey];
     AppLogger.debug(
       'SUPABASE_URL present: ${u != null && u.isNotEmpty}',
       'dotenv',
@@ -26,8 +27,8 @@ Future<void> main() async {
   } catch (_) {}
   // Try to initialize Supabase once at startup if dotenv provides credentials.
   try {
-    final url = dotenv.env['SUPABASE_URL'] ?? '';
-    final key = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+    final url = dotenv.env[StorageKeys.envSupabaseUrl] ?? '';
+    final key = dotenv.env[StorageKeys.envSupabaseAnonKey] ?? '';
     if (url.isNotEmpty && key.isNotEmpty) {
       try {
         // Supabase.initialize may throw if already initialized; ignore that case.

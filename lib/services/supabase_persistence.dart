@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart' show dotenv;
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../constants/storage_keys.dart';
 import '../models/loan_item.dart';
 import '../utils/logger.dart';
 import 'persistence_service.dart';
@@ -45,9 +46,9 @@ class SupabasePersistence implements PersistenceService {
 
   /// Default storage bucket to use for uploaded images. Create this bucket in
   /// your Supabase project (public or with appropriate policies).
-  static const _kImagesBucket = 'item_photos';
+  static final _kImagesBucket = StorageKeys.imagesBucket;
   // Optional: an external upload server you can run (see server/upload_server)
-  static final _kUploadServerUrl = dotenv.env['SUPABASE_UPLOAD_SERVER'];
+  static final _kUploadServerUrl = dotenv.env[StorageKeys.envUploadServerUrl];
 
   /// Helper method to extract error messages from Supabase auth responses
   static String? authErrorFromResponse(dynamic res, [dynamic caught]) {
@@ -79,26 +80,28 @@ class SupabasePersistence implements PersistenceService {
   }
 
   static Map<String, dynamic> _toMap(LoanItem item) => {
-    'id': item.id,
-    'user_id': item.ownerId,
-    'name': item.title,
-    'borrower_name': item.borrower,
-    'borrower_contact_id': item.contact,
-    'borrow_date': item.createdAt?.toIso8601String(),
+    StorageKeys.columnId: item.id,
+    StorageKeys.columnUserId: item.ownerId,
+    StorageKeys.columnName: item.title,
+    StorageKeys.columnBorrowerName: item.borrower,
+    StorageKeys.columnBorrowerContactId: item.contact,
+    StorageKeys.columnBorrowDate: item.createdAt?.toIso8601String(),
     'due_date': item.dueDate != null
         ? item.dueDate!.toLocal().toIso8601String().split(
             'T',
           )[0] // Date only in local time
         : null,
-    'return_date': item.returnedAt != null
+    StorageKeys.columnReturnDate: item.returnedAt != null
         ? item.returnedAt!.toLocal().toIso8601String().split(
             'T',
           )[0] // Date only in local time
         : null,
-    'status': item.status == 'active' ? 'borrowed' : item.status,
-    'notes': item.note,
-    'photo_url': item.imageUrl,
-    'created_at': item.createdAt?.toIso8601String(),
+    StorageKeys.columnStatus: item.status == 'active'
+        ? 'borrowed'
+        : item.status,
+    StorageKeys.columnNotes: item.note,
+    StorageKeys.columnPhotoUrl: item.imageUrl,
+    StorageKeys.columnCreatedAt: item.createdAt?.toIso8601String(),
   };
 
   static LoanItem _fromMap(Map<String, dynamic> m) {
@@ -110,29 +113,30 @@ class SupabasePersistence implements PersistenceService {
       return null;
     }
 
-    final borrowDate = parseTimestamp(m['borrow_date']);
+    final borrowDate = parseTimestamp(m[StorageKeys.columnBorrowDate]);
     final dueDate = parseTimestamp(m['due_date']);
-    final returnDate = parseTimestamp(m['return_date']);
-    final createdAt = parseTimestamp(m['created_at']) ?? borrowDate;
+    final returnDate = parseTimestamp(m[StorageKeys.columnReturnDate]);
+    final createdAt =
+        parseTimestamp(m[StorageKeys.columnCreatedAt]) ?? borrowDate;
 
     // Map 'borrowed' status to 'active' for internal use
-    final status = (m['status'] as String?) == 'borrowed'
+    final status = (m[StorageKeys.columnStatus] as String?) == 'borrowed'
         ? 'active'
-        : (m['status'] as String? ?? 'active');
+        : (m[StorageKeys.columnStatus] as String? ?? 'active');
 
     return LoanItem.fromJson({
-      'id': m['id'] as String,
-      'title': m['name'] as String,
-      'borrower': m['borrower_name'] as String,
+      'id': m[StorageKeys.columnId] as String,
+      'title': m[StorageKeys.columnName] as String,
+      'borrower': m[StorageKeys.columnBorrowerName] as String,
       'daysRemaining': null, // Will be computed from due_date if needed
       'createdAt': createdAt?.millisecondsSinceEpoch,
       'dueDate': dueDate?.millisecondsSinceEpoch,
       'returnedAt': returnDate?.millisecondsSinceEpoch,
-      'note': m['notes'] as String?,
-      'contact': m['borrower_contact_id'] as String?,
+      'note': m[StorageKeys.columnNotes] as String?,
+      'contact': m[StorageKeys.columnBorrowerContactId] as String?,
       'imagePath': null,
-      'imageUrl': m['photo_url'] as String?,
-      'ownerId': m['user_id'] as String?,
+      'imageUrl': m[StorageKeys.columnPhotoUrl] as String?,
+      'ownerId': m[StorageKeys.columnUserId] as String?,
       'status': status,
     });
   }
@@ -140,7 +144,7 @@ class SupabasePersistence implements PersistenceService {
   @override
   Future<List<LoanItem>> loadActive() async {
     final res = await _client
-        .from('items')
+        .from(StorageKeys.itemsTable)
         .select()
         .eq('status', 'borrowed')
         .order('borrow_date', ascending: false)
@@ -167,10 +171,10 @@ class SupabasePersistence implements PersistenceService {
   @override
   Future<List<LoanItem>> loadHistory() async {
     final res = await _client
-        .from('items')
+        .from(StorageKeys.itemsTable)
         .select()
-        .eq('status', 'returned')
-        .order('created_at', ascending: false)
+        .eq(StorageKeys.columnStatus, 'returned')
+        .order(StorageKeys.columnCreatedAt, ascending: false)
         .limit(200);
     try {
       if (res is List) {
@@ -206,7 +210,7 @@ class SupabasePersistence implements PersistenceService {
       }
       final m = _toMap(itemToUpsert);
       try {
-        final res = await _client.from('items').upsert(m);
+        final res = await _client.from(StorageKeys.itemsTable).upsert(m);
         // some versions return List, some return wrapper with .error/.data
         if (res is Map && res['error'] != null) {
           throw Exception(res['error']);
@@ -232,7 +236,7 @@ class SupabasePersistence implements PersistenceService {
       }
       final m = _toMap(itemToUpsert);
       try {
-        final res = await _client.from('items').upsert(m);
+        final res = await _client.from(StorageKeys.itemsTable).upsert(m);
         if (res is Map && res['error'] != null) throw Exception(res['error']);
       } catch (e) {
         throw Exception('Failed to upsert history item ${item.id}: $e');
@@ -472,11 +476,10 @@ class SupabasePersistence implements PersistenceService {
     try {
       // First, get the item to check if it has a photo
       final queryRes = await _client
-          .from('items')
-          .select('photo_url')
-          .eq('id', itemId)
+          .from(StorageKeys.itemsTable)
+          .select(StorageKeys.columnPhotoUrl)
+          .eq(StorageKeys.columnId, itemId)
           .maybeSingle();
-
       String? photoUrl;
       if (queryRes is Map<String, dynamic> && queryRes['photo_url'] != null) {
         photoUrl = queryRes['photo_url'] as String;
@@ -526,7 +529,10 @@ class SupabasePersistence implements PersistenceService {
       }
 
       // Delete the item record from database
-      final res = await _client.from('items').delete().eq('id', itemId);
+      final res = await _client
+          .from(StorageKeys.itemsTable)
+          .delete()
+          .eq(StorageKeys.columnId, itemId);
       if (res is Map && res['error'] != null) {
         throw Exception(res['error']);
       }

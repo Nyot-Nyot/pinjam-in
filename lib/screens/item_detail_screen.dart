@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/loan_item.dart';
 import '../services/persistence_service.dart';
 import '../services/share_service.dart';
+import '../utils/error_handler.dart';
 import '../widgets/storage_image.dart';
 
 class ItemDetailScreen extends StatefulWidget {
@@ -354,17 +355,12 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                           onPressed: () async {
                             final contact = widget.item.contact ?? '';
                             if (contact.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Kontak belum disetel'),
-                                ),
+                              ErrorHandler.showInfo(
+                                context,
+                                'Kontak belum disetel',
                               );
                               return;
                             }
-
-                            // Capture messenger before awaiting so we don't use the
-                            // BuildContext across async gaps.
-                            final messenger = ScaffoldMessenger.of(context);
 
                             // Try launching tel: URI; if not supported, copy contact to clipboard
                             final uri = Uri(scheme: 'tel', path: contact);
@@ -375,20 +371,18 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                                 await Clipboard.setData(
                                   ClipboardData(text: contact),
                                 );
-                                messenger.showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Nomor disalin ke clipboard'),
-                                  ),
+                                ErrorHandler.showInfo(
+                                  context,
+                                  'Nomor disalin ke clipboard',
                                 );
                               }
                             } catch (e) {
                               await Clipboard.setData(
                                 ClipboardData(text: contact),
                               );
-                              messenger.showSnackBar(
-                                const SnackBar(
-                                  content: Text('Nomor disalin ke clipboard'),
-                                ),
+                              ErrorHandler.showInfo(
+                                context,
+                                'Nomor disalin ke clipboard',
                               );
                             }
                           },
@@ -543,7 +537,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
       ..writeln('Sisa hari: ${widget.item.daysRemaining ?? 'Tanpa batas'}')
       ..writeln(widget.item.note ?? '');
 
-    final messenger = ScaffoldMessenger.of(context);
     final success = await ShareService.share(
       text.toString(),
       subject: 'Detail pinjaman: ${widget.item.title}',
@@ -553,14 +546,11 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     // that. If in future a native share is used, you may want to change the
     // message accordingly.
     if (success) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Rangkuman disalin ke clipboard')),
-      );
+      ErrorHandler.showInfo(context, 'Rangkuman disalin ke clipboard');
     } else {
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Gagal membagikan; ringkasan disalin ke clipboard'),
-        ),
+      ErrorHandler.showError(
+        context,
+        'Gagal membagikan; ringkasan disalin ke clipboard',
       );
     }
   }

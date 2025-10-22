@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../models/loan_item.dart';
 import '../screens/item_detail_screen.dart';
 import '../services/persistence_service.dart';
+import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'storage_image.dart';
 
@@ -118,7 +119,7 @@ class _LoanCardState extends State<LoanCard>
     return Container(
       constraints: const BoxConstraints(minHeight: 140),
       decoration: BoxDecoration(
-        color: LoanItem.pastelForId(widget.item.id),
+        color: AppColors.pastelForId(widget.item.id),
         borderRadius: BorderRadius.circular(18.0),
         boxShadow: const [
           BoxShadow(

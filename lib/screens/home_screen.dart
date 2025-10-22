@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../constants/app_constants.dart';
 import '../models/loan_item.dart';
 import '../services/persistence_service.dart';
 import '../services/shared_prefs_persistence.dart';
 import '../services/supabase_persistence.dart';
 import '../theme/app_theme.dart';
+import '../utils/date_helper.dart';
+import '../utils/error_handler.dart';
 import '../utils/logger.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/empty_state.dart';
@@ -69,21 +72,15 @@ class _HomeScreenState extends State<HomeScreen> {
         try {
           await local.saveAll(active: _active, history: _history);
         } catch (_) {}
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Gagal menyimpan ke server (autentikasi). Data disimpan secara lokal. Silakan masuk untuk menyinkronkan.',
-            ),
-          ),
+        ErrorHandler.showError(
+          context,
+          'Gagal menyimpan ke server (autentikasi). Data disimpan secara lokal. Silakan masuk untuk menyinkronkan.',
         );
         return;
       }
 
       // Surface other persistence errors to the user so failures aren't silent
-      final messenger = ScaffoldMessenger.of(context);
-      messenger.showSnackBar(
-        SnackBar(content: Text('Gagal menyimpan data: $e')),
-      );
+      ErrorHandler.showError(context, 'Gagal menyimpan data: $e');
       // Re-throw so callers can also handle if needed
       rethrow;
     }
@@ -109,8 +106,8 @@ class _HomeScreenState extends State<HomeScreen> {
         final item = _active.removeAt(idx);
         // mark as returned so the persistence backend stores correct status
         final returned = item.copyWith(
-          status: 'returned',
-          returnedAt: DateTime.now().toUtc(),
+          status: AppConstants.statusReturned,
+          returnedAt: DateHelper.nowUtc(),
         );
         _history.add(returned);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -176,26 +173,22 @@ class _HomeScreenState extends State<HomeScreen> {
                     // Upload returned null (no URL) — treat as failure and
                     // abort saving to avoid RLS/upsert errors.
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Gagal mengunggah gambar (tidak ada URL dikembalikan). Silakan coba lagi. User id: ${uid ?? '<anonymous>'}',
-                          ),
-                          duration: const Duration(seconds: 5),
-                        ),
+                      ErrorHandler.showError(
+                        context,
+                        'Gagal mengunggah gambar (tidak ada URL dikembalikan). User id: ${uid ?? '<anonymous>'}',
+                        duration: AppConstants.snackBarDuration,
                       );
                     }
                     return;
                   }
                 } catch (e) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Gagal mengunggah gambar: $e. Pastikan Anda sudah login dan bucket storage membolehkan upload. (user: ${uid ?? '<anon>'})',
-                        ),
-                        duration: const Duration(seconds: 6),
-                      ),
+                    ErrorHandler.showError(
+                      context,
+                      e,
+                      customMessage:
+                          'Gagal mengunggah gambar. Pastikan Anda sudah login. (user: ${uid ?? '<anon>'})',
+                      duration: AppConstants.snackBarLongDuration,
                     );
                   }
                   // Abort saving since upload failed
@@ -247,7 +240,7 @@ class _HomeScreenState extends State<HomeScreen> {
               _saveAll();
               _pageController.animateToPage(
                 0,
-                duration: const Duration(milliseconds: 350),
+                duration: AppConstants.pageTransitionDuration,
                 curve: Curves.ease,
               );
             },
@@ -255,7 +248,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // navigate back to Home page when Add is embedded
               _pageController.animateToPage(
                 0,
-                duration: const Duration(milliseconds: 300),
+                duration: AppConstants.quickTransitionDuration,
                 curve: Curves.ease,
               );
             },
@@ -286,7 +279,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       _saveAll();
                     },
                   ),
-                  duration: const Duration(seconds: 5),
+                  duration: AppConstants.snackBarDuration,
                 ),
               );
 
@@ -324,7 +317,7 @@ class _HomeScreenState extends State<HomeScreen> {
               setState(() => _editingItem = item);
               _pageController.animateToPage(
                 1,
-                duration: const Duration(milliseconds: 350),
+                duration: AppConstants.pageTransitionDuration,
                 curve: Curves.ease,
               );
             },
@@ -354,7 +347,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // update UI (clear button) immediately, but debounce the actual filtering
       setState(() {});
       _searchDebounce?.cancel();
-      _searchDebounce = Timer(const Duration(milliseconds: 200), () {
+      _searchDebounce = Timer(AppConstants.searchDebounceDuration, () {
         if (!mounted) return;
         setState(() => _query = _searchController.text);
       });
@@ -499,11 +492,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                 }
                               } catch (e) {
                                 if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Gagal logout: $e'),
-                                      backgroundColor: Colors.red,
-                                    ),
+                                  ErrorHandler.showError(
+                                    context,
+                                    'Gagal logout: $e',
                                   );
                                 }
                               }
@@ -662,7 +653,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           setState(() => _selectedIndex = 1);
                           _pageController.animateToPage(
                             1,
-                            duration: const Duration(milliseconds: 350),
+                            duration: AppConstants.pageTransitionDuration,
                             curve: Curves.ease,
                           );
                         }
@@ -697,7 +688,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           });
                           _pageController.animateToPage(
                             1,
-                            duration: const Duration(milliseconds: 350),
+                            duration: AppConstants.pageTransitionDuration,
                             curve: Curves.ease,
                           );
                         },
@@ -724,7 +715,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
         _pageController.animateToPage(
           i,
-          duration: const Duration(milliseconds: 350),
+          duration: AppConstants.pageTransitionDuration,
           curve: Curves.ease,
         );
       },

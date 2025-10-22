@@ -8,6 +8,7 @@ import 'package:pinjam_in/screens/home_screen.dart';
 import 'package:pinjam_in/screens/login_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../constants/app_constants.dart';
 import '../services/supabase_persistence.dart';
 import '../utils/logger.dart';
 
@@ -30,7 +31,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
+      duration: AppConstants.animationDuration,
     );
 
     _scaleAnim = Tween<double>(
@@ -45,7 +46,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    Timer(const Duration(milliseconds: 2000), () {
+    Timer(AppConstants.splashDuration, () {
       if (mounted) {
         _checkAuthAndNavigate();
       }

@@ -1,6 +1,9 @@
-import 'dart:math';
+import 'dart:math' show Random;
 
 import 'package:flutter/material.dart';
+
+import '../theme/app_colors.dart';
+import '../utils/date_helper.dart';
 
 class LoanItem {
   LoanItem({
@@ -98,48 +101,23 @@ class LoanItem {
     );
   }
 
-  // A small pastel palette used across the app.
-  static const List<Color> pastelPalette = [
-    Color(0xFFFF95B8), // warm pink
-    Color(0xFFFFCE6B), // peach/yellow
-    Color(0xFFB78CFF), // lavender
-    Color(0xFF79F0B0), // mint
-  ];
-
   /// Returns a random pastel color from the shared palette.
-  static Color randomPastel([Random? rng]) {
-    final r = rng ?? Random();
-    return pastelPalette[r.nextInt(pastelPalette.length)];
-  }
+  @Deprecated('Use AppColors.randomPastel() instead')
+  static Color randomPastel([Random? rng]) => AppColors.randomPastel(rng);
 
   /// Deterministically map an item id to a pastel color from the shared palette.
   ///
   /// We use a simple DJB2-style hash over the id's UTF-16 code units so the
   /// same id always maps to the same palette index across app restarts.
-  static Color pastelForId(String id) {
-    if (id.isEmpty) return pastelPalette[0];
-    var hash = 5381;
-    for (final unit in id.codeUnits) {
-      hash = ((hash << 5) + hash) + unit; // hash * 33 + unit
-    }
-    final idx = hash.abs() % pastelPalette.length;
-    return pastelPalette[idx];
-  }
+  @Deprecated('Use AppColors.pastelForId() instead')
+  static Color pastelForId(String id) => AppColors.pastelForId(id);
 
   /// Compute up-to-date days remaining using [dueDate] when available.
   /// Falls back to the legacy [daysRemaining] snapshot if [dueDate] is not set.
   int? get computedDaysRemaining {
     if (returnedAt != null) return null;
     if (dueDate != null) {
-      // Compare dates in local time since dueDate is stored as DATE (not TIMESTAMP)
-      final now = DateTime.now();
-      final due = dueDate!.toLocal();
-
-      // Normalize to start of day for accurate day calculation
-      final nowDate = DateTime(now.year, now.month, now.day);
-      final dueDateNormalized = DateTime(due.year, due.month, due.day);
-
-      return dueDateNormalized.difference(nowDate).inDays;
+      return DateHelper.daysUntil(dueDate!);
     }
     return daysRemaining;
   }
