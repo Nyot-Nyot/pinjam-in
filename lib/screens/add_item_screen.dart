@@ -1,23 +1,19 @@
 import 'dart:async';
-import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image/image.dart' as img;
-import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../constants/app_constants.dart';
 import '../models/loan_item.dart';
-import '../theme/app_colors.dart';
+import '../services/contact_service.dart';
+// theme colors are used by SectionCard in add_item_helpers
 import '../utils/date_helper.dart';
 import '../utils/error_handler.dart';
+import '../widgets/add_item_helpers.dart';
 import '../widgets/date_picker_modal.dart';
-import 'image_crop_preview.dart';
+import '../widgets/image_picker_section.dart';
+import '../widgets/loan_form_fields.dart';
 
 class AddItemScreen extends StatefulWidget {
   /// If [initial] is provided, the screen will be used to edit that item (fields are prefilled).
@@ -46,6 +42,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
   late TextEditingController _contactController;
   DateTime? _selectedDate;
   String? _pickedImagePath;
+  final GlobalKey _imagePickerKey = GlobalKey();
   final ScrollController _scrollController = ScrollController();
 
   bool _titleError = false;
@@ -66,10 +63,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
     // If editing an existing item, show its image preview (validate file exists)
     _pickedImagePath = widget.initial?.imagePath;
-    // validate asynchronously in case the file was removed externally
-    if (_pickedImagePath != null) {
-      _validatePickedImagePath(_pickedImagePath!);
-    }
+    // Image validation handled by extracted ImagePickerSection widget.
 
     // Prefer an absolute dueDate if present; fall back to legacy daysRemaining.
     if (widget.initial?.dueDate != null) {
@@ -101,9 +95,6 @@ class _AddItemScreenState extends State<AddItemScreen> {
       _noteController.text = widget.initial?.note ?? '';
       _contactController.text = widget.initial?.contact ?? '';
       _pickedImagePath = widget.initial?.imagePath;
-      if (_pickedImagePath != null) {
-        _validatePickedImagePath(_pickedImagePath!);
-      }
       if (widget.initial?.dueDate != null) {
         _selectedDate = widget.initial!.dueDate!.toLocal();
       } else if (widget.initial?.daysRemaining != null) {
@@ -115,19 +106,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
     }
   }
 
-  // Asynchronously verify that the image file still exists. If not, clear
-  // the picked image to avoid showing a broken preview.
-  Future<void> _validatePickedImagePath(String path) async {
-    try {
-      final f = File(path);
-      final exists = await f.exists();
-      if (!exists && mounted) {
-        setState(() => _pickedImagePath = null);
-      }
-    } catch (_) {
-      if (mounted) setState(() => _pickedImagePath = null);
-    }
-  }
+  // Image path validation moved to ImagePickerSection.
 
   void _applyPreset(int days) {
     setState(() {
@@ -135,334 +114,10 @@ class _AddItemScreenState extends State<AddItemScreen> {
     });
   }
 
-  Future<void> _pickPhoto() async {
-    final localContext = context;
-    final navigator = Navigator.of(localContext);
-    try {
-      // On mobile, open camera directly.
-      if (Platform.isAndroid || Platform.isIOS) {
-        final ImagePicker picker = ImagePicker();
-        final XFile? image = await picker.pickImage(
-          source: ImageSource.camera,
-          maxWidth: 1600,
-        );
-        if (image == null) return;
-        if (!mounted) return;
-        // Open crop preview and use returned path if user confirmed a crop.
-        final picked = image.path;
-        final result = await navigator.push<String?>(
-          MaterialPageRoute(
-            builder: (_) => ImageCropPreview(imagePath: picked),
-          ),
-        );
-        if (!mounted) return;
-        if (result != null) {
-          await _maybeDeletePersisted(_pickedImagePath);
-          setState(() => _pickedImagePath = result);
-        }
-        return;
-      }
+  // Image picker and processing moved to ImagePickerSection widget.
 
-      // Desktop / fallback -> file picker
-      final res = await FilePicker.platform.pickFiles(
-        type: FileType.image,
-        allowMultiple: false,
-      );
-      if (res == null || res.files.isEmpty) return;
-      final path = res.files.first.path;
-      if (path == null) return;
-      if (!mounted) return;
-      final result = await navigator.push<String?>(
-        MaterialPageRoute(builder: (_) => ImageCropPreview(imagePath: path)),
-      );
-      if (!mounted) return;
-      if (result != null) {
-        await _maybeDeletePersisted(_pickedImagePath);
-        setState(() => _pickedImagePath = result);
-      }
-    } catch (e) {
-      final err = e.toString();
-      // On some Linux distributions FilePicker relies on zenity. If it's
-      // missing the native error message references 'zenity'. Show a
-      // helpful dialog with install instructions instead of the raw error.
-      if (Platform.isLinux && err.toLowerCase().contains('zenity')) {
-        if (!mounted) return;
-        showDialog<void>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Picker foto tidak tersedia'),
-            content: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    'Pilih foto gagal karena utilitas "zenity" tidak ditemukan di sistem.',
-                  ),
-                  SizedBox(height: 12),
-                  Text(
-                    'Instal salah satu dari perintah berikut sesuai distro Anda dan jalankan ulang aplikasi:',
-                  ),
-                  SizedBox(height: 8),
-                  Text('• Debian / Ubuntu: sudo apt install zenity'),
-                  Text('• Fedora: sudo dnf install zenity'),
-                  Text('• Arch: sudo pacman -S zenity'),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Tutup'),
-              ),
-              TextButton(
-                onPressed: () async {
-                  final navigator2 = Navigator.of(ctx);
-                  await Clipboard.setData(
-                    const ClipboardData(text: 'sudo apt install zenity'),
-                  );
-                  if (!mounted) return;
-                  navigator2.pop();
-                  ErrorHandler.showInfo(
-                    ctx,
-                    'Perintah instalasi disalin ke clipboard',
-                  );
-                },
-                child: const Text('Salin perintah apt'),
-              ),
-            ],
-          ),
-        );
-        return;
-      }
-
-      if (!mounted) return;
-      ErrorHandler.showError(context, 'Gagal memilih foto: $e');
-    }
-  }
-
-  Future<void> _pickFromCamera() async {
-    final navigator = Navigator.of(context);
-    try {
-      final ImagePicker picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.camera,
-        maxWidth: 1600,
-      );
-      if (image == null) return;
-      if (!mounted) return;
-      final picked = image.path;
-      final result = await navigator.push<String?>(
-        MaterialPageRoute(builder: (_) => ImageCropPreview(imagePath: picked)),
-      );
-      if (!mounted) return;
-      if (result != null) {
-        await _maybeDeletePersisted(_pickedImagePath);
-        setState(() => _pickedImagePath = result);
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ErrorHandler.showError(context, 'Gagal mengambil foto: $e');
-    }
-  }
-
-  Future<void> _pickFromGallery() async {
-    final navigator = Navigator.of(context);
-    try {
-      // On mobile, prefer image_picker gallery for a nicer UI
-      if (Platform.isAndroid || Platform.isIOS) {
-        final ImagePicker picker = ImagePicker();
-        final XFile? image = await picker.pickImage(
-          source: ImageSource.gallery,
-          maxWidth: 1600,
-        );
-        if (image == null) return;
-        if (!mounted) return;
-        final picked = image.path;
-        final result = await navigator.push<String?>(
-          MaterialPageRoute(
-            builder: (_) => ImageCropPreview(imagePath: picked),
-          ),
-        );
-        if (!mounted) return;
-        setState(() => _pickedImagePath = result ?? picked);
-        return;
-      }
-
-      // Desktop fallback
-      final res = await FilePicker.platform.pickFiles(
-        type: FileType.image,
-        allowMultiple: false,
-      );
-      if (res == null || res.files.isEmpty) return;
-      final path = res.files.first.path;
-      if (path == null) return;
-      if (!mounted) return;
-      final result = await navigator.push<String?>(
-        MaterialPageRoute(builder: (_) => ImageCropPreview(imagePath: path)),
-      );
-      if (!mounted) return;
-      await _maybeDeletePersisted(_pickedImagePath);
-      setState(() => _pickedImagePath = result ?? path);
-    } catch (e) {
-      final err = e.toString();
-      if (Platform.isLinux && err.toLowerCase().contains('zenity')) {
-        if (!mounted) return;
-        showDialog<void>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Picker foto tidak tersedia'),
-            content: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    'Pilih foto gagal karena utilitas "zenity" tidak ditemukan di sistem.',
-                  ),
-                  SizedBox(height: 12),
-                  Text(
-                    'Instal salah satu dari perintah berikut sesuai distro Anda dan jalankan ulang aplikasi:',
-                  ),
-                  SizedBox(height: 8),
-                  Text('• Debian / Ubuntu: sudo apt install zenity'),
-                  Text('• Fedora: sudo dnf install zenity'),
-                  Text('• Arch: sudo pacman -S zenity'),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Tutup'),
-              ),
-              TextButton(
-                onPressed: () async {
-                  final navigator = Navigator.of(ctx);
-                  await Clipboard.setData(
-                    const ClipboardData(text: 'sudo apt install zenity'),
-                  );
-                  if (!mounted) return;
-                  navigator.pop();
-                  ErrorHandler.showInfo(
-                    ctx,
-                    'Perintah instalasi disalin ke clipboard',
-                  );
-                },
-                child: const Text('Salin perintah apt'),
-              ),
-            ],
-          ),
-        );
-        return;
-      }
-
-      if (!mounted) return;
-      ErrorHandler.showError(context, 'Gagal memilih foto: $e');
-    }
-  }
-
-  Future<void> _showPhotoOptions() async {
-    // On desktop simply use the existing picker path
-    if (!(Platform.isAndroid || Platform.isIOS)) {
-      await _pickPhoto();
-      return;
-    }
-
-    final result = await showModalBottomSheet<String?>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Ambil Foto'),
-              onTap: () => Navigator.of(ctx).pop('camera'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Pilih dari Galeri'),
-              onTap: () => Navigator.of(ctx).pop('gallery'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.close),
-              title: const Text('Batal'),
-              onTap: () => Navigator.of(ctx).pop(null),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (result == 'camera') {
-      await _pickFromCamera();
-    } else if (result == 'gallery') {
-      await _pickFromGallery();
-    }
-  }
-
-  /// If a photo was picked, resize it to a reasonable max width and save a
-  /// copy into the app documents directory. Returns the saved file path or
-  /// the original path if processing fails.
-  Future<String?> _processAndSaveImage() async {
-    if (_pickedImagePath == null) return null;
-    try {
-      final original = File(_pickedImagePath!);
-      if (!await original.exists()) return _pickedImagePath;
-      // If the picked image is already in the app's images folder, return it
-      final appDir = await getApplicationDocumentsDirectory();
-      final imagesDir = Directory('${appDir.path}/images');
-      if (_pickedImagePath!.startsWith(imagesDir.path)) return _pickedImagePath;
-      final bytes = await original.readAsBytes();
-      final decoded = img.decodeImage(bytes);
-      if (decoded == null) return _pickedImagePath;
-
-      const maxWidth = 1200;
-      final processed = decoded.width > maxWidth
-          ? img.copyResize(decoded, width: maxWidth)
-          : decoded;
-
-      if (!await imagesDir.exists()) await imagesDir.create(recursive: true);
-      final outPath = '${imagesDir.path}/${DateHelper.timestamp()}.jpg';
-      final jpg = img.encodeJpg(processed, quality: 85);
-      final outFile = File(outPath);
-      await outFile.writeAsBytes(jpg);
-      return outPath;
-    } catch (_) {
-      // If anything fails, fall back to the original picked path so saving
-      // still works even when processing isn't available.
-      return _pickedImagePath;
-    }
-  }
-
-  /// If the provided path points to a persisted app image, delete it.
-  Future<void> _maybeDeletePersisted(String? path) async {
-    if (path == null) return;
-    try {
-      final appDir = await getApplicationDocumentsDirectory();
-      final imagesDir = Directory('${appDir.path}/images');
-      if (path.startsWith(imagesDir.path)) {
-        final f = File(path);
-        if (await f.exists()) await f.delete();
-      }
-    } catch (_) {}
-  }
-
-  Color _pastelForIndex(int i) {
-    // Using updated color palette from AppColors
-    final colors = AppColors.pastelPalette;
-    return colors[i % colors.length];
-  }
-
-  Widget _sectionCard({required Widget child, required int index}) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: _pastelForIndex(index),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: child,
-    );
-  }
+  // SectionCard, PresetChip and ActionButton extracted to
+  // `lib/widgets/add_item_helpers.dart` to reduce file size.
 
   Future<void> _pickCustomDate() async {
     final initial = _selectedDate ?? DateTime.now();
@@ -477,61 +132,12 @@ class _AddItemScreenState extends State<AddItemScreen> {
   }
 
   Future<void> _pickContact() async {
-    try {
-      final permitted = await FlutterContacts.requestPermission();
-      if (!mounted) return;
-      if (!permitted) {
-        ErrorHandler.showError(context, 'Izin kontak ditolak');
-        return;
-      }
-
-      final contacts = await FlutterContacts.getContacts(withProperties: true);
-      if (!mounted) return;
-      if (contacts.isEmpty) {
-        ErrorHandler.showInfo(context, 'Tidak ada kontak di perangkat');
-        return;
-      }
-
-      final choice = await showDialog<Contact?>(
-        context: context,
-        builder: (ctx) => SimpleDialog(
-          title: const Text('Pilih Kontak'),
-          children: contacts.take(20).map((c) {
-            final subtitle = c.phones.isNotEmpty ? c.phones.first.number : '';
-            return SimpleDialogOption(
-              onPressed: () => Navigator.of(ctx).pop(c),
-              child: ListTile(
-                title: Text(c.displayName),
-                subtitle: Text(subtitle),
-              ),
-            );
-          }).toList(),
-        ),
-      );
-
-      if (!mounted) return;
-      if (choice != null) {
-        final name = choice.displayName;
-        final phone = choice.phones.isNotEmpty
-            ? choice.phones.first.number
-            : '';
-        final display = name.isNotEmpty ? '$name • $phone' : phone;
-        setState(() {
-          _contactController.text = display;
-        });
-      }
-    } catch (e) {
-      if (e is MissingPluginException) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Picker kontak tidak tersedia pada build saat ini. Jalankan ulang aplikasi di perangkat mobile.',
-            ),
-          ),
-        );
-      } else {
-        ErrorHandler.showError(context, 'Gagal memilih kontak: $e');
-      }
+    // Delegate contact selection to ContactService so the logic is reusable
+    // across screens. ContactService will show dialogs and handle permission.
+    final result = await ContactService.pickContact(context);
+    if (!mounted) return;
+    if (result != null) {
+      setState(() => _contactController.text = result);
     }
   }
 
@@ -568,237 +174,38 @@ class _AddItemScreenState extends State<AddItemScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 8),
-            _sectionCard(
+            SectionCard(
               index: 0,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Foto Barang',
-                    style: GoogleFonts.arimo(
-                      fontSize: 14,
-                      color: const Color(0xFF0C0315),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: _showPhotoOptions,
-                    child: Container(
-                      height: 128,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20.0),
-                        border: Border.all(
-                          color: const Color(0xFFE6DBF8),
-                          width: 1.0,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color.fromRGBO(0, 0, 0, 0.04),
-                            blurRadius: 8,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: _pickedImagePath == null
-                          ? Center(
-                              child: Text(
-                                'Tambah Foto',
-                                style: GoogleFonts.arimo(
-                                  color: const Color(0xFF4A3D5C),
-                                ),
-                              ),
-                            )
-                          : Stack(
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: Image.file(
-                                    File(_pickedImagePath!),
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                    height: 128,
-                                  ),
-                                ),
-                                Positioned(
-                                  top: 8,
-                                  right: 8,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      setState(() => _pickedImagePath = null);
-                                    },
-                                    child: Container(
-                                      width: 32,
-                                      height: 32,
-                                      decoration: BoxDecoration(
-                                        color: Colors.black45,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        Icons.delete,
-                                        color: Colors.white,
-                                        size: 18,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                    ),
-                  ),
-                ],
+              child: ImagePickerSection(
+                key: _imagePickerKey,
+                initialPath: widget.initial?.imagePath,
+                onChanged: (p) => setState(() => _pickedImagePath = p),
               ),
             ),
 
             const SizedBox(height: 12),
-            _sectionCard(
+            SectionCard(
               index: 1,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Nama Barang *',
-                    style: GoogleFonts.arimo(
-                      fontSize: 14,
-                      color: const Color(0xFF0C0315),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    height: 48,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20.0),
-                    ),
-                    child: TextField(
-                      controller: _titleController,
-                      style: GoogleFonts.arimo(fontSize: 16),
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        hintText: 'Contoh: Power Bank Hitam',
-                      ),
-                    ),
-                  ),
-                  if (_titleError)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: Text(
-                        'Nama barang wajib diisi',
-                        style: TextStyle(color: Colors.red.shade700),
-                      ),
-                    ),
-                ],
+              child: TitleField(
+                controller: _titleController,
+                error: _titleError,
               ),
             ),
 
             const SizedBox(height: 16),
             // Combined: Nama Peminjam + Kontak
-            _sectionCard(
+            SectionCard(
               index: 2,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Informasi Peminjam',
-                    style: GoogleFonts.arimo(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF0C0315),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Nama Peminjam
-                  Text(
-                    'Nama Peminjam *',
-                    style: GoogleFonts.arimo(
-                      fontSize: 13,
-                      color: const Color(0xFF0C0315),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    height: 48,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20.0),
-                    ),
-                    child: TextField(
-                      controller: _borrowerController,
-                      style: GoogleFonts.arimo(fontSize: 16),
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        hintText: 'Contoh: Budi Santoso',
-                      ),
-                    ),
-                  ),
-                  if (_borrowerError)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: Text(
-                        'Nama peminjam wajib diisi',
-                        style: TextStyle(color: Colors.red.shade700),
-                      ),
-                    ),
-
-                  const SizedBox(height: 16),
-
-                  // Kontak
-                  Text(
-                    'Kontak (opsional)',
-                    style: GoogleFonts.arimo(
-                      fontSize: 13,
-                      color: const Color(0xFF0C0315),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    height: 48,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20.0),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _contactController,
-                            style: GoogleFonts.arimo(fontSize: 16),
-                            decoration: const InputDecoration(
-                              border: InputBorder.none,
-                              hintText: 'Nomor telepon atau nama kontak',
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: _pickContact,
-                          icon: const Icon(
-                            Icons.contact_phone,
-                            color: Color(0xFF6B5E78),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              child: BorrowerContactFields(
+                borrowerController: _borrowerController,
+                contactController: _contactController,
+                borrowerError: _borrowerError,
+                onPickContact: _pickContact,
               ),
             ),
 
             const SizedBox(height: 12),
-            _sectionCard(
+            SectionCard(
               index: 3,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -880,10 +287,19 @@ class _AddItemScreenState extends State<AddItemScreen> {
                     crossAxisSpacing: 8,
                     childAspectRatio: 3.8,
                     children: [
-                      _presetChip('3 Hari', () => _applyPreset(3)),
-                      _presetChip('1 Minggu', () => _applyPreset(7)),
-                      _presetChip('2 Minggu', () => _applyPreset(14)),
-                      _presetChip('1 Bulan', () => _applyPreset(30)),
+                      PresetChip(label: '3 Hari', onTap: () => _applyPreset(3)),
+                      PresetChip(
+                        label: '1 Minggu',
+                        onTap: () => _applyPreset(7),
+                      ),
+                      PresetChip(
+                        label: '2 Minggu',
+                        onTap: () => _applyPreset(14),
+                      ),
+                      PresetChip(
+                        label: '1 Bulan',
+                        onTap: () => _applyPreset(30),
+                      ),
                     ],
                   ),
 
@@ -892,13 +308,19 @@ class _AddItemScreenState extends State<AddItemScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: _actionButton('Pilih Tanggal', _pickCustomDate),
+                        child: ActionButton(
+                          label: 'Pilih Tanggal',
+                          onTap: _pickCustomDate,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: _actionButton('Tanpa Batas', () {
-                          setState(() => _selectedDate = null);
-                        }),
+                        child: ActionButton(
+                          label: 'Tanpa Batas',
+                          onTap: () {
+                            setState(() => _selectedDate = null);
+                          },
+                        ),
                       ),
                     ],
                   ),
@@ -907,40 +329,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
             ),
 
             const SizedBox(height: 12),
-            _sectionCard(
+            SectionCard(
               index: 0,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Catatan',
-                    style: GoogleFonts.arimo(
-                      fontSize: 14,
-                      color: const Color(0xFF0C0315),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20.0),
-                    ),
-                    child: TextField(
-                      controller: _noteController,
-                      style: GoogleFonts.arimo(fontSize: 16),
-                      maxLines: 4,
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        hintText: 'Tambahkan catatan penting...',
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              child: NoteField(controller: _noteController),
             ),
 
             const SizedBox(height: 20),
@@ -1013,10 +404,14 @@ class _AddItemScreenState extends State<AddItemScreen> {
                       final onSaveCb = widget.onSave;
                       final navigator = Navigator.of(context);
 
-                      // If an image was picked, process & persist a resized copy
+                      // If an image was picked, ask the ImagePickerSection to
+                      // process & persist a resized copy and return the saved path.
                       String? finalImagePath = _pickedImagePath;
                       if (_pickedImagePath != null) {
-                        finalImagePath = await _processAndSaveImage();
+                        finalImagePath =
+                            await (_imagePickerKey.currentState as dynamic)
+                                ?.processAndSaveImage() ??
+                            _pickedImagePath;
                         if (!mounted) return;
                       }
 
@@ -1063,57 +458,5 @@ class _AddItemScreenState extends State<AddItemScreen> {
     );
   }
 
-  Widget _presetChip(String label, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE6D9F6)),
-          boxShadow: [
-            BoxShadow(
-              color: const Color.fromRGBO(0, 0, 0, 0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.arimo(
-            color: const Color(0xFF4A3D5C),
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _actionButton(String label, VoidCallback onTap) => GestureDetector(
-    onTap: onTap,
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE6D9F6)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color.fromRGBO(0, 0, 0, 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Text(
-        label,
-        style: GoogleFonts.arimo(
-          color: const Color(0xFF0C0315),
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    ),
-  );
+  // PresetChip and ActionButton moved to `lib/widgets/add_item_helpers.dart`.
 }

@@ -88,7 +88,7 @@
 -   ✅ Colors: AppColors extracted with pastelForId() helper
 -   ✅ Core files updated: LoanItem, Persistence services, main.dart, loan_card
 
-**Status**: ✅ **COMPLETED** (14 Januari 2025)
+**Status**: ✅ **COMPLETED** (22 Oktober 2025)
 
 **Files Created**:
 
@@ -112,10 +112,10 @@
 **3.1 AddItemScreen Refactoring** (1,495 → 1,120 baris, -355 lines)
 
 -   [x] 3.1.1 Extract `_DatePickerModal` ke `lib/widgets/date_picker_modal.dart` ✅
--   [ ] 3.1.2 Extract image picker logic ke `lib/widgets/image_picker_section.dart` (DEFERRED)
--   [ ] 3.1.3 Extract form fields ke `lib/widgets/loan_form_fields.dart` (DEFERRED)
--   [ ] 3.1.4 Extract contact picker logic ke `lib/services/contact_service.dart` (DEFERRED)
--   [ ] 3.1.5 Simplify AddItemScreen menjadi composition dari widgets kecil (DEFERRED)
+-   [x] 3.1.2 Extract image picker logic ke `lib/widgets/image_picker_section.dart` ✅
+-   [x] 3.1.3 Extract form fields ke `lib/widgets/loan_form_fields.dart` (DEFERRED)
+-   [x] 3.1.4 Extract contact picker logic ke `lib/services/contact_service.dart` ✅
+-   [x] 3.1.5 Simplify AddItemScreen menjadi composition dari widgets kecil ✅
 
 **3.2 HomeScreen Refactoring** (726 → target ~400 baris)
 
@@ -142,6 +142,9 @@
 **Progress Summary**:
 
 -   ✅ **DatePickerModal extracted** - 370 lines, reduced AddItemScreen by 355 lines
+-   ⏸️ **Other extractions deferred** - Complex interdependencies, better handled in Phase 4 with state management
+-   ✅ **DatePickerModal extracted** - 370 lines, reduced AddItemScreen by 355 lines
+-   ✅ **ImagePickerSection extracted** - ~220 lines, removed inline picker/processing logic from AddItemScreen
 -   ⏸️ **Other extractions deferred** - Complex interdependencies, better handled in Phase 4 with state management
 -   📝 **Recommendation**: Complete Phase 4 (State Management) first, then revisit remaining extractions
 
