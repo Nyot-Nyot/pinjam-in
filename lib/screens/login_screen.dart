@@ -2,18 +2,19 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pinjam_in/screens/home_screen.dart';
 import 'package:pinjam_in/screens/register_screen.dart';
+import 'package:pinjam_in/widgets/auth/auth_button.dart';
+import 'package:pinjam_in/widgets/auth/auth_form_field.dart';
+import 'package:pinjam_in/widgets/auth/auth_header.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/persistence_service.dart';
 import '../services/shared_prefs_persistence.dart';
 import '../services/supabase_persistence.dart';
 
-// Use local SVG assets placed under assets/images/
-const String _logoAsset = 'assets/images/logo-purple.svg';
+// Use local SVG asset for button icon
 const String _enterIconAsset = 'assets/images/enter.svg';
 
 class LoginScreen extends StatefulWidget {
@@ -177,68 +178,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          // Top container with icon and headings
-                          SizedBox(
-                            width: LoginScreen._cardWidth,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                // Rounded icon container (112)
-                                Container(
-                                  width: 112.0,
-                                  height: 112.0,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0x1A8530E4),
-                                    borderRadius: BorderRadius.circular(20.0),
-                                  ),
-                                  child: Center(
-                                    child: SizedBox(
-                                      width: 64.0,
-                                      height: 64.0,
-                                      child: SvgPicture.asset(
-                                        _logoAsset,
-                                        fit: BoxFit.contain,
-                                        placeholderBuilder: (c) =>
-                                            const SizedBox.shrink(),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-
-                                const SizedBox(height: 24.0),
-
-                                // Heading
-                                SizedBox(
-                                  width: 119.8,
-                                  child: Text(
-                                    'Selamat Datang',
-                                    textAlign: TextAlign.center,
-                                    style: GoogleFonts.arimo(
-                                      fontSize: 16.0,
-                                      height: 24.0 / 16.0,
-                                      color: const Color(0xFF8530E4),
-                                      fontWeight: FontWeight.w400,
-                                    ),
-                                  ),
-                                ),
-
-                                const SizedBox(height: 8.0),
-
-                                SizedBox(
-                                  width: 157.283,
-                                  child: Text(
-                                    'Masuk ke akun Anda',
-                                    textAlign: TextAlign.center,
-                                    style: GoogleFonts.arimo(
-                                      fontSize: 16.0,
-                                      height: 24.0 / 16.0,
-                                      color: const Color(0xFF4A3D5C),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                          // Reusable auth header
+                          const AuthHeader(
+                            title: 'Selamat Datang',
+                            subtitle: 'Masuk ke akun Anda',
                           ),
 
                           const SizedBox(height: 40.0),
@@ -250,232 +193,148 @@ class _LoginScreenState extends State<LoginScreen> {
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 // Email field
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Email',
-                                      style: GoogleFonts.arimo(
-                                        fontSize: 14.0,
-                                        color: const Color(0xFF0C0315),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8.0),
-                                    Container(
-                                      height: 48.0,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12.0,
-                                        vertical: 4.0,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFEBE1F7),
-                                        borderRadius: BorderRadius.circular(
-                                          20.0,
-                                        ),
-                                        boxShadow: const [
-                                          BoxShadow(
-                                            color: Color.fromRGBO(
-                                              0,
-                                              0,
-                                              0,
-                                              0.08,
-                                            ),
-                                            offset: Offset(0, 2),
-                                            blurRadius: 4,
-                                          ),
-                                        ],
-                                      ),
-                                      child: TextField(
-                                        controller: _emailController,
-                                        keyboardType:
-                                            TextInputType.emailAddress,
-                                        decoration: InputDecoration.collapsed(
-                                          hintText: 'nama@email.com',
-                                          hintStyle: GoogleFonts.arimo(
-                                            fontSize: 16.0,
-                                            color: const Color(0xFF4A3D5C),
-                                          ),
-                                        ),
-                                        style: GoogleFonts.arimo(
-                                          fontSize: 16.0,
-                                          color: const Color(0xFF4A3D5C),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                                AuthFormField(
+                                  label: 'Email',
+                                  hintText: 'nama@email.com',
+                                  controller: _emailController,
+                                  keyboardType: TextInputType.emailAddress,
                                 ),
 
                                 const SizedBox(height: 12.0),
 
                                 // Password field
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Kata Sandi',
-                                      style: GoogleFonts.arimo(
-                                        fontSize: 14.0,
-                                        color: const Color(0xFF0C0315),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8.0),
-                                    Container(
-                                      height: 48.0,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12.0,
-                                        vertical: 4.0,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFEBE1F7),
-                                        borderRadius: BorderRadius.circular(
-                                          20.0,
-                                        ),
-                                        boxShadow: const [
-                                          BoxShadow(
-                                            color: Color.fromRGBO(
-                                              0,
-                                              0,
-                                              0,
-                                              0.08,
-                                            ),
-                                            offset: Offset(0, 2),
-                                            blurRadius: 4,
-                                          ),
-                                        ],
-                                      ),
-                                      child: TextField(
-                                        controller: _passwordController,
-                                        obscureText: true,
-                                        decoration: InputDecoration.collapsed(
-                                          hintText: 'Masukkan kata sandi',
-                                          hintStyle: GoogleFonts.arimo(
-                                            fontSize: 16.0,
-                                            color: const Color(0xFF4A3D5C),
-                                          ),
-                                        ),
-                                        style: GoogleFonts.arimo(
-                                          fontSize: 16.0,
-                                          color: const Color(0xFF4A3D5C),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                                AuthFormField(
+                                  label: 'Kata Sandi',
+                                  hintText: 'Masukkan kata sandi',
+                                  controller: _passwordController,
+                                  obscureText: true,
                                 ),
 
                                 const SizedBox(height: 24.0),
 
                                 // Button
-                                SizedBox(
-                                  width: double.infinity,
-                                  height: 48.0,
-                                  child: ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF8530E4),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          20.0,
-                                        ),
-                                      ),
-                                      elevation: 12,
-                                      shadowColor: const Color.fromRGBO(
-                                        0,
-                                        0,
-                                        0,
-                                        0.12,
-                                      ),
-                                    ),
-                                    onPressed: () async {
-                                      if (_isLoading) return;
-                                      setState(() => _isLoading = true);
+                                AuthButton(
+                                  text: 'Masuk',
+                                  iconAsset: _enterIconAsset,
+                                  isLoading: _isLoading,
+                                  onPressed: () async {
+                                    if (_isLoading) return;
+                                    setState(() => _isLoading = true);
 
-                                      PersistenceService persistence =
-                                          SharedPrefsPersistence();
+                                    PersistenceService persistence =
+                                        SharedPrefsPersistence();
 
-                                      // Resolve credentials (await so dotenv load completes)
-                                      final diag =
-                                          await _resolveSupabaseCredentials();
-                                      final supabaseUrl = diag['url'] as String;
-                                      final supabaseKey = diag['key'] as String;
+                                    // Resolve credentials (await so dotenv load completes)
+                                    final diag =
+                                        await _resolveSupabaseCredentials();
+                                    final supabaseUrl = diag['url'] as String;
+                                    final supabaseKey = diag['key'] as String;
 
-                                      if (supabaseUrl.isEmpty ||
-                                          supabaseKey.isEmpty) {
-                                        if (context.mounted) {
-                                          final partial =
-                                              'url=${_mask(supabaseUrl)} key=${_mask(supabaseKey)}';
-                                          final sources =
-                                              'dotenv:${diag['fromDotenvUrl']}/${diag['fromDotenvKey']} env:${diag['fromEnvUrl']}/${diag['fromEnvKey']} dart-define:${diag['fromDartUrl']}/${diag['fromDartKey']}';
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                'Supabase credentials missing or empty. $partial; sources: $sources',
-                                              ),
-                                              duration: const Duration(
-                                                seconds: 6,
-                                              ),
+                                    if (supabaseUrl.isEmpty ||
+                                        supabaseKey.isEmpty) {
+                                      if (context.mounted) {
+                                        final partial =
+                                            'url=${_mask(supabaseUrl)} key=${_mask(supabaseKey)}';
+                                        final sources =
+                                            'dotenv:${diag['fromDotenvUrl']}/${diag['fromDotenvKey']} env:${diag['fromEnvUrl']}/${diag['fromEnvKey']} dart-define:${diag['fromDartUrl']}/${diag['fromDartKey']}';
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Supabase credentials missing or empty. $partial; sources: $sources',
                                             ),
-                                          );
-                                        }
-                                      } else {
-                                        if (context.mounted) {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                'Using Supabase: ${_mask(supabaseUrl)}',
-                                              ),
-                                              duration: const Duration(
-                                                seconds: 2,
-                                              ),
+                                            duration: const Duration(
+                                              seconds: 6,
                                             ),
-                                          );
-                                        }
+                                          ),
+                                        );
                                       }
+                                    } else {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Using Supabase: ${_mask(supabaseUrl)}',
+                                            ),
+                                            duration: const Duration(
+                                              seconds: 2,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    }
 
-                                      final email = _emailController.text
-                                          .trim();
-                                      final password = _passwordController.text;
+                                    final email = _emailController.text.trim();
+                                    final password = _passwordController.text;
 
-                                      bool authSuccess = false;
+                                    bool authSuccess = false;
 
-                                      if (supabaseUrl.isNotEmpty &&
-                                          supabaseKey.isNotEmpty) {
+                                    if (supabaseUrl.isNotEmpty &&
+                                        supabaseKey.isNotEmpty) {
+                                      try {
                                         try {
-                                          // If Supabase wasn't already initialized by
-                                          // main.dart, attempt to initialize it here.
-                                          try {
-                                            await Supabase.initialize(
-                                              url: supabaseUrl,
-                                              anonKey: supabaseKey,
-                                            );
-                                          } catch (e) {
-                                            final s = e.toString();
-                                            if (s.contains(
-                                                  'already initialized',
-                                                ) ||
-                                                s.contains(
-                                                  'already been initialized',
-                                                ) ||
-                                                s.contains(
-                                                  'this instance is already initialized',
-                                                )) {
-                                              // ignore
-                                            } else {
-                                              rethrow;
-                                            }
+                                          await Supabase.initialize(
+                                            url: supabaseUrl,
+                                            anonKey: supabaseKey,
+                                          );
+                                        } catch (e) {
+                                          final s = e.toString();
+                                          if (s.contains(
+                                                'already initialized',
+                                              ) ||
+                                              s.contains(
+                                                'already been initialized',
+                                              ) ||
+                                              s.contains(
+                                                'this instance is already initialized',
+                                              )) {
+                                            // ignore
+                                          } else {
+                                            rethrow;
                                           }
+                                        }
 
-                                          final client =
-                                              (Supabase.instance.client);
+                                        final client =
+                                            (Supabase.instance.client);
 
-                                          // attempt sign-in using multiple possible APIs
+                                        try {
+                                          final res =
+                                              await (client.auth as dynamic)
+                                                  .signInWithPassword(
+                                                    email: email,
+                                                    password: password,
+                                                  );
+                                          final err =
+                                              SupabasePersistence.authErrorFromResponse(
+                                                res,
+                                              );
+                                          if (err != null) {
+                                            if (context.mounted) {
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    'Login gagal: ${err.toString()}',
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                          } else {
+                                            authSuccess = true;
+                                            persistence =
+                                                SupabasePersistence.fromClient(
+                                                  client,
+                                                );
+                                          }
+                                        } catch (_) {
                                           try {
-                                            // newer API
                                             final res =
                                                 await (client.auth as dynamic)
-                                                    .signInWithPassword(
+                                                    .signIn(
                                                       email: email,
                                                       password: password,
                                                     );
@@ -502,135 +361,68 @@ class _LoginScreenState extends State<LoginScreen> {
                                                     client,
                                                   );
                                             }
-                                          } catch (_) {
-                                            try {
-                                              // older API
-                                              final res =
-                                                  await (client.auth as dynamic)
-                                                      .signIn(
-                                                        email: email,
-                                                        password: password,
-                                                      );
-                                              final err =
-                                                  SupabasePersistence.authErrorFromResponse(
-                                                    res,
-                                                  );
-                                              if (err != null) {
-                                                if (context.mounted) {
-                                                  ScaffoldMessenger.of(
-                                                    context,
-                                                  ).showSnackBar(
-                                                    SnackBar(
-                                                      content: Text(
-                                                        'Login gagal: ${err.toString()}',
-                                                      ),
-                                                    ),
-                                                  );
-                                                }
-                                              } else {
-                                                authSuccess = true;
-                                                persistence =
-                                                    SupabasePersistence.fromClient(
-                                                      client,
-                                                    );
-                                              }
-                                            } catch (e) {
-                                              // unknown error
-                                              if (context.mounted) {
-                                                ScaffoldMessenger.of(
-                                                  context,
-                                                ).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text(
-                                                      'Login error: $e',
-                                                    ),
+                                          } catch (e) {
+                                            if (context.mounted) {
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    'Login error: $e',
                                                   ),
-                                                );
-                                              }
+                                                ),
+                                              );
                                             }
                                           }
-                                        } catch (e) {
-                                          // initialization error
-                                          if (context.mounted) {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  'Supabase init failed: $e',
-                                                ),
-                                              ),
-                                            );
-                                          }
                                         }
-                                      } else {
-                                        // Supabase not configured: do NOT auto-succeed.
+                                      } catch (e) {
                                         if (context.mounted) {
                                           ScaffoldMessenger.of(
                                             context,
                                           ).showSnackBar(
-                                            const SnackBar(
+                                            SnackBar(
                                               content: Text(
-                                                'Supabase belum dikonfigurasi. Harap tambahkan SUPABASE_URL dan SUPABASE_ANON_KEY di .env',
+                                                'Supabase init failed: $e',
                                               ),
                                             ),
                                           );
                                         }
                                       }
-
-                                      setState(() => _isLoading = false);
-
-                                      if (!authSuccess) return;
-
-                                      // If we're using Supabase persistence, attempt to
-                                      // migrate any local SharedPrefs data to Supabase
-                                      if (persistence is SupabasePersistence) {
-                                        try {
-                                          await _migrateLocalDataIfNeeded(
-                                            persistence,
-                                          );
-                                        } catch (_) {}
-                                      }
-
-                                      // Navigate to Home with chosen persistence
-                                      if (!context.mounted) return;
-                                      Navigator.of(context).pushReplacement(
-                                        MaterialPageRoute(
-                                          builder: (_) => HomeScreen(
-                                            persistence: persistence,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        SizedBox(
-                                          width: 16.0,
-                                          height: 16.0,
-                                          child: SvgPicture.asset(
-                                            _enterIconAsset,
-                                            colorFilter: const ColorFilter.mode(
-                                              Colors.white,
-                                              BlendMode.srcIn,
+                                    } else {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Supabase belum dikonfigurasi. Harap tambahkan SUPABASE_URL dan SUPABASE_ANON_KEY di .env',
                                             ),
-                                            fit: BoxFit.contain,
                                           ),
+                                        );
+                                      }
+                                    }
+
+                                    setState(() => _isLoading = false);
+
+                                    if (!authSuccess) return;
+
+                                    if (persistence is SupabasePersistence) {
+                                      try {
+                                        await _migrateLocalDataIfNeeded(
+                                          persistence,
+                                        );
+                                      } catch (_) {}
+                                    }
+
+                                    if (!context.mounted) return;
+                                    Navigator.of(context).pushReplacement(
+                                      MaterialPageRoute(
+                                        builder: (_) => HomeScreen(
+                                          persistence: persistence,
                                         ),
-                                        const SizedBox(width: 8.0),
-                                        Text(
-                                          'Masuk',
-                                          style: GoogleFonts.arimo(
-                                            fontSize: 14.0,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ],
                             ),

@@ -126,10 +126,10 @@
 
 **3.3 Auth Screens Refactoring**
 
--   [ ] 3.3.1 Extract common auth UI ke `lib/widgets/auth/` folder (TODO)
--   [ ] 3.3.2 Create `auth_form_field.dart` untuk input fields (TODO)
--   [ ] 3.3.3 Create `auth_button.dart` untuk buttons (TODO)
--   [ ] 3.3.4 Refactor LoginScreen & RegisterScreen (TODO)
+-   [x] 3.3.1 Extract common auth UI ke `lib/widgets/auth/` folder ✅
+-   [x] 3.3.2 Create `auth_form_field.dart` untuk input fields ✅
+-   [x] 3.3.3 Create `auth_button.dart` untuk buttons ✅
+-   [x] 3.3.4 Refactor LoginScreen & RegisterScreen ✅
 
 **Success Criteria**: ⚠️ **PARTIAL**
 
@@ -137,14 +137,13 @@
 -   ✅ DatePickerModal widget reusable & testable
 -   ✅ Code lebih readable dengan extracted DatePickerModal
 
-**Status**: 🔄 **IN PROGRESS** (14 Januari 2025)
+**Status**: ✅ **IN PROGRESS** (31 Oktober 2025)
 
 **Progress Summary**:
 
 -   ✅ **DatePickerModal extracted** - 370 lines, reduced AddItemScreen by 355 lines
--   ⏸️ **Other extractions deferred** - Complex interdependencies, better handled in Phase 4 with state management
--   ✅ **DatePickerModal extracted** - 370 lines, reduced AddItemScreen by 355 lines
 -   ✅ **ImagePickerSection extracted** - ~220 lines, removed inline picker/processing logic from AddItemScreen
+-   ✅ **Auth widgets added** - `auth_header`, `auth_form_field`, `auth_button` created and Login/Register refactored
 -   ⏸️ **Other extractions deferred** - Complex interdependencies, better handled in Phase 4 with state management
 -   📝 **Recommendation**: Complete Phase 4 (State Management) first, then revisit remaining extractions
 
@@ -238,11 +237,11 @@
 
 -   [x] Phase 1: Cleanup & Documentation (8/8) ✅ **COMPLETED**
 -   [x] Phase 2: Extract Constants & Utilities (8/8) ✅ **COMPLETED**
--   [~] Phase 3: Split Large Widgets (1/13) 🔄 **IN PROGRESS**
+-   [~] Phase 3: Split Large Widgets (12/13) 🔄 **IN PROGRESS**
 -   [ ] Phase 4: State Management & Architecture (0/10)
 -   [ ] Phase 5: Performance & Polish (0/15)
 
-**Total Tasks**: 17/54 (31%)
+**Total Tasks**: 21/54 (39%)
 
 ---
 

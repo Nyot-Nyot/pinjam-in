@@ -17,6 +17,7 @@ import '../widgets/home_header.dart';
 import '../widgets/loan_card.dart';
 import 'add_item_screen.dart';
 import 'history_screen.dart';
+import 'login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   /// Optional persistence service for easier testing and swapping implementations.
@@ -142,7 +143,9 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/login');
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
       }
     } catch (e) {
       if (mounted) {
