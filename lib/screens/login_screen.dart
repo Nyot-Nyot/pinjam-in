@@ -69,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (localActive.isEmpty && localHistory.isEmpty) return;
 
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Migrating local data to Supabase...'),
@@ -88,7 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await local.saveHistory([]);
       } catch (_) {}
 
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
@@ -98,7 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Migrasi gagal: $e')));

@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../models/loan_item.dart';
 import '../services/persistence_service.dart';
+import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/storage_image.dart';
@@ -75,7 +76,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
             boxShadow: [
               BoxShadow(
-                color: AppTheme.primaryPurple.withOpacity(0.3),
+                color: AppTheme.primaryPurple.withAlpha((0.3 * 255).round()),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -102,7 +103,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     '${filtered.length} barang telah dikembalikan',
                     style: GoogleFonts.arimo(
                       fontSize: 14,
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withAlpha((0.9 * 255).round()),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -118,7 +119,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       borderRadius: BorderRadius.circular(16.0),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withAlpha((0.1 * 255).round()),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -254,7 +255,7 @@ class _HistoryCard extends StatelessWidget {
       child: Container(
         constraints: const BoxConstraints(minHeight: 88),
         decoration: BoxDecoration(
-          color: LoanItem.pastelForId(item.id),
+          color: AppColors.pastelForId(item.id),
           borderRadius: BorderRadius.circular(20.0),
           boxShadow: const [
             BoxShadow(

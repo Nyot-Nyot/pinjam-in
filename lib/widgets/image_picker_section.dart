@@ -136,7 +136,7 @@ class _ImagePickerSectionState extends State<ImagePickerSection> {
                   await Clipboard.setData(
                     const ClipboardData(text: 'sudo apt install zenity'),
                   );
-                  if (!mounted) return;
+                  if (!ctx.mounted) return;
                   navigator2.pop();
                   ErrorHandler.showInfo(
                     ctx,
@@ -257,7 +257,7 @@ class _ImagePickerSectionState extends State<ImagePickerSection> {
                   await Clipboard.setData(
                     const ClipboardData(text: 'sudo apt install zenity'),
                   );
-                  if (!mounted) return;
+                  if (!ctx.mounted) return;
                   navigator.pop();
                   ErrorHandler.showInfo(
                     ctx,

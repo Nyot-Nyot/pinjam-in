@@ -145,6 +145,12 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isEdit = widget.initial != null;
+    // Choose indices so the date picker and note boxes have different
+    // pastel backgrounds when in Add vs Edit mode.
+    final int dateCardIndex = isEdit ? 1 : 3;
+    final int noteCardIndex = isEdit ? 2 : 0;
+
     final selectedDateLabel = _selectedDate == null
         ? 'Belum ada tanggal'
         : DateHelper.formatDate(_selectedDate!);
@@ -206,7 +212,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
             const SizedBox(height: 12),
             SectionCard(
-              index: 3,
+              index: dateCardIndex,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -330,7 +336,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
             const SizedBox(height: 12),
             SectionCard(
-              index: 0,
+              index: noteCardIndex,
               child: NoteField(controller: _noteController),
             ),
 

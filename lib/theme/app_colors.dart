@@ -12,14 +12,12 @@ class AppColors {
   /// Pastel palette for loan item cards and UI elements.
   /// These colors provide a soft, pleasant visual experience.
   static const List<Color> pastelPalette = [
-    warmPink, // 0xFFFF95B8
     peachYellow, // 0xFFFFCE6B
     lavender, // 0xFFB78CFF
     mint, // 0xFF79F0B0
   ];
 
   // Individual pastel colors (can be used directly)
-  static const Color warmPink = Color(0xFFFF95B8);
   static const Color peachYellow = Color(0xFFFFCE6B);
   static const Color lavender = Color(0xFFB78CFF);
   static const Color mint = Color(0xFF79F0B0);

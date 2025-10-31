@@ -72,6 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
         try {
           await local.saveAll(active: _active, history: _history);
         } catch (_) {}
+        if (!mounted) return;
         ErrorHandler.showError(
           context,
           'Gagal menyimpan ke server (autentikasi). Data disimpan secara lokal. Silakan masuk untuk menyinkronkan.',
@@ -80,6 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       // Surface other persistence errors to the user so failures aren't silent
+      if (!mounted) return;
       ErrorHandler.showError(context, 'Gagal menyimpan data: $e');
       // Re-throw so callers can also handle if needed
       rethrow;
@@ -389,7 +391,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             boxShadow: [
               BoxShadow(
-                color: AppTheme.primaryPurple.withOpacity(0.3),
+                color: AppTheme.primaryPurple.withAlpha((0.3 * 255).round()),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -424,7 +426,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               '${visible.length} barang sedang dipinjamkan',
                               style: GoogleFonts.arimo(
                                 fontSize: 14,
-                                color: Colors.white.withOpacity(0.9),
+                                color: Colors.white.withAlpha(
+                                  (0.9 * 255).round(),
+                                ),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -504,7 +508,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withAlpha(
+                                (0.2 * 255).round(),
+                              ),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(
@@ -530,7 +536,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(999),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withAlpha((0.1 * 255).round()),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -571,7 +577,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(16.0),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withAlpha((0.1 * 255).round()),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),

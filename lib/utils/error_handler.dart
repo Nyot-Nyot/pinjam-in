@@ -260,13 +260,26 @@ class ErrorHandler {
     try {
       await operation();
 
+      // Avoid using the provided BuildContext across the async gap. If the
+      // receiver was unmounted while `operation` ran, don't attempt to show a
+      // snackbar (which would use the context) — just return success.
+      if (!context.mounted) return true;
+
       if (showSuccessSnackbar && successMessage != null) {
         showSuccess(context, successMessage);
       }
 
       return true;
     } catch (e) {
-      showError(context, e, customMessage: errorMessage);
+      if (context.mounted) {
+        showError(context, e, customMessage: errorMessage);
+      } else {
+        AppLogger.error(
+          'Error occurred (context unmounted)',
+          e,
+          'ErrorHandler',
+        );
+      }
       return false;
     }
   }

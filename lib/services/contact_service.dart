@@ -12,17 +12,20 @@ class ContactService {
   static Future<String?> pickContact(BuildContext context) async {
     try {
       final permitted = await FlutterContacts.requestPermission();
+      if (!context.mounted) return null;
       if (!permitted) {
         ErrorHandler.showError(context, 'Izin kontak ditolak');
         return null;
       }
 
       final contacts = await FlutterContacts.getContacts(withProperties: true);
+      if (!context.mounted) return null;
       if (contacts.isEmpty) {
         ErrorHandler.showInfo(context, 'Tidak ada kontak di perangkat');
         return null;
       }
 
+      if (!context.mounted) return null;
       final choice = await showDialog<Contact?>(
         context: context,
         builder: (ctx) => SimpleDialog(
@@ -40,6 +43,7 @@ class ContactService {
         ),
       );
 
+      if (!context.mounted) return null;
       if (choice == null) return null;
 
       final name = choice.displayName;
@@ -47,6 +51,7 @@ class ContactService {
       final display = name.isNotEmpty ? '$name • $phone' : phone;
       return display;
     } catch (e) {
+      if (!context.mounted) return null;
       if (e is MissingPluginException) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
