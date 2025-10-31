@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../constants/app_constants.dart';
@@ -9,12 +8,12 @@ import '../models/loan_item.dart';
 import '../services/persistence_service.dart';
 import '../services/shared_prefs_persistence.dart';
 import '../services/supabase_persistence.dart';
-import '../theme/app_theme.dart';
 import '../utils/date_helper.dart';
 import '../utils/error_handler.dart';
 import '../utils/logger.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/home_header.dart';
 import '../widgets/loan_card.dart';
 import 'add_item_screen.dart';
 import 'history_screen.dart';
@@ -134,6 +133,22 @@ class _HomeScreenState extends State<HomeScreen> {
         _saveAll();
       }
     });
+  }
+
+  Future<void> _handleLogout() async {
+    try {
+      if (_persistence is SupabasePersistence) {
+        await Supabase.instance.client.auth.signOut();
+      }
+
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/login');
+      }
+    } catch (e) {
+      if (mounted) {
+        ErrorHandler.showError(context, 'Gagal logout: $e');
+      }
+    }
   }
 
   @override
@@ -375,272 +390,25 @@ class _HomeScreenState extends State<HomeScreen> {
                     e.borrower.toLowerCase().contains(_query.toLowerCase()),
               )
               .toList();
+    final overdueCount = _active
+        .where(
+          (e) =>
+              e.computedDaysRemaining != null && e.computedDaysRemaining! < 0,
+        )
+        .length;
+
     return Column(
       children: [
-        // Header area with gradient background
-        Container(
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppTheme.primaryPurple,
-                Color(0xFF9D5FE8),
-                Color(0xFFB48FEC),
-              ],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.primaryPurple.withAlpha((0.3 * 255).round()),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title with logout button
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Pinjaman Aktif',
-                              style: GoogleFonts.arimo(
-                                fontSize: 28,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 4.0),
-                            Text(
-                              '${visible.length} barang sedang dipinjamkan',
-                              style: GoogleFonts.arimo(
-                                fontSize: 14,
-                                color: Colors.white.withAlpha(
-                                  (0.9 * 255).round(),
-                                ),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Logout button
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () async {
-                            final shouldLogout = await showDialog<bool>(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: Text(
-                                  'Logout',
-                                  style: GoogleFonts.arimo(
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                content: Text(
-                                  'Apakah Anda yakin ingin keluar?',
-                                  style: GoogleFonts.arimo(),
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, false),
-                                    child: Text(
-                                      'Batal',
-                                      style: GoogleFonts.arimo(
-                                        color: AppTheme.textSecondary,
-                                      ),
-                                    ),
-                                  ),
-                                  ElevatedButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, true),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppTheme.primaryPurple,
-                                    ),
-                                    child: Text(
-                                      'Logout',
-                                      style: GoogleFonts.arimo(
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-
-                            if (shouldLogout == true && mounted) {
-                              try {
-                                // Logout from Supabase
-                                if (_persistence is SupabasePersistence) {
-                                  await Supabase.instance.client.auth.signOut();
-                                }
-
-                                if (mounted) {
-                                  // Navigate to login screen
-                                  Navigator.of(
-                                    context,
-                                  ).pushReplacementNamed('/login');
-                                }
-                              } catch (e) {
-                                if (mounted) {
-                                  ErrorHandler.showError(
-                                    context,
-                                    'Gagal logout: $e',
-                                  );
-                                }
-                              }
-                            }
-                          },
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withAlpha(
-                                (0.2 * 255).round(),
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.logout,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  // Red pill for overdue items
-                  const SizedBox(height: 16.0),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12.0,
-                      vertical: 6.0,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(999),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withAlpha((0.1 * 255).round()),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 14,
-                          height: 14,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFDC2626),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${_active.where((e) => e.computedDaysRemaining != null && e.computedDaysRemaining! < 0).length} terlambat',
-                          style: GoogleFonts.arimo(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFFDC2626),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 20.0),
-
-                  // Search input with white background
-                  Container(
-                    height: 56.0,
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16.0),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withAlpha((0.1 * 255).round()),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.search,
-                          color: AppTheme.primaryPurple,
-                          size: 22,
-                        ),
-                        const SizedBox(width: AppTheme.spacingM),
-                        Expanded(
-                          child: Semantics(
-                            textField: true,
-                            label: 'Pencarian barang atau nama peminjam',
-                            child: TextField(
-                              controller: _searchController,
-                              focusNode: _searchFocusNode,
-                              textAlignVertical: TextAlignVertical.center,
-                              decoration: InputDecoration(
-                                border: InputBorder.none,
-                                hintText: 'Cari barang atau nama peminjam',
-                                isDense: true,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                                suffixIcon: _searchController.text.isEmpty
-                                    ? null
-                                    : IconButton(
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(
-                                          minWidth: 32,
-                                          minHeight: 32,
-                                        ),
-                                        icon: const Icon(
-                                          Icons.clear,
-                                          size: 20,
-                                          color: Color(0xFF6B5E78),
-                                        ),
-                                        onPressed: () {
-                                          _searchController.clear();
-                                          _searchFocusNode.requestFocus();
-                                        },
-                                      ),
-                              ),
-                              style: GoogleFonts.arimo(
-                                fontSize: 15,
-                                color: const Color(0xFF4A3D5C),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+        // Header (extracted)
+        HomeHeader(
+          visibleCount: visible.length,
+          activeCount: _active.length,
+          overdueCount: overdueCount,
+          searchController: _searchController,
+          searchFocusNode: _searchFocusNode,
+          onLogout: _handleLogout,
         ),
+
         // small gap between header/search and the list
         const SizedBox(height: 16.0),
 

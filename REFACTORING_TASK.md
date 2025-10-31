@@ -119,10 +119,10 @@
 
 **3.2 HomeScreen Refactoring** (726 → target ~400 baris)
 
--   [ ] 3.2.1 Extract header section ke `lib/widgets/home_header.dart` (TODO)
--   [ ] 3.2.2 Extract search bar ke `lib/widgets/search_bar_widget.dart` (TODO)
--   [ ] 3.2.3 Extract overdue badge ke `lib/widgets/overdue_badge.dart` (TODO)
--   [ ] 3.2.4 Simplify HomeScreen logic (TODO)
+-   [x] 3.2.1 Extract header section ke `lib/widgets/home_header.dart` ✅
+-   [x] 3.2.2 Extract search bar ke `lib/widgets/search_bar_widget.dart` ✅
+-   [x] 3.2.3 Extract overdue badge ke `lib/widgets/overdue_badge.dart` ✅
+-   [x] 3.2.4 Simplify HomeScreen logic ✅
 
 **3.3 Auth Screens Refactoring**
 
