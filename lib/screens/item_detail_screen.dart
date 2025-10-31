@@ -11,7 +11,11 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/loan_item.dart';
 import '../services/persistence_service.dart';
 import '../services/share_service.dart';
+import '../utils/date_helper.dart';
 import '../utils/error_handler.dart';
+import '../widgets/item_detail/info_row.dart';
+import '../widgets/item_detail/large_icon_button.dart';
+import '../widgets/item_detail/status_row.dart';
 import '../widgets/storage_image.dart';
 
 class ItemDetailScreen extends StatefulWidget {
@@ -31,29 +35,8 @@ class ItemDetailScreen extends StatefulWidget {
 }
 
 class _ItemDetailScreenState extends State<ItemDetailScreen> {
-  String _formatDate(DateTime? date) {
-    if (date == null) return '-';
-    final local = date.toLocal();
-    return '${local.day} ${_monthName(local.month)} ${local.year}';
-  }
-
-  String _monthName(int m) {
-    const names = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'Mei',
-      'Jun',
-      'Jul',
-      'Agu',
-      'Sep',
-      'Okt',
-      'Nov',
-      'Des',
-    ];
-    return names[(m - 1).clamp(0, 11)];
-  }
+  // Date formatting and row widgets are delegated to DateHelper and
+  // reusable item_detail widgets (InfoRow/StatusRow/LargeIconButton).
 
   @override
   Widget build(BuildContext context) {
@@ -92,10 +75,11 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Row(
                   children: [
-                    _largeIconButton(
+                    LargeIconButton(
                       icon: Icons.arrow_back,
-                      background: const Color(0xFFF1E9FB),
-                      onTap: () => Navigator.of(context).pop(),
+                      backgroundColor: const Color(0xFFF1E9FB),
+                      iconColor: const Color(0xFF0C0315),
+                      onPressed: () => Navigator.of(context).pop(),
                     ),
 
                     const SizedBox(width: 12),
@@ -114,11 +98,11 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
 
                     const SizedBox(width: 12),
 
-                    _largeIconButton(
+                    LargeIconButton(
                       icon: Icons.edit,
-                      background: const Color(0xFF8530E4),
+                      backgroundColor: const Color(0xFF8530E4),
                       iconColor: Colors.white,
-                      onTap: () async {
+                      onPressed: () async {
                         if (!widget.isInHistory) {
                           Navigator.of(context).pop<Map<String, dynamic>>({
                             'action': 'edit',
@@ -411,24 +395,26 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                     const SizedBox(height: 12),
 
                     // Info tiles
-                    _infoRow(
-                      'Tanggal Pinjam',
-                      _formatDate(widget.item.createdAt),
-                      Icons.calendar_today,
+                    InfoRow(
+                      label: 'Tanggal Pinjam',
+                      value: widget.item.createdAt != null
+                          ? DateHelper.formatDate(widget.item.createdAt!)
+                          : '-',
+                      icon: Icons.calendar_today,
                     ),
                     const SizedBox(height: 8),
-                    _infoRow(
-                      'Target Kembali',
-                      widget.item.dueDate != null
-                          ? _formatDate(widget.item.dueDate)
+                    InfoRow(
+                      label: 'Target Kembali',
+                      value: widget.item.dueDate != null
+                          ? DateHelper.formatDate(widget.item.dueDate!)
                           : 'Tanpa batas',
-                      Icons.calendar_today_outlined,
+                      icon: Icons.calendar_today_outlined,
                     ),
                     const SizedBox(height: 8),
                     // Show 'Selesai' for items coming from History; otherwise keep current active label.
-                    _statusRow(
-                      'Status',
-                      widget.isInHistory ? 'Selesai' : 'Aktif',
+                    StatusRow(
+                      label: 'Status',
+                      value: widget.isInHistory ? 'Selesai' : 'Aktif',
                       bgColor: widget.isInHistory
                           ? const Color(0x1A16A34A)
                           : null,
@@ -600,121 +586,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
     }
   }
 
-  Widget _infoRow(String label, String value, IconData icon) {
-    return Row(
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: const Color(0xFFF6EFFD),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, size: 18, color: const Color(0xFF6B5E78)),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: GoogleFonts.arimo(
-                  color: const Color(0xFF6B5E78),
-                  fontSize: 13,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                value,
-                style: GoogleFonts.arimo(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0C0315),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _statusRow(
-    String label,
-    String value, {
-    Color? bgColor,
-    Color? textColor,
-  }) {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: GoogleFonts.arimo(
-                  color: const Color(0xFF6B5E78),
-                  fontSize: 13,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: bgColor ?? const Color(0x1A8530E4),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  value,
-                  style: GoogleFonts.arimo(
-                    color: textColor ?? const Color(0xFF8530E4),
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _largeIconButton({
-    required IconData icon,
-    required Color background,
-    Color iconColor = Colors.black,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.translucent,
-      child: SizedBox(
-        width: 64,
-        height: 64,
-        child: Center(
-          child: Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: background,
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color.fromRGBO(0, 0, 0, 0.12),
-                  offset: Offset(0, 8),
-                  blurRadius: 16,
-                ),
-              ],
-            ),
-            child: Icon(icon, color: iconColor),
-          ),
-        ),
-      ),
-    );
-  }
+  // Removed local row helpers and large icon button in favor of reusable
+  // widgets under lib/widgets/item_detail/ and DateHelper for formatting.
 }
