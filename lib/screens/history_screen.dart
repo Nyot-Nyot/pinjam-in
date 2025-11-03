@@ -27,7 +27,8 @@ class HistoryScreen extends StatefulWidget {
   State<HistoryScreen> createState() => _HistoryScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen> {
+class _HistoryScreenState extends State<HistoryScreen>
+    with AutomaticKeepAliveClientMixin<HistoryScreen> {
   String _query = '';
   late final TextEditingController _tc;
 
@@ -47,7 +48,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
     final loanProvider = Provider.of<LoanProvider?>(context);
     final persistence = Provider.of<PersistenceProvider>(context).service!;
     final history = loanProvider?.historyLoans ?? <LoanItem>[];

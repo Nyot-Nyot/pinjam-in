@@ -395,11 +395,35 @@ class _ImagePickerSectionState extends State<ImagePickerSection> {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(16),
-                          child: Image.file(
-                            File(_pickedImagePath!),
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            height: 128,
+                          child: Builder(
+                            builder: (ctx) {
+                              // Use ResizeImage(FileImage) to avoid decoding a full-
+                              // resolution image when we only need a small preview.
+                              final file = File(_pickedImagePath!);
+                              final base = FileImage(file);
+                              ImageProvider provider = base;
+                              try {
+                                final devicePixelRatio = MediaQuery.of(
+                                  ctx,
+                                ).devicePixelRatio;
+                                // target logical height is 128; convert to physical px
+                                final targetHeight = (128.0 * devicePixelRatio)
+                                    .round();
+                                provider = ResizeImage(
+                                  base,
+                                  height: targetHeight,
+                                );
+                              } catch (_) {
+                                provider = base;
+                              }
+
+                              return Image(
+                                image: provider,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: 128,
+                              );
+                            },
                           ),
                         ),
                         Positioned(

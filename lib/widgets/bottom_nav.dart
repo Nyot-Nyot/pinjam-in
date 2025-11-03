@@ -2,40 +2,25 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 
+/// Bottom navigation with a moving circular highlight. The highlight is driven
+/// by an optional [PageController]. When provided, the widget listens to the
+/// controller and updates the highlight position every frame via
+/// [AnimatedBuilder] (smooth). When absent, it falls back to using
+/// [selectedIndex] as a static position.
 class BottomNav extends StatelessWidget {
   const BottomNav({
     super.key,
     required this.selectedIndex,
     required this.onTap,
-    this.page,
+    this.controller,
   });
 
   final int selectedIndex;
   final ValueChanged<int> onTap;
-  // optional continuous page value from PageController.page
-  final double? page;
-
-  Alignment _alignForIndex(int i) {
-    return i == 0
-        ? const Alignment(-1.0, 0)
-        : i == 1
-        ? const Alignment(0.0, 0)
-        : const Alignment(1.0, 0);
-  }
-
-  Alignment _alignmentFromPage(double p) {
-    // p is expected between 0..(n-1) where n=3 pages. Map to -1..1
-    final clamped = p.clamp(0.0, 2.0);
-    final t = (clamped / 2.0) * 2.0 - 1.0; // maps 0->-1, 1->0, 2->1
-    return Alignment(t, 0);
-  }
+  final PageController? controller;
 
   @override
   Widget build(BuildContext context) {
-    final align = page != null
-        ? _alignmentFromPage(page!)
-        : _alignForIndex(selectedIndex);
-
     return Container(
       decoration: const BoxDecoration(
         color: AppTheme.backgroundCard,
@@ -57,91 +42,97 @@ class BottomNav extends StatelessWidget {
             ),
             child: SizedBox(
               height: 72,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Use Align so the position can be controlled continuously when `page` is provided.
-                  Align(
-                    alignment: align,
-                    child: Container(
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryPurple,
-                        borderRadius: BorderRadius.circular(AppTheme.radiusXxl),
-                      ),
-                    ),
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () => onTap(0),
-                          borderRadius: BorderRadius.circular(20.0),
-                          child: SizedBox(
-                            width: 64,
-                            height: 64,
-                            child: Center(
-                              child: Icon(
-                                Icons.home,
-                                color: selectedIndex == 0
-                                    ? Colors.white
-                                    : const Color(0xFF0C0315),
-                                size: 26.4,
+              child: LayoutBuilder(
+                builder: (ctx, cc) {
+                  final maxW = cc.maxWidth;
+                  // width/height of the circular highlight
+                  const double box = 64.0;
+
+                  double leftForPage(double p) {
+                    final step = (maxW - box) / 2.0;
+                    return (p.clamp(0.0, 2.0)) * step;
+                  }
+
+                  Widget buildStack(double effectivePage) {
+                    final left = leftForPage(effectivePage);
+                    return Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Highlight (placed below the icons so icons remain on top).
+                        // Use a transform for movement so the translation can be
+                        // handled by the compositor instead of forcing repaints.
+                        Positioned(
+                          left: 0,
+                          top: (72 - box) / 2.0,
+                          child: Transform.translate(
+                            offset: Offset(left, 0),
+                            child: RepaintBoundary(
+                              child: Container(
+                                width: box,
+                                height: box,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryPurple,
+                                  borderRadius: BorderRadius.circular(
+                                    AppTheme.radiusXxl,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () => onTap(1),
-                          borderRadius: BorderRadius.circular(20.0),
-                          child: SizedBox(
-                            width: 64,
-                            height: 64,
-                            child: Center(
-                              child: Icon(
-                                Icons.add,
-                                color: selectedIndex == 1
-                                    ? Colors.white
-                                    : const Color(0xFF0C0315),
-                                size: 24.0,
-                              ),
-                            ),
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _navItem(Icons.home, 0, selectedIndex == 0),
+                            _navItem(Icons.add, 1, selectedIndex == 1),
+                            _navItem(Icons.history, 2, selectedIndex == 2),
+                          ],
                         ),
-                      ),
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () => onTap(2),
-                          borderRadius: BorderRadius.circular(20.0),
-                          child: SizedBox(
-                            width: 64,
-                            height: 64,
-                            child: Center(
-                              child: Icon(
-                                Icons.history,
-                                color: selectedIndex == 2
-                                    ? Colors.white
-                                    : const Color(0xFF0C0315),
-                                size: 24.0,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    );
+                  }
+
+                  if (controller != null) {
+                    return AnimatedBuilder(
+                      animation: controller!,
+                      builder: (context, _) {
+                        final p =
+                            (controller!.hasClients && controller!.page != null)
+                            ? controller!.page!
+                            : selectedIndex.toDouble();
+                        return buildStack(p);
+                      },
+                    );
+                  }
+
+                  // Fallback: static position
+                  return buildStack(selectedIndex.toDouble());
+                },
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _navItem(IconData icon, int idx, bool active) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => onTap(idx),
+        borderRadius: BorderRadius.circular(20.0),
+        child: SizedBox(
+          width: 64,
+          height: 64,
+          child: Center(
+            child: Icon(
+              icon,
+              color: active ? Colors.white : const Color(0xFF0C0315),
+              size: icon == Icons.home ? 26.4 : 24.0,
+            ),
+          ),
+        ),
       ),
     );
   }

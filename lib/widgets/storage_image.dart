@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
 
 import '../services/persistence_service.dart';
 import '../services/supabase_persistence.dart';
@@ -99,8 +99,24 @@ class _StorageImageState extends State<StorageImage> {
   Widget build(BuildContext context) {
     // Priority 1: Local image path
     if (widget.imagePath != null && widget.imagePath!.isNotEmpty) {
-      return Image.file(
-        File(widget.imagePath!),
+      // Use ResizeImage to avoid decoding very large images at full size on the
+      // UI thread. When target width/height are provided, wrap the FileImage
+      // in a ResizeImage so the engine can produce a smaller decoded image.
+      final file = File(widget.imagePath!);
+      final baseProvider = FileImage(file);
+      ImageProvider provider = baseProvider;
+      try {
+        final int? w = widget.width?.toInt();
+        final int? h = widget.height?.toInt();
+        if (w != null || h != null) {
+          provider = ResizeImage(baseProvider, width: w, height: h);
+        }
+      } catch (_) {
+        provider = baseProvider;
+      }
+
+      return Image(
+        image: provider,
         fit: widget.fit,
         width: widget.width,
         height: widget.height,

@@ -35,7 +35,8 @@ class AddItemScreen extends StatefulWidget {
   State<AddItemScreen> createState() => _AddItemScreenState();
 }
 
-class _AddItemScreenState extends State<AddItemScreen> {
+class _AddItemScreenState extends State<AddItemScreen>
+    with AutomaticKeepAliveClientMixin<AddItemScreen> {
   late TextEditingController _titleController;
   late TextEditingController _borrowerController;
   late TextEditingController _noteController;
@@ -82,6 +83,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
     _scrollController.dispose();
     super.dispose();
   }
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void didUpdateWidget(covariant AddItemScreen oldWidget) {
@@ -145,6 +149,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final bool isEdit = widget.initial != null;
     // Choose indices so the date picker and note boxes have different
     // pastel backgrounds when in Add vs Edit mode.

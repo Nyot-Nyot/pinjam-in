@@ -28,7 +28,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   late final PageController _pageController;
-  double _pageValue = 0.0;
+  late final ValueNotifier<double> _pageNotifier;
+  DateTime _lastPageValueUpdate = DateTime.fromMillisecondsSinceEpoch(0);
   LoanItem? _editingItem;
   String _query = '';
   late final TextEditingController _searchController;
@@ -183,14 +184,19 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     // Data loading is handled by providers; LoanProvider created by ProxyProvider will load data
+    _pageNotifier = ValueNotifier<double>(_selectedIndex.toDouble());
     _pageController = PageController(initialPage: _selectedIndex)
       ..addListener(() {
         final p = _pageController.hasClients && _pageController.page != null
             ? _pageController.page!
             : _selectedIndex.toDouble();
-        setState(() {
-          _pageValue = p;
-        });
+        // Throttle updates to avoid flooding the notifier during fast scrolls.
+        final now = DateTime.now();
+        if (now.difference(_lastPageValueUpdate) >
+            const Duration(milliseconds: 50)) {
+          _lastPageValueUpdate = now;
+          _pageNotifier.value = p;
+        }
       });
     _searchController = TextEditingController(text: '');
     _searchFocusNode = FocusNode();
@@ -208,6 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _pageController.dispose();
+    _pageNotifier.dispose();
     _searchController.dispose();
     _searchFocusNode.dispose();
     _searchDebounce?.cancel();
@@ -303,7 +310,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildBottomNav() {
     return BottomNav(
       selectedIndex: _selectedIndex,
-      page: _pageValue,
+      controller: _pageController,
       onTap: (i) {
         setState(() => _selectedIndex = i);
         if (i == 1) {
