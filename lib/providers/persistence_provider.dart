@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../services/persistence_service.dart';
 import '../services/shared_prefs_persistence.dart';
 import '../services/supabase_persistence.dart';
@@ -27,6 +28,35 @@ class PersistenceProvider with ChangeNotifier {
 
   PersistenceProvider() {
     _initializeDefaultService();
+    _bindAuthListener();
+  }
+
+  void _bindAuthListener() {
+    try {
+      final client = Supabase.instance.client;
+      client.auth.onAuthStateChange.listen((data) async {
+        final event = data.event;
+        logger.AppLogger.info(
+          'Auth event received in PersistenceProvider: $event',
+        );
+        if (event == AuthChangeEvent.signedIn) {
+          // User signed in — switch to Supabase persistence
+          final switched = await switchToSupabase();
+          if (switched) {
+            // Try to migrate local data if any
+            try {
+              await migrateLocalDataToSupabase();
+            } catch (_) {}
+          }
+        } else if (event == AuthChangeEvent.signedOut) {
+          // User signed out — switch back to local
+          await switchToLocal();
+        }
+      });
+    } catch (e) {
+      // Supabase not initialized or other error — ignore quietly
+      logger.AppLogger.info('Could not bind Supabase auth listener: $e');
+    }
   }
 
   /// Initialize dengan service default (SharedPreferences)
@@ -42,6 +72,25 @@ class PersistenceProvider with ChangeNotifier {
 
       logger.AppLogger.success('SharedPrefs persistence initialized');
       notifyListeners();
+
+      // If Supabase already has an active session at startup, switch to it
+      try {
+        final client = Supabase.instance.client;
+        final session = client.auth.currentSession;
+        if (session != null) {
+          logger.AppLogger.info(
+            'Supabase session detected at startup, switching persistence',
+          );
+          final switched = await switchToSupabase();
+          if (switched) {
+            try {
+              await migrateLocalDataToSupabase();
+            } catch (_) {}
+          }
+        }
+      } catch (_) {
+        // ignore if supabase not initialized
+      }
     } catch (e) {
       logger.AppLogger.error('Failed to initialize default persistence', e);
       _errorMessage = 'Gagal menginisialisasi penyimpanan lokal';

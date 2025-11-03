@@ -9,7 +9,6 @@ import 'package:pinjam_in/screens/login_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../constants/app_constants.dart';
-import '../services/supabase_persistence.dart';
 import '../utils/logger.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -81,10 +80,9 @@ class _SplashScreenState extends State<SplashScreen>
         if (client != null && client.auth.currentSession != null) {
           // User is logged in, go to home screen
           if (mounted) {
-            final persistence = SupabasePersistence.fromClient(client);
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(
-                builder: (_) => HomeScreen(persistence: persistence),
+                builder: (_) => const HomeScreen(),
               ),
             );
             return;

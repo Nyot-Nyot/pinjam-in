@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 import '../models/loan_item.dart';
+import '../providers/loan_provider.dart';
+import '../providers/persistence_provider.dart';
 import '../services/persistence_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
@@ -12,15 +15,10 @@ import 'item_detail_screen.dart';
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({
     super.key,
-    required this.history,
-    required this.persistence,
     this.onDelete,
     this.onRestore,
     this.onRequestEdit,
   });
-
-  final List<LoanItem> history;
-  final PersistenceService persistence;
   final ValueChanged<LoanItem>? onDelete;
   final ValueChanged<LoanItem>? onRestore;
   final ValueChanged<LoanItem>? onRequestEdit;
@@ -50,9 +48,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loanProvider = Provider.of<LoanProvider?>(context);
+    final persistence = Provider.of<PersistenceProvider>(context).service!;
+    final history = loanProvider?.historyLoans ?? <LoanItem>[];
+
     final filtered = _query.isEmpty
-        ? widget.history
-        : widget.history
+        ? history
+        : history
               .where(
                 (e) =>
                     e.title.toLowerCase().contains(_query.toLowerCase()) ||
@@ -199,7 +201,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       final item = filtered[index];
                       return _HistoryCard(
                         item: item,
-                        persistence: widget.persistence,
+                        persistence: persistence,
                         onDelete: widget.onDelete,
                         onRestore: widget.onRestore,
                         onRequestEdit: widget.onRequestEdit,

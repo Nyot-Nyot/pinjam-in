@@ -172,10 +172,10 @@
 
 **4.3 Migrate Screens to Provider**
 
--   [ ] 4.3.1 Migrate HomeScreen ke Provider
--   [ ] 4.3.2 Migrate AddItemScreen ke Provider
--   [ ] 4.3.3 Migrate HistoryScreen ke Provider
--   [ ] 4.3.4 Remove manual setState calls
+-   [x] 4.3.1 Migrate HomeScreen ke Provider
+-   [x] 4.3.2 Migrate AddItemScreen ke Provider
+-   [x] 4.3.3 Migrate HistoryScreen ke Provider
+-   [x] 4.3.4 Remove manual setState calls
 
 **Success Criteria**:
 
@@ -237,11 +237,12 @@
 
 -   [x] Phase 1: Cleanup & Documentation (8/8) ✅ **COMPLETED**
 -   [x] Phase 2: Extract Constants & Utilities (8/8) ✅ **COMPLETED**
+
 -   [~] Phase 3: Split Large Widgets (12/13) 🔄 **IN PROGRESS**
--   [~] Phase 4: State Management & Architecture (7/10) 🔄 **IN PROGRESS**
+-   [~] Phase 4: State Management & Architecture (11/10) 🔄 **IN PROGRESS**
 -   [ ] Phase 5: Performance & Polish (0/15)
 
-**Total Tasks**: 28/54 (52%)
+**Total Tasks**: 32/54 (59%)
 
 ---
 

@@ -75,26 +75,19 @@ class MainApp extends StatelessWidget {
 
         // 3. LoanProvider - Depends on PersistenceProvider
         ChangeNotifierProxyProvider<PersistenceProvider, LoanProvider?>(
-          create: (context) {
-            // LoanProvider will be created in update() when persistence is ready
-            return null;
-          },
+          create: (context) => null,
           update: (context, persistenceProvider, previous) {
-            // Update LoanProvider ketika PersistenceService berubah (local <-> supabase)
-            if (persistenceProvider.service == null) {
-              return previous; // Keep previous while service is null
-            }
+            // If no persistence service yet, keep previous
+            if (persistenceProvider.service == null) return previous;
 
-            // Jika belum ada provider atau service berubah, buat yang baru
-            if (previous == null) {
-              AppLogger.info('Creating LoanProvider with persistence service');
-              final loanProvider = LoanProvider(persistenceProvider.service!);
-              // Load initial data
-              loanProvider.loadAllData();
-              return loanProvider;
-            }
-
-            return previous; // Keep existing provider
+            // Always create a fresh LoanProvider when persistence service is provided.
+            // This ensures LoanProvider uses the current backend (SharedPrefs or Supabase).
+            AppLogger.info(
+              'Creating/refreshing LoanProvider with persistence service',
+            );
+            final loanProvider = LoanProvider(persistenceProvider.service!);
+            loanProvider.loadAllData();
+            return loanProvider;
           },
         ),
       ],

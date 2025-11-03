@@ -417,9 +417,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     if (!context.mounted) return;
                                     Navigator.of(context).pushReplacement(
                                       MaterialPageRoute(
-                                        builder: (_) => HomeScreen(
-                                          persistence: persistence,
-                                        ),
+                                        builder: (_) => const HomeScreen(),
                                       ),
                                     );
                                   },
