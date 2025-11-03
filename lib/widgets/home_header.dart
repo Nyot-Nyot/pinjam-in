@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/app_theme.dart';
+import 'offline_banner.dart';
 import 'overdue_badge.dart';
 import 'search_bar_widget.dart';
-import 'offline_banner.dart';
 
 class HomeHeader extends StatelessWidget {
   final int visibleCount;

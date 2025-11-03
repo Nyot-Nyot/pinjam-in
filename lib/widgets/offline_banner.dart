@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../services/connectivity_service.dart';
 
 class OfflineBanner extends StatefulWidget {
