@@ -203,12 +203,6 @@
 
 **5.2 Error Handling & UX**
 
--   [ ] 5.2.1 Add loading states untuk semua async operations
--   [ ] 5.2.2 Add retry mechanism untuk network errors
--   [ ] 5.2.3 Improve error messages (lebih user-friendly)
--   [ ] 5.2.4 Add offline mode indicator
-        **5.2 Error Handling & UX**
-
 -   [x] 5.2.1 Add loading states untuk semua async operations
 -   [x] 5.2.2 Add retry mechanism untuk network errors
 -   [x] 5.2.3 Improve error messages (lebih user-friendly)
@@ -216,10 +210,10 @@
 
 **5.3 Code Quality**
 
--   [ ] 5.3.1 Run `flutter analyze` dan fix semua warnings
--   [ ] 5.3.2 Run `dart format` pada semua files
--   [ ] 5.3.3 Add documentation comments untuk public APIs
--   [ ] 5.3.4 Review & optimize imports
+-   [x] 5.3.1 Run `flutter analyze` dan fix semua warnings
+-   [x] 5.3.2 Run `dart format` pada semua files
+-   [x] 5.3.3 Add documentation comments untuk public APIs
+-   [x] 5.3.4 Review & optimize imports
 
 **5.4 Testing Setup** (Optional)
 

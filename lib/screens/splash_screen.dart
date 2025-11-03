@@ -81,9 +81,7 @@ class _SplashScreenState extends State<SplashScreen>
           // User is logged in, go to home screen
           if (mounted) {
             Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (_) => const HomeScreen(),
-              ),
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
             );
             return;
           }
