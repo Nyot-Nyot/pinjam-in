@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+
 import '../models/loan_item.dart';
 import '../services/persistence_service.dart';
 import '../utils/error_handler.dart';
@@ -113,6 +114,10 @@ class LoanProvider with ChangeNotifier {
 
       _activeLoans.add(loan);
       await _persistenceService.saveActive(_activeLoans);
+      // Ensure backend caches are invalidated for this item
+      try {
+        await _persistenceService.invalidateCache(itemId: loan.id);
+      } catch (_) {}
 
       logger.AppLogger.success('Loan added successfully');
       notifyListeners();
@@ -146,8 +151,11 @@ class LoanProvider with ChangeNotifier {
       }
 
       _activeLoans[oldIndex] = updatedLoan;
-
       await _persistenceService.saveActive(_activeLoans);
+      // Ensure backend caches are invalidated for this updated item
+      try {
+        await _persistenceService.invalidateCache(itemId: updatedLoan.id);
+      } catch (_) {}
 
       logger.AppLogger.success('Loan updated successfully');
       notifyListeners();
@@ -191,6 +199,10 @@ class LoanProvider with ChangeNotifier {
         active: _activeLoans,
         history: _historyLoans,
       );
+      // Invalidate cache for the moved item
+      try {
+        await _persistenceService.invalidateCache(itemId: updatedLoan.id);
+      } catch (_) {}
 
       logger.AppLogger.success('Loan marked as returned');
       notifyListeners();
@@ -233,6 +245,10 @@ class LoanProvider with ChangeNotifier {
         active: _activeLoans,
         history: _historyLoans,
       );
+      // Ensure caches are invalidated for the deleted item
+      try {
+        await _persistenceService.invalidateCache(itemId: loanId);
+      } catch (_) {}
 
       logger.AppLogger.success('Loan deleted successfully');
       notifyListeners();
@@ -255,6 +271,10 @@ class LoanProvider with ChangeNotifier {
 
       if (imageUrl != null) {
         logger.AppLogger.success('Image uploaded successfully');
+        // Invalidate cache so any readers will fetch the new signed URL
+        try {
+          await _persistenceService.invalidateCache(itemId: itemId);
+        } catch (_) {}
       } else {
         logger.AppLogger.warning(
           'Image upload not supported by persistence service',

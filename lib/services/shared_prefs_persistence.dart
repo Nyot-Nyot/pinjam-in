@@ -85,4 +85,13 @@ class SharedPrefsPersistence implements PersistenceService {
     // For SharedPreferences, deletion is handled by saveAll() which stores
     // the entire list. No separate delete operation needed.
   }
+
+  @override
+  Future<void> invalidateCache({String? itemId}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(StorageKeys.activeLoansKey);
+      await prefs.remove(StorageKeys.historyLoansKey);
+    } catch (_) {}
+  }
 }

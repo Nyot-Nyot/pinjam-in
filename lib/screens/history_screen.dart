@@ -200,6 +200,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     itemBuilder: (context, index) {
                       final item = filtered[index];
                       return _HistoryCard(
+                        key: ValueKey(item.id),
                         item: item,
                         persistence: persistence,
                         onDelete: widget.onDelete,
@@ -217,6 +218,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
 class _HistoryCard extends StatelessWidget {
   const _HistoryCard({
+    super.key,
     required this.item,
     required this.persistence,
     this.onDelete,

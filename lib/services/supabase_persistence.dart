@@ -3,12 +3,20 @@ import 'dart:io';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart' show dotenv;
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../constants/storage_keys.dart';
 import '../models/loan_item.dart';
 import '../utils/logger.dart';
 import 'persistence_service.dart';
+
+/// Simple cache entry for signed URLs.
+class _SignedUrlCacheEntry {
+  final String url;
+  final DateTime ts;
+  _SignedUrlCacheEntry(this.url) : ts = DateTime.now();
+}
 
 /// Minimal Supabase-backed PersistenceService implementation.
 ///
@@ -21,6 +29,45 @@ class SupabasePersistence implements PersistenceService {
   SupabasePersistence._(this._client);
 
   final SupabaseClient _client;
+  // In-memory caches to reduce repeated network calls for common queries.
+  List<LoanItem>? _cachedActive;
+  DateTime? _cachedActiveTs;
+  List<LoanItem>? _cachedHistory;
+  DateTime? _cachedHistoryTs;
+  final Duration _queryCacheTtl = const Duration(seconds: 30);
+
+  final Map<String, _SignedUrlCacheEntry> _signedUrlCache = {};
+
+  /// Invalidate in-memory and persisted caches. If [itemId] is provided attempt
+  /// to remove any signed-url entries referencing that id; otherwise clear all.
+  Future<void> _invalidateCaches({String? itemId}) async {
+    _cachedActive = null;
+    _cachedActiveTs = null;
+    _cachedHistory = null;
+    _cachedHistoryTs = null;
+
+    // Remove persisted copies
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(StorageKeys.activeLoansKey);
+      await prefs.remove(StorageKeys.historyLoansKey);
+    } catch (_) {}
+
+    // Remove signed url cache entries matching itemId if provided, else clear all
+    if (itemId == null) {
+      _signedUrlCache.clear();
+    } else {
+      try {
+        final keysToRemove = <String>[];
+        _signedUrlCache.forEach((k, v) {
+          if (k.contains(itemId)) keysToRemove.add(k);
+        });
+        for (final k in keysToRemove) {
+          _signedUrlCache.remove(k);
+        }
+      } catch (_) {}
+    }
+  }
 
   static Future<SupabasePersistence> init({
     required String url,
@@ -143,26 +190,76 @@ class SupabasePersistence implements PersistenceService {
 
   @override
   Future<List<LoanItem>> loadActive() async {
-    final res = await _client
-        .from(StorageKeys.itemsTable)
-        .select()
-        .eq('status', 'borrowed')
-        .order('borrow_date', ascending: false)
-        .limit(100);
+    // Return cached result if fresh
+    try {
+      if (_cachedActive != null && _cachedActiveTs != null) {
+        if (DateTime.now().difference(_cachedActiveTs!) < _queryCacheTtl) {
+          return _cachedActive!;
+        }
+      }
+    } catch (_) {}
+    dynamic res;
+    Exception? lastErr;
+    // Retry loop with small backoff
+    for (var attempt = 1; attempt <= 3; attempt++) {
+      try {
+        res = await _client
+            .from(StorageKeys.itemsTable)
+            .select()
+            .eq('status', 'borrowed')
+            .order('borrow_date', ascending: false)
+            .limit(100);
+        lastErr = null;
+        break;
+      } catch (e) {
+        lastErr = Exception('Attempt $attempt failed: $e');
+        if (attempt < 3) {
+          await Future.delayed(Duration(milliseconds: 200 * attempt));
+        }
+      }
+    }
+
+    if (res == null && lastErr != null) {
+      // Try to return persisted cache from SharedPreferences as offline fallback
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final s = prefs.getString(StorageKeys.activeLoansKey);
+        if (s != null && s.isNotEmpty) {
+          final decoded = jsonDecode(s) as List<dynamic>;
+          final list = decoded
+              .map((e) => LoanItem.fromJson(Map<String, dynamic>.from(e)))
+              .toList();
+          _cachedActive = list;
+          _cachedActiveTs = DateTime.now();
+          return list;
+        }
+      } catch (_) {}
+      throw lastErr;
+    }
 
     // The supabase client may return either a raw List or a response wrapper
     // depending on package version. Handle both dynamically.
     try {
+      List<LoanItem> list;
       if (res is List) {
         final data = List<Map<String, dynamic>>.from(res);
-        return data.map(_fromMap).toList();
+        list = data.map(_fromMap).toList();
+      } else {
+        final dyn = res as dynamic;
+        final d = dyn.data as List<dynamic>?;
+        if (d == null) return [];
+        final data = List<Map<String, dynamic>>.from(d);
+        list = data.map(_fromMap).toList();
       }
-      // Fallback: try to access .data dynamically
-      final dyn = res as dynamic;
-      final d = dyn.data as List<dynamic>?;
-      if (d == null) return [];
-      final data = List<Map<String, dynamic>>.from(d);
-      return data.map(_fromMap).toList();
+      _cachedActive = list;
+      _cachedActiveTs = DateTime.now();
+      // Persist to SharedPreferences for offline fallback
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final enc = jsonEncode(list.map((e) => e.toJson()).toList());
+        await prefs.setString(StorageKeys.activeLoansKey, enc);
+      } catch (_) {}
+      return list;
     } catch (e) {
       throw Exception('Failed to load active loans: $e');
     }
@@ -170,22 +267,74 @@ class SupabasePersistence implements PersistenceService {
 
   @override
   Future<List<LoanItem>> loadHistory() async {
-    final res = await _client
-        .from(StorageKeys.itemsTable)
-        .select()
-        .eq(StorageKeys.columnStatus, 'returned')
-        .order(StorageKeys.columnCreatedAt, ascending: false)
-        .limit(200);
+    // Return cached result if fresh
     try {
+      if (_cachedHistory != null && _cachedHistoryTs != null) {
+        if (DateTime.now().difference(_cachedHistoryTs!) < _queryCacheTtl) {
+          return _cachedHistory!;
+        }
+      }
+    } catch (_) {}
+    dynamic res;
+    Exception? lastErr;
+    // Retry loop with small backoff
+    for (var attempt = 1; attempt <= 3; attempt++) {
+      try {
+        res = await _client
+            .from(StorageKeys.itemsTable)
+            .select()
+            .eq(StorageKeys.columnStatus, 'returned')
+            .order(StorageKeys.columnCreatedAt, ascending: false)
+            .limit(200);
+        lastErr = null;
+        break;
+      } catch (e) {
+        lastErr = Exception('Attempt $attempt failed: $e');
+        if (attempt < 3) {
+          await Future.delayed(Duration(milliseconds: 200 * attempt));
+        }
+      }
+    }
+
+    if (res == null && lastErr != null) {
+      // Try to return persisted cache from SharedPreferences as offline fallback
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final s = prefs.getString(StorageKeys.historyLoansKey);
+        if (s != null && s.isNotEmpty) {
+          final decoded = jsonDecode(s) as List<dynamic>;
+          final list = decoded
+              .map((e) => LoanItem.fromJson(Map<String, dynamic>.from(e)))
+              .toList();
+          _cachedHistory = list;
+          _cachedHistoryTs = DateTime.now();
+          return list;
+        }
+      } catch (_) {}
+      throw lastErr;
+    }
+
+    try {
+      List<LoanItem> list;
       if (res is List) {
         final data = List<Map<String, dynamic>>.from(res);
-        return data.map(_fromMap).toList();
+        list = data.map(_fromMap).toList();
+      } else {
+        final dyn = res as dynamic;
+        final d = dyn.data as List<dynamic>?;
+        if (d == null) return [];
+        final data = List<Map<String, dynamic>>.from(d);
+        list = data.map(_fromMap).toList();
       }
-      final dyn = res as dynamic;
-      final d = dyn.data as List<dynamic>?;
-      if (d == null) return [];
-      final data = List<Map<String, dynamic>>.from(d);
-      return data.map(_fromMap).toList();
+      _cachedHistory = list;
+      _cachedHistoryTs = DateTime.now();
+      // Persist to SharedPreferences for offline fallback
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final enc = jsonEncode(list.map((e) => e.toJson()).toList());
+        await prefs.setString(StorageKeys.historyLoansKey, enc);
+      } catch (_) {}
+      return list;
     } catch (e) {
       throw Exception('Failed to load history loans: $e');
     }
@@ -219,6 +368,8 @@ class SupabasePersistence implements PersistenceService {
         throw Exception('Failed to upsert active item ${item.id}: $e');
       }
     }
+    // Invalidate caches because we changed server state
+    await _invalidateCaches();
   }
 
   @override
@@ -242,6 +393,8 @@ class SupabasePersistence implements PersistenceService {
         throw Exception('Failed to upsert history item ${item.id}: $e');
       }
     }
+    // Invalidate caches because we changed server state
+    await _invalidateCaches();
   }
 
   @override
@@ -250,6 +403,8 @@ class SupabasePersistence implements PersistenceService {
     required List<LoanItem> history,
   }) async {
     await Future.wait([saveActive(active), saveHistory(history)]);
+    // ensure caches cleared after batch save
+    await _invalidateCaches();
   }
 
   @override
@@ -428,6 +583,19 @@ class SupabasePersistence implements PersistenceService {
   Future<String?> getSignedUrl(String photoUrl) async {
     if (photoUrl.isEmpty) return null;
 
+    // Check in-memory cache first
+    try {
+      final cached = _signedUrlCache[photoUrl];
+      if (cached != null) {
+        // signed URLs are set to be long-lived; reuse if not too old (7 days)
+        if (DateTime.now().difference(cached.ts) < const Duration(days: 7)) {
+          return cached.url;
+        } else {
+          _signedUrlCache.remove(photoUrl);
+        }
+      }
+    } catch (_) {}
+
     try {
       final storage = _client.storage;
       final from = (storage as dynamic).from(_kImagesBucket);
@@ -455,9 +623,12 @@ class SupabasePersistence implements PersistenceService {
 
       if (signed is Map &&
           (signed['signedURL'] != null || signed['signedUrl'] != null)) {
-        return (signed['signedURL'] ?? signed['signedUrl']) as String;
+        final url = (signed['signedURL'] ?? signed['signedUrl']) as String;
+        _signedUrlCache[photoUrl] = _SignedUrlCacheEntry(url);
+        return url;
       }
       if (signed is String) {
+        _signedUrlCache[photoUrl] = _SignedUrlCacheEntry(signed);
         return signed;
       }
     } catch (e) {
@@ -469,6 +640,11 @@ class SupabasePersistence implements PersistenceService {
     }
 
     return null;
+  }
+
+  @override
+  Future<void> invalidateCache({String? itemId}) async {
+    await _invalidateCaches(itemId: itemId);
   }
 
   @override
@@ -536,6 +712,8 @@ class SupabasePersistence implements PersistenceService {
       if (res is Map && res['error'] != null) {
         throw Exception(res['error']);
       }
+      // Invalidate caches related to this item
+      await _invalidateCaches(itemId: itemId);
     } catch (e) {
       throw Exception('Failed to delete item $itemId: $e');
     }

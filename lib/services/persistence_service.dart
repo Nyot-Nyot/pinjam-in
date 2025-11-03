@@ -30,4 +30,8 @@ abstract class PersistenceService {
   /// Delete an item permanently from the persistence backend.
   /// Implementations that don't support deletion can do nothing.
   Future<void> deleteItem(String itemId) async {}
+
+  /// Invalidate any caches maintained by the persistence backend.
+  /// Implementations that do not cache may leave this as a no-op.
+  Future<void> invalidateCache({String? itemId}) async {}
 }

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../services/persistence_service.dart';
 import '../services/supabase_persistence.dart';
@@ -123,29 +124,18 @@ class _StorageImageState extends State<StorageImage> {
     }
 
     if (_signedUrl != null && _signedUrl!.isNotEmpty) {
-      return Image.network(
-        _signedUrl!,
+      return CachedNetworkImage(
+        imageUrl: _signedUrl!,
         fit: widget.fit,
         width: widget.width,
         height: widget.height,
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return SizedBox(
-            width: widget.width,
-            height: widget.height,
-            child: Center(
-              child: CircularProgressIndicator(
-                value: loadingProgress.expectedTotalBytes != null
-                    ? loadingProgress.cumulativeBytesLoaded /
-                          loadingProgress.expectedTotalBytes!
-                    : null,
-              ),
-            ),
-          );
-        },
-        errorBuilder: (context, error, stackTrace) {
-          return _buildPlaceholder(error.toString());
-        },
+        placeholder: (context, url) => SizedBox(
+          width: widget.width,
+          height: widget.height,
+          child: const Center(child: CircularProgressIndicator()),
+        ),
+        errorWidget: (context, url, error) =>
+            _buildPlaceholder(error.toString()),
       );
     }
 
