@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../constants/storage_keys.dart';
 import '../models/loan_item.dart';
 import '../utils/logger.dart';
+import '../utils/retry.dart';
 import 'persistence_service.dart';
 
 /// Simple cache entry for signed URLs.
@@ -449,60 +450,65 @@ class SupabasePersistence implements PersistenceService {
     }
 
     try {
-      try {
-        final res = await (from as dynamic).upload(key, File(localPath));
-        if (responseHasError(res)) {
-          throw Exception('Upload failed (upload API): $res');
-        }
-      } catch (e1) {
-        // try older method: uploadBinary/uploadFile
+      // Wrap upload logic in a retry in case of transient failures
+      await retry(() async {
         try {
-          final bytes = await File(localPath).readAsBytes();
-          final res2 = await (from as dynamic).uploadBinary(key, bytes);
-          if (responseHasError(res2)) {
-            throw Exception('Upload failed (uploadBinary): $res2');
+          final res = await (from as dynamic).upload(key, File(localPath));
+          if (responseHasError(res)) {
+            throw Exception('Upload failed (upload API): $res');
           }
-        } catch (e2) {
-          // All upload attempts failed — include context to help debugging
-          final msg =
-              'All storage upload attempts failed for bucket="$_kImagesBucket" key="$key" user="$uid": $e1 / $e2';
-          // If an upload server URL is configured, try it as a fallback.
-          if ((_kUploadServerUrl ?? '').isNotEmpty) {
-            try {
-              final uri = Uri.parse('$_kUploadServerUrl/upload');
-              final request = http.MultipartRequest('POST', uri);
-              request.files.add(
-                await http.MultipartFile.fromPath('file', localPath),
-              );
-              request.fields['bucket'] = _kImagesBucket;
-              final streamed = await request.send();
-              final resp = await http.Response.fromStream(streamed);
-              if (resp.statusCode >= 200 && resp.statusCode < 300) {
-                final body = resp.body;
-                try {
-                  final Map<String, dynamic> parsed = body.isNotEmpty
-                      ? Map<String, dynamic>.from(jsonDecode(body) as Map)
-                      : <String, dynamic>{};
-                  if (parsed['url'] is String) return parsed['url'] as String;
-                } catch (_) {
-                  // ignore parse error and fall through to return null
+          return res;
+        } catch (e1) {
+          // try older method: uploadBinary/uploadFile
+          try {
+            final bytes = await File(localPath).readAsBytes();
+            final res2 = await (from as dynamic).uploadBinary(key, bytes);
+            if (responseHasError(res2)) {
+              throw Exception('Upload failed (uploadBinary): $res2');
+            }
+            return res2;
+          } catch (e2) {
+            // All upload attempts failed — include context to help debugging
+            final msg =
+                'All storage upload attempts failed for bucket="$_kImagesBucket" key="$key" user="$uid": $e1 / $e2';
+            // If an upload server URL is configured, try it as a fallback.
+            if ((_kUploadServerUrl ?? '').isNotEmpty) {
+              try {
+                final uri = Uri.parse('$_kUploadServerUrl/upload');
+                final request = http.MultipartRequest('POST', uri);
+                request.files.add(
+                  await http.MultipartFile.fromPath('file', localPath),
+                );
+                request.fields['bucket'] = _kImagesBucket;
+                final streamed = await request.send();
+                final resp = await http.Response.fromStream(streamed);
+                if (resp.statusCode >= 200 && resp.statusCode < 300) {
+                  final body = resp.body;
+                  try {
+                    final Map<String, dynamic> parsed = body.isNotEmpty
+                        ? Map<String, dynamic>.from(jsonDecode(body) as Map)
+                        : <String, dynamic>{};
+                    if (parsed['url'] is String) return parsed['url'] as String;
+                  } catch (_) {
+                    // ignore parse error and fall through to return null
+                  }
+                  return null;
+                } else {
+                  // upload server failed — include its response in message
+                  throw Exception(
+                    'Upload server responded ${resp.statusCode}: ${resp.body}',
+                  );
                 }
-                return null;
-              } else {
-                // upload server failed — include its response in message
+              } catch (uploadServerErr) {
                 throw Exception(
-                  'Upload server responded ${resp.statusCode}: ${resp.body}',
+                  '$msg; fallback upload server failed: $uploadServerErr',
                 );
               }
-            } catch (uploadServerErr) {
-              throw Exception(
-                '$msg; fallback upload server failed: $uploadServerErr',
-              );
             }
+            throw Exception(msg);
           }
-          throw Exception(msg);
         }
-      }
+      }, attempts: 3);
 
       // Try to obtain a public URL
       try {
@@ -687,8 +693,12 @@ class SupabasePersistence implements PersistenceService {
           }
 
           if (storagePath != null && storagePath.isNotEmpty) {
-            // Delete from storage bucket
-            await _client.storage.from(_kImagesBucket).remove([storagePath]);
+            // Delete from storage bucket (retry on transient failures)
+            await retry(() async {
+              return await _client.storage.from(_kImagesBucket).remove([
+                storagePath!,
+              ]);
+            }, attempts: 3);
 
             AppLogger.success(
               'Photo deleted successfully from storage: $storagePath',
@@ -705,13 +715,14 @@ class SupabasePersistence implements PersistenceService {
       }
 
       // Delete the item record from database
-      final res = await _client
-          .from(StorageKeys.itemsTable)
-          .delete()
-          .eq(StorageKeys.columnId, itemId);
-      if (res is Map && res['error'] != null) {
-        throw Exception(res['error']);
-      }
+      await retry(() async {
+        final r = await _client
+            .from(StorageKeys.itemsTable)
+            .delete()
+            .eq(StorageKeys.columnId, itemId);
+        if (r is Map && r['error'] != null) throw Exception(r['error']);
+        return r;
+      }, attempts: 3);
       // Invalidate caches related to this item
       await _invalidateCaches(itemId: itemId);
     } catch (e) {

@@ -265,6 +265,7 @@ class LoanProvider with ChangeNotifier {
 
   /// Upload image untuk loan item
   Future<String?> uploadImage(String localPath, String itemId) async {
+    _setLoading(true);
     try {
       logger.AppLogger.info('Uploading image for item: $itemId');
       final imageUrl = await _persistenceService.uploadImage(localPath, itemId);
@@ -285,6 +286,8 @@ class LoanProvider with ChangeNotifier {
     } catch (e) {
       logger.AppLogger.error('Failed to upload image: $e', e);
       return null;
+    } finally {
+      _setLoading(false);
     }
   }
 

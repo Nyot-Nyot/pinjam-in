@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import 'overdue_badge.dart';
 import 'search_bar_widget.dart';
+import 'offline_banner.dart';
 
 class HomeHeader extends StatelessWidget {
   final int visibleCount;
@@ -51,6 +52,8 @@ class HomeHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const OfflineBanner(),
+              const SizedBox(height: 8.0),
               // Title with logout button
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
