@@ -43,6 +43,18 @@ jobs:
                   fi
               shell: bash
 
+            - name: Create placeholder .env if missing
+              run: |
+                  set -eux
+                  if [ ! -f .env ]; then
+                    echo "# CI placeholder .env" > .env
+                    # Add any required default keys here. Keep this file safe for CI only.
+                    echo "FLUTTER_ENV=ci" >> .env
+                    echo "Created placeholder .env"
+                  else
+                    echo ".env already present"
+                  fi
+
             - name: Flutter pub get
               run: flutter pub get
 
@@ -86,7 +98,6 @@ jobs:
 
                   # Attempt NDK install
                   install_ndk
-
 
             - name: Build APK (release)
               run: flutter build apk --release --no-tree-shake-icons
