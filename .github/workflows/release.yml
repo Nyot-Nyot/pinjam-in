@@ -24,17 +24,15 @@ jobs:
                   distribution: temurin
                   java-version: "17"
 
-            - name: Set up Flutter (use latest resolved version)
-              uses: subosito/flutter-action@v2
-              with:
-                  # Use 'latest' so the action resolves a concrete SDK version
-                  # instead of relying on the 'stable' channel resolver which
-                  # failed on the runner. If you prefer a pinned SDK, replace
-                  # 'latest' with a specific version (e.g. '3.35.7').
-                  flutter-version: "latest"
-
-            - name: Show Flutter version (debug)
-              run: flutter --version
+            - name: Install Flutter (manual)
+              run: |
+                # Clone a shallow copy of the stable channel and add to PATH.
+                # Using a manual install avoids resolver bugs in third-party actions
+                # and gives the workflow full control over the SDK version.
+                git clone --depth 1 https://github.com/flutter/flutter.git -b stable $HOME/flutter
+                echo "$HOME/flutter/bin" >> $GITHUB_PATH
+                flutter --version
+              shell: bash
 
             - name: Flutter pub get
               run: flutter pub get
