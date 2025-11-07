@@ -20,6 +20,7 @@ class LoanProvider with ChangeNotifier {
   List<LoanItem> _historyLoans = [];
   bool _isLoading = false;
   String? _errorMessage;
+  bool _disposed = false;
 
   // Getters
   List<LoanItem> get activeLoans => _activeLoans;
@@ -43,8 +44,19 @@ class LoanProvider with ChangeNotifier {
 
   LoanProvider(this._persistenceService);
 
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  void _safeNotify() {
+    if (!_disposed) notifyListeners();
+  }
+
   /// Load semua data (active + history)
   Future<void> loadAllData() async {
+    if (_disposed) return;
     _setLoading(true);
     _clearError();
 
@@ -62,7 +74,7 @@ class LoanProvider with ChangeNotifier {
       logger.AppLogger.info(
         'Loaded ${_activeLoans.length} active loans and ${_historyLoans.length} history items',
       );
-      notifyListeners();
+      _safeNotify();
     } catch (e, stackTrace) {
       _handleError('Gagal memuat data', e, stackTrace);
     } finally {
@@ -72,6 +84,7 @@ class LoanProvider with ChangeNotifier {
 
   /// Load hanya active loans
   Future<void> loadActiveLoans() async {
+    if (_disposed) return;
     _setLoading(true);
     _clearError();
 
@@ -79,7 +92,7 @@ class LoanProvider with ChangeNotifier {
       logger.AppLogger.info('Loading active loans...');
       _activeLoans = await _persistenceService.loadActive();
       logger.AppLogger.info('Loaded ${_activeLoans.length} active loans');
-      notifyListeners();
+      _safeNotify();
     } catch (e, stackTrace) {
       _handleError('Gagal memuat data aktif', e, stackTrace);
     } finally {
@@ -89,6 +102,7 @@ class LoanProvider with ChangeNotifier {
 
   /// Load hanya history loans
   Future<void> loadHistoryLoans() async {
+    if (_disposed) return;
     _setLoading(true);
     _clearError();
 
@@ -96,7 +110,7 @@ class LoanProvider with ChangeNotifier {
       logger.AppLogger.info('Loading history loans...');
       _historyLoans = await _persistenceService.loadHistory();
       logger.AppLogger.info('Loaded ${_historyLoans.length} history items');
-      notifyListeners();
+      _safeNotify();
     } catch (e, stackTrace) {
       _handleError('Gagal memuat riwayat', e, stackTrace);
     } finally {
@@ -106,6 +120,7 @@ class LoanProvider with ChangeNotifier {
 
   /// Tambah loan baru
   Future<bool> addLoan(LoanItem loan) async {
+    if (_disposed) return false;
     _setLoading(true);
     _clearError();
 
@@ -120,13 +135,13 @@ class LoanProvider with ChangeNotifier {
       } catch (_) {}
 
       logger.AppLogger.success('Loan added successfully');
-      notifyListeners();
+      _safeNotify();
       return true;
     } catch (e, stackTrace) {
       _handleError('Gagal menambahkan data', e, stackTrace);
       // Rollback
       _activeLoans.removeWhere((item) => item.id == loan.id);
-      notifyListeners();
+      _safeNotify();
       return false;
     } finally {
       _setLoading(false);
@@ -135,6 +150,7 @@ class LoanProvider with ChangeNotifier {
 
   /// Update loan yang sudah ada
   Future<bool> updateLoan(LoanItem updatedLoan) async {
+    if (_disposed) return false;
     _setLoading(true);
     _clearError();
 
@@ -158,7 +174,7 @@ class LoanProvider with ChangeNotifier {
       } catch (_) {}
 
       logger.AppLogger.success('Loan updated successfully');
-      notifyListeners();
+      _safeNotify();
       return true;
     } catch (e, stackTrace) {
       _handleError('Gagal memperbarui data', e, stackTrace);
@@ -172,6 +188,7 @@ class LoanProvider with ChangeNotifier {
 
   /// Pindahkan loan dari active ke history (mark as returned)
   Future<bool> markAsReturned(String loanId, DateTime returnedDate) async {
+    if (_disposed) return false;
     _setLoading(true);
     _clearError();
 
@@ -205,7 +222,7 @@ class LoanProvider with ChangeNotifier {
       } catch (_) {}
 
       logger.AppLogger.success('Loan marked as returned');
-      notifyListeners();
+      _safeNotify();
       return true;
     } catch (e, stackTrace) {
       _handleError('Gagal menandai sebagai dikembalikan', e, stackTrace);
@@ -219,6 +236,7 @@ class LoanProvider with ChangeNotifier {
 
   /// Delete loan permanently
   Future<bool> deleteLoan(String loanId) async {
+    if (_disposed) return false;
     _setLoading(true);
     _clearError();
 
@@ -251,7 +269,7 @@ class LoanProvider with ChangeNotifier {
       } catch (_) {}
 
       logger.AppLogger.success('Loan deleted successfully');
-      notifyListeners();
+      _safeNotify();
       return true;
     } catch (e, stackTrace) {
       _handleError('Gagal menghapus data', e, stackTrace);
@@ -265,6 +283,7 @@ class LoanProvider with ChangeNotifier {
 
   /// Upload image untuk loan item
   Future<String?> uploadImage(String localPath, String itemId) async {
+    if (_disposed) return null;
     _setLoading(true);
     try {
       logger.AppLogger.info('Uploading image for item: $itemId');
@@ -293,6 +312,7 @@ class LoanProvider with ChangeNotifier {
 
   /// Cari loan by ID (dari active atau history)
   LoanItem? findLoanById(String id) {
+    if (_disposed) return null;
     try {
       return _activeLoans.firstWhere((item) => item.id == id);
     } catch (_) {
@@ -306,6 +326,7 @@ class LoanProvider with ChangeNotifier {
 
   /// Filter active loans by search query
   List<LoanItem> searchActiveLoans(String query) {
+    if (_disposed) return [];
     if (query.isEmpty) return _activeLoans;
 
     final lowerQuery = query.toLowerCase();
@@ -318,6 +339,7 @@ class LoanProvider with ChangeNotifier {
 
   /// Filter history loans by search query
   List<LoanItem> searchHistoryLoans(String query) {
+    if (_disposed) return [];
     if (query.isEmpty) return _historyLoans;
 
     final lowerQuery = query.toLowerCase();
@@ -335,20 +357,21 @@ class LoanProvider with ChangeNotifier {
 
   // Private helpers
   void _setLoading(bool value) {
+    if (_disposed) return;
     _isLoading = value;
-    notifyListeners();
+    _safeNotify();
   }
 
   void _clearError() {
     if (_errorMessage != null) {
       _errorMessage = null;
-      notifyListeners();
+      _safeNotify();
     }
   }
 
   void _handleError(String userMessage, Object error, StackTrace stackTrace) {
     _errorMessage = ErrorHandler.getFriendlyMessage(error);
     logger.AppLogger.error('$userMessage: $error', error);
-    notifyListeners();
+    _safeNotify();
   }
 }
