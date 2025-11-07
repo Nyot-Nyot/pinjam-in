@@ -1,70 +1,77 @@
 name: Build & Release
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'
+    push:
+        tags:
+            - "v*.*.*"
 
 permissions:
-  contents: write
-  packages: write
+    contents: write
+    packages: write
 
 jobs:
-  build_android:
-    name: Build Android artifacts
-    runs-on: ubuntu-latest
+    build_android:
+        name: Build Android artifacts
+        runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
+            - name: Set up Java
+              uses: actions/setup-java@v4
+              with:
+                  distribution: temurin
+                  java-version: "17"
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: 'stable'
+            - name: Set up Flutter (use latest resolved version)
+              uses: subosito/flutter-action@v2
+              with:
+                  # Use 'latest' so the action resolves a concrete SDK version
+                  # instead of relying on the 'stable' channel resolver which
+                  # failed on the runner. If you prefer a pinned SDK, replace
+                  # 'latest' with a specific version (e.g. '3.35.7').
+                  flutter-version: "latest"
 
-      - name: Flutter pub get
-        run: flutter pub get
+            - name: Show Flutter version (debug)
+              run: flutter --version
 
-      - name: Build APK (release)
-        run: flutter build apk --release --no-tree-shake-icons
+            - name: Flutter pub get
+              run: flutter pub get
 
-      - name: Build AAB (release)
-        run: flutter build appbundle --release
+            - name: Build APK (release)
+              run: flutter build apk --release --no-tree-shake-icons
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        with:
-          tag_name: ${{ github.ref_name }}
-          release_name: ${{ github.ref_name }}
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - name: Build AAB (release)
+              run: flutter build appbundle --release
 
-      - name: Upload APK
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: build/app/outputs/flutter-apk/app-release.apk
-          asset_name: app-release.apk
-          asset_content_type: application/vnd.android.package-archive
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - name: Create Release
+              id: create_release
+              uses: actions/create-release@v1
+              with:
+                  tag_name: ${{ github.ref_name }}
+                  release_name: ${{ github.ref_name }}
+                  draft: false
+                  prerelease: false
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload AAB
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: build/app/outputs/bundle/release/app-release.aab
-          asset_name: app-release.aab
-          asset_content_type: application/octet-stream
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - name: Upload APK
+              uses: actions/upload-release-asset@v1
+              with:
+                  upload_url: ${{ steps.create_release.outputs.upload_url }}
+                  asset_path: build/app/outputs/flutter-apk/app-release.apk
+                  asset_name: app-release.apk
+                  asset_content_type: application/vnd.android.package-archive
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Upload AAB
+              uses: actions/upload-release-asset@v1
+              with:
+                  upload_url: ${{ steps.create_release.outputs.upload_url }}
+                  asset_path: build/app/outputs/bundle/release/app-release.aab
+                  asset_name: app-release.aab
+                  asset_content_type: application/octet-stream
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
