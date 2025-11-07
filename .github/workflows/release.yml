@@ -24,14 +24,23 @@ jobs:
                   distribution: temurin
                   java-version: "17"
 
-            - name: Install Flutter (manual)
+            - name: Try setup-flutter action (best-effort)
+              uses: subosito/flutter-action@v2
+              id: setup_subosito
+              continue-on-error: true
+
+            - name: Check flutter is installed or fallback to manual clone
               run: |
-                # Clone a shallow copy of the stable channel and add to PATH.
-                # Using a manual install avoids resolver bugs in third-party actions
-                # and gives the workflow full control over the SDK version.
-                git clone --depth 1 https://github.com/flutter/flutter.git -b stable $HOME/flutter
-                echo "$HOME/flutter/bin" >> $GITHUB_PATH
-                flutter --version
+                set -eux
+                if command -v flutter >/dev/null 2>&1; then
+                  echo "flutter was installed by the previous action"
+                  flutter --version
+                else
+                  echo "flutter not found; performing manual clone fallback"
+                  git clone --depth 1 https://github.com/flutter/flutter.git -b stable $HOME/flutter
+                  echo "$HOME/flutter/bin" >> $GITHUB_PATH
+                  flutter --version
+                fi
               shell: bash
 
             - name: Flutter pub get
