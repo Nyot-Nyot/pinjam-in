@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:image/image.dart' as img;
@@ -20,11 +21,48 @@ class ImageCropPreview extends StatefulWidget {
   State<ImageCropPreview> createState() => _ImageCropPreviewState();
 }
 
+/// Runs in a background isolate: decode the provided PNG bytes, clamp crop
+/// rect against image bounds, crop and encode as JPEG. Returns encoded JPG
+/// bytes or null on failure.
+Uint8List? _cropAndEncodeJpg(Map<String, dynamic> params) {
+  try {
+    final pngBytes = params['pngBytes'] as Uint8List;
+    final x = params['x'] as int;
+    final y = params['y'] as int;
+    final w = params['w'] as int;
+    final h = params['h'] as int;
+    final quality = params['quality'] as int? ?? 90;
+
+    final full = img.decodeImage(pngBytes);
+    if (full == null) return null;
+
+    final maxW = full.width;
+    final maxH = full.height;
+    final cropX = math.min(x, maxW - 1);
+    final cropY = math.min(y, maxH - 1);
+    final cropW = math.min(w, maxW - cropX);
+    final cropH = math.min(h, maxH - cropY);
+
+    final cropped = img.copyCrop(
+      full,
+      x: cropX,
+      y: cropY,
+      width: cropW,
+      height: cropH,
+    );
+
+    return Uint8List.fromList(img.encodeJpg(cropped, quality: quality));
+  } catch (_) {
+    return null;
+  }
+}
+
 class _ImageCropPreviewState extends State<ImageCropPreview> {
   final TransformationController _ctr = TransformationController();
   final GlobalKey _repaintKey = GlobalKey();
-  late img.Image? _decoded;
+  bool _isLoaded = false;
   bool _working = false;
+  double _overlayScale = 0.7; // 0.7 by default; user can toggle to 1.0 to use full visible image
 
   @override
   void initState() {
@@ -35,8 +73,9 @@ class _ImageCropPreviewState extends State<ImageCropPreview> {
   Future<void> _loadImage() async {
     final f = File(widget.imagePath);
     if (!await f.exists()) return;
-    final bytes = await f.readAsBytes();
-    _decoded = img.decodeImage(bytes);
+    // Avoid decoding the image on the main isolate — Image.file will handle
+    // rendering; we only need to know the file is available.
+    _isLoaded = true;
     if (mounted) setState(() {});
   }
 
@@ -56,13 +95,13 @@ class _ImageCropPreviewState extends State<ImageCropPreview> {
       if (byteData == null) return null;
       final bytes = byteData.buffer.asUint8List();
 
-      final full = img.decodeImage(bytes);
-      if (full == null) return null;
-
+      // Compute logical overlay/crop rectangle in pixels (based on the
+      // RepaintBoundary logical size and devicePixelRatio). Then offload the
+      // heavy decoding + cropping work to a background isolate via `compute`.
       final logicalSize = boundary.size;
       final cw = logicalSize.width;
       final ch = logicalSize.height;
-      final overlaySize = (cw < ch ? cw : ch) * 0.7;
+  final overlaySize = (cw < ch ? cw : ch) * _overlayScale;
       final left = (cw - overlaySize) / 2;
       final top = (ch - overlaySize) / 2;
 
@@ -77,20 +116,19 @@ class _ImageCropPreviewState extends State<ImageCropPreview> {
       wPx = math.max(1, wPx - inset * 2);
       hPx = math.max(1, hPx - inset * 2);
 
-      final maxW = full.width;
-      final maxH = full.height;
-      final cropX = math.min(x, maxW - 1);
-      final cropY = math.min(y, maxH - 1);
-      final cropW = math.min(wPx, maxW - cropX);
-      final cropH = math.min(hPx, maxH - cropY);
+      // Offload cropping: send captured PNG bytes and the requested crop rect
+      // to an isolate which will decode, clamp, crop and encode JPEG bytes.
+      final params = <String, dynamic>{
+        'pngBytes': bytes,
+        'x': x,
+        'y': y,
+        'w': wPx,
+        'h': hPx,
+        'quality': 90,
+      };
 
-      final cropped = img.copyCrop(
-        full,
-        x: cropX,
-        y: cropY,
-        width: cropW,
-        height: cropH,
-      );
+      final Uint8List? outJpg = await compute(_cropAndEncodeJpg, params);
+      if (outJpg == null) return null;
 
       final dir = await getApplicationDocumentsDirectory();
       final imagesDir = Directory('${dir.path}/images');
@@ -98,7 +136,7 @@ class _ImageCropPreviewState extends State<ImageCropPreview> {
       final outPath =
           '${imagesDir.path}/${DateTime.now().millisecondsSinceEpoch}_crop.jpg';
       final outFile = File(outPath);
-      await outFile.writeAsBytes(img.encodeJpg(cropped, quality: 90));
+      await outFile.writeAsBytes(outJpg);
       return outPath;
     } catch (e) {
       return null;
@@ -129,7 +167,7 @@ class _ImageCropPreviewState extends State<ImageCropPreview> {
           ),
         ],
       ),
-      body: _decoded == null
+      body: !_isLoaded
           ? const Center(child: CircularProgressIndicator())
           : LayoutBuilder(
               builder: (ctx, constraints) {
@@ -161,7 +199,7 @@ class _ImageCropPreviewState extends State<ImageCropPreview> {
                                   builder: (c2, cc) {
                                     final cw = cc.maxWidth;
                                     final ch = cc.maxHeight;
-                                    final size = (cw < ch ? cw : ch) * 0.7;
+                                    final size = (cw < ch ? cw : ch) * _overlayScale;
                                     final left = (cw - size) / 2;
                                     final top = (ch - size) / 2;
                                     return IgnorePointer(
@@ -251,7 +289,39 @@ class _ImageCropPreviewState extends State<ImageCropPreview> {
                                   },
                             child: const Text('Reset'),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 8),
+                          // Use original photo (bypass crop) — helpful when subject is too
+                          // large and would be cut by the square crop box.
+                          TextButton.icon(
+                            onPressed: _working
+                                ? null
+                                : () {
+                                    Navigator.of(context).pop<String?>(
+                                      widget.imagePath,
+                                    );
+                                  },
+                            icon: const Icon(Icons.photo),
+                            label: const Text('Gunakan Foto Asli'),
+                          ),
+                          const SizedBox(width: 8),
+                          // Toggle overlay scale between compact (0.7) and full (1.0)
+                          IconButton(
+                            onPressed: () {
+                              setState(() {
+                                _overlayScale = (_overlayScale == 1.0) ? 0.7 : 1.0;
+                              });
+                            },
+                            tooltip: _overlayScale == 1.0
+                                ? 'Kecilkan area potong'
+                                : 'Perbesar area potong ke ukuran penuh',
+                            icon: Icon(
+                              _overlayScale == 1.0
+                                  ? Icons.crop_square_outlined
+                                  : Icons.crop_square,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
                           Expanded(
                             child: ElevatedButton(
                               onPressed: _working

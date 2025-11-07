@@ -48,12 +48,13 @@ class HomeHeader extends StatelessWidget {
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 20.0),
+          // reduced vertical padding to make header shorter on small screens
+          padding: const EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 12.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const OfflineBanner(),
-              const SizedBox(height: 8.0),
+              const SizedBox(height: 6.0),
               // Title with logout button
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -66,7 +67,8 @@ class HomeHeader extends StatelessWidget {
                         Text(
                           'Pinjaman Aktif',
                           style: GoogleFonts.arimo(
-                            fontSize: 28,
+                            // smaller title for mobile screens
+                            fontSize: 20,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
                           ),
@@ -75,7 +77,7 @@ class HomeHeader extends StatelessWidget {
                         Text(
                           '$visibleCount barang sedang dipinjamkan',
                           style: GoogleFonts.arimo(
-                            fontSize: 14,
+                            fontSize: 13,
                             color: Colors.white.withAlpha((0.9 * 255).round()),
                             fontWeight: FontWeight.w500,
                           ),
@@ -131,7 +133,8 @@ class HomeHeader extends StatelessWidget {
                       },
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
-                        padding: const EdgeInsets.all(10),
+                        // slightly smaller touch area so header is more compact
+                        padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: Colors.white.withAlpha((0.2 * 255).round()),
                           borderRadius: BorderRadius.circular(12),
@@ -139,7 +142,7 @@ class HomeHeader extends StatelessWidget {
                         child: const Icon(
                           Icons.logout,
                           color: Colors.white,
-                          size: 24,
+                          size: 20,
                         ),
                       ),
                     ),
@@ -147,12 +150,12 @@ class HomeHeader extends StatelessWidget {
                 ],
               ),
 
-              const SizedBox(height: 16.0),
+              const SizedBox(height: 12.0),
 
               // Overdue badge
               OverdueBadge(count: overdueCount),
 
-              const SizedBox(height: 20.0),
+              const SizedBox(height: 12.0),
 
               // Search bar
               SearchBarWidget(

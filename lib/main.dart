@@ -86,7 +86,11 @@ class MainApp extends StatelessWidget {
               'Creating/refreshing LoanProvider with persistence service',
             );
             final loanProvider = LoanProvider(persistenceProvider.service!);
-            loanProvider.loadAllData();
+            // Defer heavy data loading until after first frame so app can render
+            // initial UI without being blocked by storage parsing.
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              loanProvider.loadAllData();
+            });
             return loanProvider;
           },
         ),

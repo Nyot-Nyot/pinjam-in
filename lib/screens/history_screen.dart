@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
+
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
@@ -31,18 +33,25 @@ class _HistoryScreenState extends State<HistoryScreen>
     with AutomaticKeepAliveClientMixin<HistoryScreen> {
   String _query = '';
   late final TextEditingController _tc;
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
     _tc = TextEditingController(text: _query);
     _tc.addListener(() {
-      setState(() => _query = _tc.text);
+      // Debounce user typing to avoid frequent rebuilds on large lists
+      _debounce?.cancel();
+      _debounce = Timer(const Duration(milliseconds: 200), () {
+        if (!mounted) return;
+        setState(() => _query = _tc.text);
+      });
     });
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _tc.dispose();
     super.dispose();
   }
@@ -92,7 +101,7 @@ class _HistoryScreenState extends State<HistoryScreen>
           child: SafeArea(
             bottom: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 20.0),
+              padding: const EdgeInsets.fromLTRB(20.0, 12.0, 20.0, 12.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -100,7 +109,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                   Text(
                     'Riwayat Pinjaman',
                     style: GoogleFonts.arimo(
-                      fontSize: 28,
+                        fontSize: 24,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
                     ),
@@ -109,75 +118,74 @@ class _HistoryScreenState extends State<HistoryScreen>
                   Text(
                     '${filtered.length} barang telah dikembalikan',
                     style: GoogleFonts.arimo(
-                      fontSize: 14,
+                        fontSize: 13,
                       color: Colors.white.withAlpha((0.9 * 255).round()),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
+                    const SizedBox(height: 12.0),
 
-                  const SizedBox(height: 20.0),
-
-                  // Search input with white background
-                  Container(
-                    height: 56.0,
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16.0),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withAlpha((0.1 * 255).round()),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.search,
-                          color: AppTheme.primaryPurple,
-                          size: 22,
-                        ),
-                        const SizedBox(width: AppTheme.spacingM),
-                        Expanded(
-                          child: TextField(
-                            controller: _tc,
-                            textAlignVertical: TextAlignVertical.center,
-                            decoration: InputDecoration(
-                              border: InputBorder.none,
-                              hintText: 'Cari riwayat...',
-                              isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(
-                                vertical: 14,
+                    // Search input with white background (smaller for mobile)
+                    Container(
+                      height: 44.0,
+                      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12.0),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha((0.1 * 255).round()),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.search,
+                            color: AppTheme.primaryPurple,
+                            size: 18,
+                          ),
+                          const SizedBox(width: AppTheme.spacingS),
+                          Expanded(
+                            child: TextField(
+                              controller: _tc,
+                              textAlignVertical: TextAlignVertical.center,
+                              decoration: InputDecoration(
+                                border: InputBorder.none,
+                                hintText: 'Cari riwayat...',
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                ),
+                              ),
+                              style: GoogleFonts.arimo(
+                                fontSize: 14,
+                                color: const Color(0xFF4A3D5C),
                               ),
                             ),
-                            style: GoogleFonts.arimo(
-                              fontSize: 15,
-                              color: const Color(0xFF4A3D5C),
-                            ),
                           ),
-                        ),
-                        if (_tc.text.isNotEmpty)
-                          IconButton(
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(
-                              minWidth: 32,
-                              minHeight: 32,
+                          if (_tc.text.isNotEmpty)
+                            IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                minWidth: 28,
+                                minHeight: 28,
+                              ),
+                              icon: const Icon(
+                                Icons.clear,
+                                size: 18,
+                                color: Color(0xFF6B5E78),
+                              ),
+                              onPressed: () {
+                                _tc.clear();
+                              },
                             ),
-                            icon: const Icon(
-                              Icons.clear,
-                              size: 20,
-                              color: Color(0xFF6B5E78),
-                            ),
-                            onPressed: () {
-                              _tc.clear();
-                            },
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),

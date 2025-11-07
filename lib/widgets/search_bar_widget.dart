@@ -18,11 +18,11 @@ class SearchBarWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 56.0,
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      height: 44.0,
+      padding: const EdgeInsets.symmetric(horizontal: 12.0),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16.0),
+        borderRadius: BorderRadius.circular(12.0),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withAlpha((0.1 * 255).round()),
@@ -34,8 +34,8 @@ class SearchBarWidget extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const Icon(Icons.search, color: AppTheme.primaryPurple, size: 22),
-          const SizedBox(width: AppTheme.spacingM),
+          const Icon(Icons.search, color: AppTheme.primaryPurple, size: 18),
+          const SizedBox(width: AppTheme.spacingS),
           Expanded(
             child: Semantics(
               textField: true,
@@ -48,18 +48,18 @@ class SearchBarWidget extends StatelessWidget {
                   border: InputBorder.none,
                   hintText: hintText ?? 'Cari barang atau nama peminjam',
                   isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 8),
                   suffixIcon: controller.text.isEmpty
                       ? null
                       : IconButton(
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(
-                            minWidth: 32,
-                            minHeight: 32,
+                            minWidth: 28,
+                            minHeight: 28,
                           ),
                           icon: const Icon(
                             Icons.clear,
-                            size: 20,
+                            size: 18,
                             color: Color(0xFF6B5E78),
                           ),
                           onPressed: () {
@@ -69,7 +69,7 @@ class SearchBarWidget extends StatelessWidget {
                         ),
                 ),
                 style: GoogleFonts.arimo(
-                  fontSize: 15,
+                  fontSize: 14,
                   color: const Color(0xFF4A3D5C),
                 ),
               ),

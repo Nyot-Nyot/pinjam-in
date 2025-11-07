@@ -214,302 +214,312 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
                   ),
                 ],
               ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Drag handle
-                    Center(
-                      child: Container(
-                        width: 48,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFD9CCE8),
-                          borderRadius: BorderRadius.circular(3),
+              child: SafeArea(
+                top: false,
+                bottom: true,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Drag handle
+                      Center(
+                        child: Container(
+                          width: 48,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD9CCE8),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
                         ),
                       ),
-                    ),
 
-                    const SizedBox(height: 12),
+                      const SizedBox(height: 12),
 
-                    // Title + status
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
+                      // Make the main content scrollable so the drawer won't overflow
+                      // on small screens. The bottom action row remains fixed below.
+                      Expanded(
+                        child: SingleChildScrollView(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                widget.item.title,
+                              // Title + status
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          widget.item.title,
+                                          style: GoogleFonts.arimo(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w700,
+                                            color: const Color(0xFF0C0315),
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          'Informasi barang & pinjaman',
+                                          style: GoogleFonts.arimo(
+                                            fontSize: 13,
+                                            color: const Color(0xFF6B5E78),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  const SizedBox(width: 12),
+
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: widget.item.computedDaysRemaining == null
+                                          ? const Color(0xFFF6EFFD)
+                                          : (widget.item.computedDaysRemaining! < 0
+                                              ? const Color(0x30DC2626)
+                                              : const Color(0x1A8530E4)),
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: Text(
+                                      widget.item.computedDaysRemaining == null
+                                          ? 'Tanpa batas'
+                                          : (widget.item.computedDaysRemaining! < 0
+                                              ? 'Terlambat ${widget.item.computedDaysRemaining!.abs()}h'
+                                              : '${widget.item.computedDaysRemaining} hari'),
+                                      style: GoogleFonts.arimo(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: widget.item.computedDaysRemaining == null
+                                            ? const Color(0xFF8530E4)
+                                            : (widget.item.computedDaysRemaining! < 0
+                                                ? const Color(0xFFDC2626)
+                                                : const Color(0xFF8530E4)),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 14),
+
+                              // Borrower row
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 20,
+                                    backgroundColor: Colors.white,
+                                    child: Text(
+                                      (widget.item.borrower
+                                              .split(' ')
+                                              .map((s) => s.isNotEmpty ? s[0] : '')
+                                              .take(2)
+                                              .join())
+                                          .toUpperCase(),
+                                      style: GoogleFonts.arimo(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          widget.item.borrower,
+                                          style: GoogleFonts.arimo(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Peminjam',
+                                          style: GoogleFonts.arimo(
+                                            fontSize: 13,
+                                            color: const Color(0xFF6B5E78),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () async {
+                                      final contact = widget.item.contact ?? '';
+                                      if (contact.isEmpty) {
+                                        if (!mounted) return;
+                                        ErrorHandler.showInfo(
+                                          context,
+                                          'Kontak belum disetel',
+                                        );
+                                        return;
+                                      }
+
+                                      final messenger = ScaffoldMessenger.of(context);
+                                      final uri = Uri(scheme: 'tel', path: contact);
+                                      try {
+                                        if (await canLaunchUrl(uri)) {
+                                          await launchUrl(uri);
+                                        } else {
+                                          await Clipboard.setData(
+                                            ClipboardData(text: contact),
+                                          );
+                                          messenger.showSnackBar(
+                                            const SnackBar(
+                                              content: Text('Nomor disalin ke clipboard'),
+                                            ),
+                                          );
+                                        }
+                                      } catch (e) {
+                                        await Clipboard.setData(
+                                          ClipboardData(text: contact),
+                                        );
+                                        messenger.showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Nomor disalin ke clipboard'),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    icon: const Icon(
+                                      Icons.call,
+                                      color: Color(0xFF6B5E78),
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 12),
+                              const Divider(color: Color(0xFFD4C3E6)),
+                              const SizedBox(height: 12),
+
+                              // Info tiles
+                              InfoRow(
+                                label: 'Tanggal Pinjam',
+                                value: widget.item.createdAt != null
+                                    ? DateHelper.formatDate(widget.item.createdAt!)
+                                    : '-',
+                                icon: Icons.calendar_today,
+                              ),
+                              const SizedBox(height: 8),
+                              InfoRow(
+                                label: 'Target Kembali',
+                                value: widget.item.dueDate != null
+                                    ? DateHelper.formatDate(widget.item.dueDate!)
+                                    : 'Tanpa batas',
+                                icon: Icons.calendar_today_outlined,
+                              ),
+                              const SizedBox(height: 8),
+                              // Show 'Selesai' for items coming from History; otherwise keep current active label.
+                              StatusRow(
+                                label: 'Status',
+                                value: widget.isInHistory ? 'Selesai' : 'Aktif',
+                                bgColor: widget.isInHistory
+                                    ? const Color(0x1A16A34A)
+                                    : null,
+                                textColor: widget.isInHistory
+                                    ? const Color(0xFF16A34A)
+                                    : null,
+                              ),
+
+                              // Note
+                              if (widget.item.note != null && widget.item.note!.trim().isNotEmpty) ...[
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Catatan',
+                                  style: GoogleFonts.arimo(
+                                    color: const Color(0xFF6B5E78),
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Color.fromRGBO(0, 0, 0, 0.04),
+                                        offset: const Offset(0, 6),
+                                        blurRadius: 12,
+                                      ),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    widget.item.note!,
+                                    style: GoogleFonts.arimo(
+                                      color: const Color(0xFF0C0315),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // Fixed action row at the bottom so it's always visible
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                backgroundColor: const Color(0xFFF6EFFD),
+                                side: const BorderSide(
+                                  color: Color(0xFFD4C3E6),
+                                  width: 1.4,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                              ),
+                              onPressed: _onShare,
+                              icon: const Icon(
+                                Icons.share,
+                                color: Color(0xFF0C0315),
+                              ),
+                              label: Text(
+                                'Bagikan',
                                 style: GoogleFonts.arimo(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
                                   color: const Color(0xFF0C0315),
                                 ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'Informasi barang & pinjaman',
-                                style: GoogleFonts.arimo(
-                                  fontSize: 13,
-                                  color: const Color(0xFF6B5E78),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(width: 12),
-
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: widget.item.computedDaysRemaining == null
-                                ? const Color(0xFFF6EFFD)
-                                : (widget.item.computedDaysRemaining! < 0
-                                      ? const Color(0x30DC2626)
-                                      : const Color(0x1A8530E4)),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            widget.item.computedDaysRemaining == null
-                                ? 'Tanpa batas'
-                                : (widget.item.computedDaysRemaining! < 0
-                                      ? 'Terlambat ${widget.item.computedDaysRemaining!.abs()}h'
-                                      : '${widget.item.computedDaysRemaining} hari'),
-                            style: GoogleFonts.arimo(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: widget.item.computedDaysRemaining == null
-                                  ? const Color(0xFF8530E4)
-                                  : (widget.item.computedDaysRemaining! < 0
-                                        ? const Color(0xFFDC2626)
-                                        : const Color(0xFF8530E4)),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    // Borrower row
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundColor: Colors.white,
-                          child: Text(
-                            (widget.item.borrower
-                                    .split(' ')
-                                    .map((s) => s.isNotEmpty ? s[0] : '')
-                                    .take(2)
-                                    .join())
-                                .toUpperCase(),
-                            style: GoogleFonts.arimo(
-                              fontWeight: FontWeight.w700,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red.shade600,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                              ),
+                              onPressed: _onDeletePressed,
+                              icon: const Icon(Icons.delete, color: Colors.white),
+                              label: Text(
+                                'Hapus',
+                                style: GoogleFonts.arimo(color: Colors.white),
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                widget.item.borrower,
-                                style: GoogleFonts.arimo(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Peminjam',
-                                style: GoogleFonts.arimo(
-                                  fontSize: 13,
-                                  color: const Color(0xFF6B5E78),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () async {
-                            final contact = widget.item.contact ?? '';
-                            if (contact.isEmpty) {
-                              if (!mounted) return;
-                              ErrorHandler.showInfo(
-                                context,
-                                'Kontak belum disetel',
-                              );
-                              return;
-                            }
-
-                            // Capture ScaffoldMessenger early to avoid using State.context after awaits
-                            final messenger = ScaffoldMessenger.of(context);
-
-                            // Try launching tel: URI; if not supported, copy contact to clipboard
-                            final uri = Uri(scheme: 'tel', path: contact);
-                            try {
-                              if (await canLaunchUrl(uri)) {
-                                await launchUrl(uri);
-                              } else {
-                                await Clipboard.setData(
-                                  ClipboardData(text: contact),
-                                );
-                                messenger.showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Nomor disalin ke clipboard'),
-                                  ),
-                                );
-                              }
-                            } catch (e) {
-                              await Clipboard.setData(
-                                ClipboardData(text: contact),
-                              );
-                              messenger.showSnackBar(
-                                const SnackBar(
-                                  content: Text('Nomor disalin ke clipboard'),
-                                ),
-                              );
-                            }
-                          },
-                          icon: const Icon(
-                            Icons.call,
-                            color: Color(0xFF6B5E78),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 12),
-                    const Divider(color: Color(0xFFD4C3E6)),
-                    const SizedBox(height: 12),
-
-                    // Info tiles
-                    InfoRow(
-                      label: 'Tanggal Pinjam',
-                      value: widget.item.createdAt != null
-                          ? DateHelper.formatDate(widget.item.createdAt!)
-                          : '-',
-                      icon: Icons.calendar_today,
-                    ),
-                    const SizedBox(height: 8),
-                    InfoRow(
-                      label: 'Target Kembali',
-                      value: widget.item.dueDate != null
-                          ? DateHelper.formatDate(widget.item.dueDate!)
-                          : 'Tanpa batas',
-                      icon: Icons.calendar_today_outlined,
-                    ),
-                    const SizedBox(height: 8),
-                    // Show 'Selesai' for items coming from History; otherwise keep current active label.
-                    StatusRow(
-                      label: 'Status',
-                      value: widget.isInHistory ? 'Selesai' : 'Aktif',
-                      bgColor: widget.isInHistory
-                          ? const Color(0x1A16A34A)
-                          : null,
-                      textColor: widget.isInHistory
-                          ? const Color(0xFF16A34A)
-                          : null,
-                    ),
-
-                    // Note
-                    if (widget.item.note != null &&
-                        widget.item.note!.trim().isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        'Catatan',
-                        style: GoogleFonts.arimo(
-                          color: const Color(0xFF6B5E78),
-                          fontSize: 13,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Color.fromRGBO(0, 0, 0, 0.04),
-                              offset: const Offset(0, 6),
-                              blurRadius: 12,
-                            ),
-                          ],
-                        ),
-                        child: Text(
-                          widget.item.note!,
-                          style: GoogleFonts.arimo(
-                            color: const Color(0xFF0C0315),
-                          ),
-                        ),
+                        ],
                       ),
                     ],
-
-                    const Spacer(),
-
-                    // Actions
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              backgroundColor: const Color(0xFFF6EFFD),
-                              side: const BorderSide(
-                                color: Color(0xFFD4C3E6),
-                                width: 1.4,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                            ),
-                            onPressed: _onShare,
-                            icon: const Icon(
-                              Icons.share,
-                              color: Color(0xFF0C0315),
-                            ),
-                            label: Text(
-                              'Bagikan',
-                              style: GoogleFonts.arimo(
-                                color: const Color(0xFF0C0315),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red.shade600,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                            ),
-                            onPressed: _onDeletePressed,
-                            icon: const Icon(Icons.delete, color: Colors.white),
-                            label: Text(
-                              'Hapus',
-                              style: GoogleFonts.arimo(color: Colors.white),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),

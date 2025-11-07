@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants/storage_keys.dart';
@@ -13,9 +14,10 @@ class SharedPrefsPersistence implements PersistenceService {
       final prefs = await SharedPreferences.getInstance();
       final a = prefs.getString(StorageKeys.activeLoansKey);
       if (a == null) return [];
-      final list = jsonDecode(a) as List<dynamic>;
-      return list
-          .map((e) => LoanItem.fromJson(e as Map<String, dynamic>))
+      // Parse JSON in background isolate to avoid jank on main thread
+      final parsed = await compute(_parseLoanList, a);
+      return parsed
+          .map((e) => LoanItem.fromJson(e))
           .toList();
     } catch (_) {
       return [];
@@ -28,9 +30,10 @@ class SharedPrefsPersistence implements PersistenceService {
       final prefs = await SharedPreferences.getInstance();
       final h = prefs.getString(StorageKeys.historyLoansKey);
       if (h == null) return [];
-      final list = jsonDecode(h) as List<dynamic>;
-      return list
-          .map((e) => LoanItem.fromJson(e as Map<String, dynamic>))
+      // Parse JSON in background isolate to avoid jank on main thread
+      final parsed = await compute(_parseLoanList, h);
+      return parsed
+          .map((e) => LoanItem.fromJson(e))
           .toList();
     } catch (_) {
       return [];
@@ -94,4 +97,12 @@ class SharedPrefsPersistence implements PersistenceService {
       await prefs.remove(StorageKeys.historyLoansKey);
     } catch (_) {}
   }
+}
+
+/// Parse a JSON string containing a list of loan maps into a List<Map>.
+/// This runs in a background isolate when used with `compute` to keep the
+/// main/UI isolate responsive during heavy JSON decoding.
+List<Map<String, dynamic>> _parseLoanList(String jsonString) {
+  final decoded = jsonDecode(jsonString) as List<dynamic>;
+  return decoded.map((e) => Map<String, dynamic>.from(e as Map)).toList();
 }
