@@ -36,74 +36,87 @@ class EmptyState extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Icon in circular background
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: AppTheme.primaryPurpleLight,
-                borderRadius: BorderRadius.circular(AppTheme.radiusCircle),
-              ),
-              child: Icon(
-                icon,
-                size: AppTheme.iconXl,
-                color: AppTheme.primaryPurple,
-              ),
-            ),
-            const SizedBox(height: AppTheme.spacingXl),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Icon in circular background
+                    Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryPurpleLight,
+                        borderRadius: BorderRadius.circular(
+                          AppTheme.radiusCircle,
+                        ),
+                      ),
+                      child: Icon(
+                        icon,
+                        size: AppTheme.iconXl,
+                        color: AppTheme.primaryPurple,
+                      ),
+                    ),
+                    const SizedBox(height: AppTheme.spacingXl),
 
-            // Title
-            Text(
-              title,
-              style: GoogleFonts.arimo(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                color: AppTheme.textPrimary,
-              ),
-            ),
-            const SizedBox(height: AppTheme.spacingM),
+                    // Title
+                    Text(
+                      title,
+                      style: GoogleFonts.arimo(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: AppTheme.spacingM),
 
-            // Message
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.arimo(
-                fontSize: 15,
-                color: AppTheme.textSecondary,
-                height: 1.5,
-              ),
-            ),
+                    // Message
+                    Text(
+                      message,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.arimo(
+                        fontSize: 15,
+                        color: AppTheme.textSecondary,
+                        height: 1.5,
+                      ),
+                    ),
 
-            // Optional action button
-            if (actionLabel != null && onActionPressed != null) ...[
-              const SizedBox(height: AppTheme.spacingXxl),
-              ElevatedButton.icon(
-                onPressed: onActionPressed,
-                icon: const Icon(Icons.add, size: AppTheme.iconL),
-                label: Text(
-                  actionLabel!,
-                  style: GoogleFonts.arimo(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
+                    // Optional action button
+                    if (actionLabel != null && onActionPressed != null) ...[
+                      const SizedBox(height: AppTheme.spacingXxl),
+                      ElevatedButton.icon(
+                        onPressed: onActionPressed,
+                        icon: const Icon(Icons.add, size: AppTheme.iconL),
+                        label: Text(
+                          actionLabel!,
+                          style: GoogleFonts.arimo(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryPurple,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppTheme.spacingXxl,
+                            vertical: AppTheme.spacingL,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              AppTheme.radiusL,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryPurple,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppTheme.spacingXxl,
-                    vertical: AppTheme.spacingL,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppTheme.radiusL),
-                  ),
-                ),
               ),
-            ],
-          ],
+            );
+          },
         ),
       ),
     );
