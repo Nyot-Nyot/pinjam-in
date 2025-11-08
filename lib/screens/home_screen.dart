@@ -158,12 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 listen: false,
               );
               if (loanProvider == null) return;
-              final restored = item.copyWith(
-                status: 'active',
-                returnedAt: null,
-              );
-              await loanProvider.addLoan(restored);
-              await loanProvider.deleteLoan(item.id);
+              await loanProvider.restoreLoan(item.id);
             },
             onRequestEdit: (item) {
               setState(() => _editingItem = item);
