@@ -234,6 +234,54 @@ class LoanProvider with ChangeNotifier {
     }
   }
 
+  /// Restore loan from history back to active
+  Future<bool> restoreLoan(String loanId) async {
+    if (_disposed) return false;
+    _setLoading(true);
+    _clearError();
+
+    try {
+      logger.AppLogger.info('Restoring loan: $loanId');
+
+      // Cari loan di history
+      final loanIndex = _historyLoans.indexWhere((item) => item.id == loanId);
+      if (loanIndex == -1) {
+        throw Exception('Loan tidak ditemukan di riwayat');
+      }
+
+      final loan = _historyLoans[loanIndex];
+      final restoredLoan = loan.copyWith(
+        returnedAt: null,
+        status: 'active',
+      );
+
+      // Pindahkan dari history ke active
+      _historyLoans.removeAt(loanIndex);
+      _activeLoans.insert(0, restoredLoan); // Insert di awal
+
+      // Save ke persistence
+      await _persistenceService.saveAll(
+        active: _activeLoans,
+        history: _historyLoans,
+      );
+      // Invalidate cache for the restored item
+      try {
+        await _persistenceService.invalidateCache(itemId: restoredLoan.id);
+      } catch (_) {}
+
+      logger.AppLogger.success('Loan restored successfully');
+      _safeNotify();
+      return true;
+    } catch (e, stackTrace) {
+      _handleError('Gagal memulihkan data', e, stackTrace);
+      // Rollback
+      await loadAllData();
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   /// Delete loan permanently
   Future<bool> deleteLoan(String loanId) async {
     if (_disposed) return false;
