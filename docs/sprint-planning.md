@@ -1,148 +1,67 @@
-# Sprint Planning: Add Admin Role
+# Sprint Planning — Add Admin Role (spin-off)
 
-Tanggal: 13 November 2025
+Target: Tambah role **admin** pada aplikasi Pinjam In dan buat implementasi minimal yang aman (DB RLS + client changes + basic admin UI) sebagai spin-off branch `feature/admin-role-design`.
 
-Tujuan: Menambahkan satu role baru `admin` ke aplikasi Pinjam In. Role ini memungkinkan satu atau lebih pengguna (dosen, pengelola, atau pemilik aplikasi) untuk melihat dan mengelola seluruh data instance aplikasi untuk keperluan demo, penilaian, dan administrasi.
+Durasi sprint: 1–2 minggu (bekerja sendiri / tim kecil). Prioritas: keamanan RLS, minim perubahan client, deliverable: migration SQL + client support + admin dashboard read-only.
 
-Ringkasan perubahan teknis yang diusulkan
-- Database: tambah kolom `role` pada tabel `users`. Default untuk pengguna eksisting: `user`.
-- Auth / Policies (Supabase): gunakan `role` di profil pengguna untuk Row Level Security (RLS). Buat policy yang memperbolehkan `admin` mengakses semua baris.
-- Backend / Services: perbarui model `User` di Flutter, provider/repository permission checks, dan gunakan pengecekan role di service layer sebelum operasi sensitif.
-- UI: tampilkan badge role di halaman `Profile`; buat halaman sederhana `Admin Dashboard` (statistik singkat, daftar users, export CSV) — bisa ditandai `dev-only` untuk sekarang.
-- Migration: contoh SQL migration ditambahkan di bawah.
+## Goals
+- Menambahkan role `admin` pada backend (Supabase) dengan RLS yang aman.
+- Memperbarui Flutter client agar dapat membaca role user dan tampilkan menu/admin dashboard sederhana.
+- Pastikan perilaku lama (single-user) tetap berjalan.
 
-Detail desain & rationale
+## Milestones
+1. Analysis & design (sudah selesai) — docs/analysist.md
+2. DB migration & RLS update — buat migration SQL + apply di Supabase (manual atau via migration tool)
+3. Client: AuthProvider -> fetch profile role
+4. Client: UI — Settings role display + Admin Dashboard (read-only list of items & users)
+5. Tests & review, final polish
 
-1) Data model
-- `users` table: tambah kolom `role TEXT NOT NULL DEFAULT 'user'`.
-- Rationale: sederhana, mudah di-query, dan cocok untuk klaim token minimal.
+## Backlog (breakdown tasks, actionable) — estimates given per task
 
-2) Supabase / RLS
-- Simpan `role` di table `profiles` atau `users` (sesuaikan skema repo); atur RLS policy contoh:
+Phase A — Migration & DB (3.5h)
+  A1. Create `profiles` table migration SQL (0.5h)
+  A2. Seed existing users into `profiles` with role='user' (0.25h)
+  A3. Add/replace RLS policies for `items` to allow admin access (1h)
+  A4. Test RLS policies using Supabase SQL editor / psql (1h)
+  A5. Add storage policy or admin storage helper note (0.75h)
 
-  -- Allow admins to select/insert/update/delete any row
-  CREATE POLICY "admins_full_access" ON items
-    USING ( auth.role() = 'admin' )
-    WITH CHECK ( auth.role() = 'admin' );
+Phase B — Client & Services (6h)
+  B1. Update `AuthProvider` to load profile and expose `role` (1.5h)
+    - Add method `Future<void> loadProfile()`
+    - Call after login and on init if session exists
+  B2. Add model `lib/models/user_profile.dart` (0.25h)
+  B3. Wire role into app state (provide to widgets) (0.5h)
+  B4. Update `SupabasePersistence` / `LoanProvider` UX checks for admin (optional; hide confirm modals etc) (0.5h)
+  B5. Add small admin-only helper in persistence for tests if needed (0.5h)
+  B6. Add basic unit tests for AuthProvider role fetch (1h)
+  B7. Run `flutter analyze` and fix lints (0.75h)
 
-  -- For non-admins: allow owners to modify their own items
-  CREATE POLICY "owners_modify_own" ON items
-    USING ( user_id = auth.uid() )
-    WITH CHECK ( user_id = auth.uid() );
+Phase C — UI (5–7h)
+  C1. Add `screens/admin_dashboard.dart` (list items + users) — read-only (2h)
+  C2. Add menu entry in `Settings` or drawer (0.5h)
+  C3. Add `Profile`/`Settings` view display role (0.5h)
+  C4. Guard admin routes (show/hide) (0.25h)
+  C5. Styling & minor UX polish (1.5–3h)
 
-  (Catatan: Supabase tidak memiliki `auth.role()` built-in — biasanya role disimpan di table `profiles` dan kebijakan akan memeriksa value itu melalui `current_setting('request.jwt.claims')` atau menggunakan `auth.uid()` bersama join; file `sql/schema.sql` perlu disesuaikan dengan pendekatan yang dipilih.)
+Phase D — QA, docs, and wrap-up (2.5h)
+  D1. End-to-end smoke test (login, admin view, try RLS-restricted actions) (1h)
+  D2. Document steps to apply migration on live Supabase in README or docs (0.75h)
+  D3. Prepare PR description and changelog (0.75h)
 
-3) Flutter app changes (high level)
-- Model: `lib/models/user.dart` — tambahkan field `role` (String).
-- Provider/Repository: saat memanggil update/delete item, cek:
-  - if (currentUser.role == 'admin') allow
-  - else allow only when item.userId == currentUser.id
-- UI: `lib/screens/profile_screen.dart` — tampilkan role; `lib/screens/admin_dashboard.dart` (baru) — minimal: daftar pengguna, jumlah items, tombol export.
+## Minimal deliverable for grading (MVP)
+- SQL migration file (profiles table + updated RLS) — must be runnable in Supabase SQL editor.
+- AuthProvider changes to fetch profile role and expose ke UI.
+- Basic Admin Dashboard screen listing all items (read-only) and list of profiles.
 
-4) Migration SQL (contoh)
+## Risks & Mitigations
+- Risk: RLS misconfiguration -> data leakage.  
+  Mitigation: Test RLS with dummy accounts and attempt cross-access before shipping.
+- Risk: service_role exposure.  
+  Mitigation: do not embed service role in client. Use server-side functions if needed.
 
--- 1. add role column
-ALTER TABLE users
-  ADD COLUMN role TEXT NOT NULL DEFAULT 'user';
-
--- 2. (opsional) create admin user
-INSERT INTO users (id, email, role, created_at)
-VALUES ('<UUID-ADMIN>', 'admin@example.com', 'admin', now());
-
-5) Testing
-- Unit tests: permission checks (user vs admin) di service layer
-- Integration test (manual): create admin account, verify admin dapat mengedit item milik user lain
-
-Sprint plan (3 iterasi, sprint length 1 minggu each) — fokus: deliverable minimal + polish
-
-Sprint 1 (3-4 hari) - Core role & migration
-- Tasks:
-  - DB migration: add `role` column (0.5d)
-  - Update backend (if any) / Supabase policies draft (0.5d)
-  - Update Flutter model & provider to include `role` (0.5d)
-  - Permission checks in service layer (1d)
-  - Basic UI: show role in Profile (0.5d)
-  - Manual test + doc (0.5d)
-
-Deliverable: Migration SQL, app accepts role, owner vs admin checks enforced locally.
-
-Sprint 2 (3-5 hari) - Admin UI & policies
-- Tasks:
-  - Implement `Admin Dashboard` (list users + counts) (1.5d)
-  - RLS policies in Supabase and testing (1d)
-  - Add admin creation flow / seed admin (0.5d)
-  - Export CSV helper & small UI (0.5d)
-  - Tests & review (0.5d)
-
-Deliverable: Admin UI + server-side RLS enforcing admin privileges.
-
-Sprint 3 (2-3 hari) - Polish & docs
-- Tasks:
-  - Role management UI: promote/demote users (1d)
-  - Add audit log entry when admin performs critical action (0.5d)
-  - E2E test scenario & final docs (0.5-1d)
-
-Deliverable: Full workflow for admin, docs, and tests.
-
-Backlog (nice-to-have)
-- Group/household support (future)
-- Delegation/temporary approver
-- Audit UI with filters and export
-
-Issues / To-do items (breakdown actionable tasks)
-
-- DOCS: Add this sprint planning file (this document) — 0.25d
-- MIGRATION: SQL migration to add `role` column — 0.5d
-- MODEL: Add `role` to Flutter `User` model and parsing from Supabase response — 0.5d
-- SERVICE: Add `isAdmin` helper & permission checks in repository `items_repository.dart` — 1d
-- UI: Show role in Profile screen — 0.5d
-- UI: Admin Dashboard (list users + counts) — 1.5d
-- RLS: Write and apply Supabase RLS policies — 1d
-- SEED: Add script or migration to create initial admin account — 0.25d
-- EXPORT: CSV export for admin — 0.5d
-- TESTS: Unit tests for permission checks — 0.5d
-- QA: Manual test plan + checklist — 0.25d
-
-Estimate total: ~8–11 days (rough) across 3 sprints, can be compressed.
-
-Appendix: ready-to-create GitHub Issue templates
-
--- Issue: DB migration - add role
-Title: feat(db): add `role` column to `users`
-Body:
-Summary: Add a non-null `role` column (default 'user') to `users` table. Include migration SQL and seed admin example.
-Estimated: 0.5d
-
--- Issue: Flutter model & provider
-Title: feat(app): add `role` field to User model and provider
-Body: Update model, parsing, and persist role in user provider; add `isAdmin` helper. Update tests.
-Estimated: 0.5d
-
--- Issue: Permission checks in services
-Title: feat(app): enforce admin permission checks in ItemsRepository
-Body: Implement check so admin can access all items; non-admin can access own items only.
-Estimated: 1d
-
--- Issue: Admin Dashboard UI
-Title: feat(ui): add Admin Dashboard (users, stats, export)
-Body: Minimal dashboard for admin to view users and item counts, export CSV.
-Estimated: 1.5d
-
--- Issue: Supabase RLS policies
-Title: infra(supabase): create and test RLS policies for admin and owner
-Body: Add RLS policies so admin can CRUD all items, owner only their items.
-Estimated: 1d
+## Next actions (short term)
+1. Apply migration SQL on a non-production Supabase project for verification. (owner)
+2. Implement `AuthProvider.loadProfile()` and wire into UI (developer).
 
 ---
-
-Catatan implementasi
-- Saya membuat branch lokal dan commit file ini (opsional: push ke remote). Jika Anda ingin, saya bisa lanjut membuat GitHub issues secara otomatis—tapi itu membutuhkan akses token/izin. Saya akan mencoba aktifkan GitHub MCP untuk membuat issue berikutnya.
-
----
-
-Completion checklist (saat sprint selesai)
-- [ ] Migration applied in staging
-- [ ] Admin seeded
-- [ ] App updated and tested
-- [ ] Supabase RLS policies enabled and verified
-- [ ] Admin UI available in release build
+_Generated by analysis on branch `feature/admin-role-design`_

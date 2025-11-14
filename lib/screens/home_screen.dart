@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' hide Provider;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../constants/app_constants.dart';
 import '../models/loan_item.dart';
@@ -268,7 +268,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: ListView.separated(
                     padding: const EdgeInsets.only(top: 8.0, bottom: 24.0),
                     itemCount: visible.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12.0),
+                    separatorBuilder: (_, _) => const SizedBox(height: 12.0),
                     itemBuilder: (context, index) {
                       final item = visible[index];
                       return LoanCard(
