@@ -27,14 +27,14 @@ A3. Add/replace RLS policies for `items` to allow admin access (1h)
 A4. Test RLS policies using Supabase SQL editor / psql (1h)
 A5. Add storage policy or admin storage helper note (0.75h)
 
-Phase B — Client & Services (6h)
-B1. Update `AuthProvider` to load profile and expose `role` (1.5h) - Add method `Future<void> loadProfile()` - Call after login and on init if session exists
-B2. Add model `lib/models/user_profile.dart` (0.25h)
-B3. Wire role into app state (provide to widgets) (0.5h)
-B4. Update `SupabasePersistence` / `LoanProvider` UX checks for admin (optional; hide confirm modals etc) (0.5h)
-B5. Add small admin-only helper in persistence for tests if needed (0.5h)
-B6. Add basic unit tests for AuthProvider role fetch (1h)
-B7. Run `flutter analyze` and fix lints (0.75h)
+Phase B — Client & Services (6h) — PROGRESS
+B1. Update `AuthProvider` to load profile and expose `role` (1.5h) — DONE - Implemented `loadProfile()` and profile/role getters in `lib/providers/auth_provider.dart`.
+B2. Add model `lib/models/user_profile.dart` (0.25h) — DONE - `UserProfile` model added at `lib/models/user_profile.dart`.
+B3. Wire role into app state (provide to widgets) (0.5h) — DONE (part of Phase C UI wiring) - `AuthProvider.role` is now available; `HomeScreen` passes role to `HomeHeader` and admin button to navigate.
+B4. Update `SupabasePersistence` / `LoanProvider` UX checks for admin (optional; hide confirm modals etc) (0.5h) — TODO
+B5. Add small admin-only helper in persistence for tests if needed (0.5h) — TODO
+B6. Add basic unit tests for AuthProvider role fetch (1h) — PARTIAL - Added a unit test for `UserProfile.fromMap` (`test/models/user_profile_test.dart`). - Note: AuthProvider tests (mocking Supabase client) require additional test scaffolding; see notes below.
+B7. Run `flutter analyze` and fix lints (0.75h) — TODO (please run locally or CI)
 
 Phase C — UI (5–7h)
 C1. Add `screens/admin_dashboard.dart` (list items + users) — read-only (2h)

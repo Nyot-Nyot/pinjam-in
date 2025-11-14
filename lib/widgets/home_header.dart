@@ -13,6 +13,8 @@ class HomeHeader extends StatelessWidget {
   final TextEditingController searchController;
   final FocusNode searchFocusNode;
   final Future<void> Function()? onLogout;
+  final String? role;
+  final VoidCallback? onAdminPressed;
 
   const HomeHeader({
     super.key,
@@ -22,6 +24,8 @@ class HomeHeader extends StatelessWidget {
     required this.searchController,
     required this.searchFocusNode,
     this.onLogout,
+    this.role,
+    this.onAdminPressed,
   });
 
   @override
@@ -85,6 +89,45 @@ class HomeHeader extends StatelessWidget {
                       ],
                     ),
                   ),
+                  // Admin button (if admin) + Logout button
+                  if (role == 'admin')
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: onAdminPressed,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withAlpha(
+                                (0.18 * 255).round(),
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Icon(
+                                  Icons.admin_panel_settings,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Admin',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   // Logout button
                   Material(
                     color: Colors.transparent,

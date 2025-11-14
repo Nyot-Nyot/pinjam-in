@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../constants/app_constants.dart';
 import '../models/loan_item.dart';
+import '../providers/auth_provider.dart';
 import '../providers/loan_provider.dart';
 import '../providers/persistence_provider.dart';
 import '../utils/date_helper.dart';
@@ -15,6 +16,7 @@ import '../widgets/empty_state.dart';
 import '../widgets/home_header.dart';
 import '../widgets/loan_card.dart';
 import 'add_item_screen.dart';
+import 'admin_dashboard.dart';
 import 'history_screen.dart';
 import 'login_screen.dart';
 
@@ -217,6 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHome(LoanProvider loanProvider, dynamic persistence) {
+    final authProvider = Provider.of<AuthProvider?>(context);
     final visible = _query.isEmpty
         ? loanProvider.activeLoans
         : loanProvider.searchActiveLoans(_query);
@@ -237,6 +240,13 @@ class _HomeScreenState extends State<HomeScreen> {
           searchController: _searchController,
           searchFocusNode: _searchFocusNode,
           onLogout: _handleLogout,
+          role: authProvider?.role,
+          onAdminPressed: () {
+            // Navigate to admin dashboard
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const AdminDashboard()));
+          },
         ),
 
         // small gap between header/search and the list
