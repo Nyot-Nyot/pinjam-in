@@ -12,10 +12,8 @@ class HomeHeader extends StatelessWidget {
   final int overdueCount;
   final TextEditingController searchController;
   final FocusNode searchFocusNode;
-  final Future<void> Function()? onLogout;
   final String? role;
-  final VoidCallback? onAdminPressed;
-  // profile access moved to bottom navigation
+  // profile access moved to bottom navigation; header shows role badge (non-clickable)
 
   const HomeHeader({
     super.key,
@@ -24,9 +22,7 @@ class HomeHeader extends StatelessWidget {
     required this.overdueCount,
     required this.searchController,
     required this.searchFocusNode,
-    this.onLogout,
     this.role,
-    this.onAdminPressed,
   });
 
   @override
@@ -90,105 +86,44 @@ class HomeHeader extends StatelessWidget {
                       ],
                     ),
                   ),
-                  // Profile avatar (non-interactive; open via bottom nav)
-                  // Admin button (if admin) + Logout button
-                  if (role == 'admin')
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: onAdminPressed,
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withAlpha(
-                                (0.18 * 255).round(),
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: const [
-                                Icon(
-                                  Icons.admin_panel_settings,
-                                  color: Colors.white,
-                                  size: 18,
-                                ),
-                                SizedBox(width: 6),
-                                Text(
-                                  'Admin',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                  // Role badge for all users (non-clickable). Admin shows icon + label.
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8.0),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
                       ),
-                    ),
-                  // Logout button
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () async {
-                        final shouldLogout = await showDialog<bool>(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: Text(
-                              'Logout',
-                              style: GoogleFonts.arimo(
-                                fontWeight: FontWeight.w700,
-                              ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withAlpha((0.18 * 255).round()),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (role == 'admin') ...[
+                            const Icon(
+                              Icons.admin_panel_settings,
+                              color: Colors.white,
+                              size: 16,
                             ),
-                            content: Text(
-                              'Apakah Anda yakin ingin keluar?',
-                              style: GoogleFonts.arimo(),
+                            const SizedBox(width: 6),
+                          ] else if ((role ?? 'user') == 'user') ...[
+                            const Icon(
+                              Icons.person,
+                              color: Colors.white,
+                              size: 16,
                             ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, false),
-                                child: Text(
-                                  'Batal',
-                                  style: GoogleFonts.arimo(
-                                    color: AppTheme.textSecondary,
-                                  ),
-                                ),
-                              ),
-                              ElevatedButton(
-                                onPressed: () => Navigator.pop(context, true),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppTheme.primaryPurple,
-                                ),
-                                child: Text(
-                                  'Logout',
-                                  style: GoogleFonts.arimo(color: Colors.white),
-                                ),
-                              ),
-                            ],
+                            const SizedBox(width: 6),
+                          ],
+                          Text(
+                            (role ?? 'user').toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
                           ),
-                        );
-
-                        if (shouldLogout == true && onLogout != null) {
-                          await onLogout!();
-                        }
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        // slightly smaller touch area so header is more compact
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withAlpha((0.2 * 255).round()),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.logout,
-                          color: Colors.white,
-                          size: 20,
-                        ),
+                        ],
                       ),
                     ),
                   ),

@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../constants/app_constants.dart';
 import '../models/loan_item.dart';
@@ -16,9 +15,7 @@ import '../widgets/empty_state.dart';
 import '../widgets/home_header.dart';
 import '../widgets/loan_card.dart';
 import 'add_item_screen.dart';
-import 'admin_dashboard.dart';
 import 'history_screen.dart';
-import 'login_screen.dart';
 import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -50,25 +47,6 @@ class _HomeScreenState extends State<HomeScreen> {
     if (loanProvider == null) return;
     // Delegate to provider to mark as returned
     loanProvider.markAsReturned(id, DateHelper.nowUtc());
-  }
-
-  Future<void> _handleLogout() async {
-    try {
-      // AuthProvider handles sign out; fallback to direct supabase sign out
-      try {
-        await Supabase.instance.client.auth.signOut();
-      } catch (_) {}
-
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ErrorHandler.showError(context, 'Gagal logout: $e');
-      }
-    }
   }
 
   @override
@@ -242,14 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
           overdueCount: overdueCount,
           searchController: _searchController,
           searchFocusNode: _searchFocusNode,
-          onLogout: _handleLogout,
           role: authProvider?.role,
-          onAdminPressed: () {
-            // Navigate to admin dashboard
-            Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const AdminDashboard()));
-          },
         ),
 
         // small gap between header/search and the list

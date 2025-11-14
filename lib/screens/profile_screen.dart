@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
+import 'login_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -226,9 +227,14 @@ class ProfileScreen extends StatelessWidget {
 
             OutlinedButton.icon(
               onPressed: () async {
+                // Perform logout and navigate to the login screen, removing
+                // previous routes so user cannot go back into the app.
                 await auth?.logout();
                 if (context.mounted) {
-                  Navigator.of(context).popUntil((r) => r.isFirst);
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    (route) => false,
+                  );
                 }
               },
               icon: const Icon(Icons.logout),
