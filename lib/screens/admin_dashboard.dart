@@ -43,41 +43,47 @@ class _AdminDashboardState extends State<AdminDashboard> {
           .order('updated_at', ascending: false)
           .limit(200);
 
-      final itemsList = <LoanItem>[];
-      try {
-        final data = itemsRes is List
-            ? List<Map<String, dynamic>>.from(itemsRes)
-            : List<Map<String, dynamic>>.from(
-                (itemsRes as dynamic).data as List<dynamic>,
-              );
-        for (final m in data) {
-          try {
-            itemsList.add((SupabasePersistenceShim.fromMap(m)));
-          } catch (_) {}
+      // Helper: safely convert Supabase response to List<Map<String,dynamic>>
+      List<Map<String, dynamic>> toMapList(dynamic res) {
+        if (res is List) {
+          final out = <Map<String, dynamic>>[];
+          for (final e in res) {
+            if (e is Map<String, dynamic>) {
+              out.add(e);
+            } else if (e is Map) {
+              out.add(Map<String, dynamic>.from(e));
+            }
+          }
+          return out;
         }
-      } catch (e) {
-        // fallback: try to parse as dynamic list
+        return <Map<String, dynamic>>[];
+      }
+
+      final itemsList = <LoanItem>[];
+      final data = toMapList(itemsRes);
+      for (final m in data) {
+        try {
+          itemsList.add(SupabasePersistenceShim.fromMap(m));
+        } catch (_) {
+          // ignore parse errors for individual rows
+        }
       }
 
       final profList = <UserProfile>[];
-      try {
-        final pdata = profilesRes is List
-            ? List<Map<String, dynamic>>.from(profilesRes)
-            : List<Map<String, dynamic>>.from(
-                (profilesRes as dynamic).data as List<dynamic>,
-              );
-        for (final p in pdata) {
-          try {
-            profList.add(UserProfile.fromMap(p));
-          } catch (_) {}
+      final pdata = toMapList(profilesRes);
+      for (final p in pdata) {
+        try {
+          profList.add(UserProfile.fromMap(p));
+        } catch (_) {
+          // ignore parse errors for individual rows
         }
-      } catch (_) {}
+      }
 
       setState(() {
         _items = itemsList;
         _profiles = profList;
       });
-    } catch (e, st) {
+    } catch (e) {
       AppLogger.error('Failed to load admin data', e, 'AdminDashboard');
       setState(() => _error = e.toString());
     } finally {

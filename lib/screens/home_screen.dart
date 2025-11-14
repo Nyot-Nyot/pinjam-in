@@ -19,6 +19,7 @@ import 'add_item_screen.dart';
 import 'admin_dashboard.dart';
 import 'history_screen.dart';
 import 'login_screen.dart';
+import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -246,6 +247,12 @@ class _HomeScreenState extends State<HomeScreen> {
             Navigator.of(
               context,
             ).push(MaterialPageRoute(builder: (_) => const AdminDashboard()));
+          },
+          onProfilePressed: () {
+            // Open profile screen
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const ProfileScreen()));
           },
         ),
 

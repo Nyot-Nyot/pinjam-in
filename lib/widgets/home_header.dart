@@ -15,6 +15,7 @@ class HomeHeader extends StatelessWidget {
   final Future<void> Function()? onLogout;
   final String? role;
   final VoidCallback? onAdminPressed;
+  final VoidCallback? onProfilePressed;
 
   const HomeHeader({
     super.key,
@@ -26,6 +27,7 @@ class HomeHeader extends StatelessWidget {
     this.onLogout,
     this.role,
     this.onAdminPressed,
+    this.onProfilePressed,
   });
 
   @override
@@ -87,6 +89,26 @@ class HomeHeader extends StatelessWidget {
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                  // Profile avatar
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: onProfilePressed,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha((0.12 * 255).round()),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.person,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
                     ),
                   ),
                   // Admin button (if admin) + Logout button
