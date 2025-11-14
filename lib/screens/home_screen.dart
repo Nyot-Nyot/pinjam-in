@@ -172,6 +172,8 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
+          // Profile screen (moved from header to bottom nav)
+          const ProfileScreen(),
         ],
       ),
       bottomNavigationBar: _buildBottomNav(),
@@ -247,12 +249,6 @@ class _HomeScreenState extends State<HomeScreen> {
             Navigator.of(
               context,
             ).push(MaterialPageRoute(builder: (_) => const AdminDashboard()));
-          },
-          onProfilePressed: () {
-            // Open profile screen
-            Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const ProfileScreen()));
           },
         ),
 

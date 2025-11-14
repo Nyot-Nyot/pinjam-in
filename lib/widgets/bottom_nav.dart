@@ -49,8 +49,9 @@ class BottomNav extends StatelessWidget {
                   const double box = 64.0;
 
                   double leftForPage(double p) {
-                    final step = (maxW - box) / 2.0;
-                    return (p.clamp(0.0, 2.0)) * step;
+                    // support 4 pages (0..3)
+                    final step = (maxW - box) / 3.0;
+                    return (p.clamp(0.0, 3.0)) * step;
                   }
 
                   Widget buildStack(double effectivePage) {
@@ -86,6 +87,7 @@ class BottomNav extends StatelessWidget {
                             _navItem(Icons.home, 0, selectedIndex == 0),
                             _navItem(Icons.add, 1, selectedIndex == 1),
                             _navItem(Icons.history, 2, selectedIndex == 2),
+                            _navItem(Icons.person, 3, selectedIndex == 3),
                           ],
                         ),
                       ],
