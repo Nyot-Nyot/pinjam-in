@@ -10,6 +10,7 @@ import 'providers/loan_provider.dart';
 import 'providers/persistence_provider.dart';
 import 'providers/theme_provider.dart';
 import 'screens/admin/admin_dashboard_screen.dart';
+import 'screens/admin/users/users_list_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/unauthorized_screen.dart';
 import 'theme/app_theme.dart';
@@ -123,7 +124,7 @@ class _MaterialAppWrapper extends StatelessWidget {
       case '/admin/dashboard':
         return const AdminDashboardScreen();
       case '/admin/users':
-        return const UnauthorizedScreen(); // Placeholder
+        return const UsersListScreen();
       case '/admin/items':
         return const UnauthorizedScreen(); // Placeholder
       case '/admin/storage':

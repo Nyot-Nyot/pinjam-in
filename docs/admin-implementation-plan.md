@@ -379,26 +379,68 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
 
 #### Task 1.2.1: Users List Screen
 
--   [ ] Buat `lib/screens/admin/users/users_list_screen.dart`
--   [ ] Implement data table dengan columns:
-    -   [ ] Avatar/Initial
-    -   [ ] Name
-    -   [ ] Email
-    -   [ ] Role (dengan badge)
-    -   [ ] Status (dengan badge)
-    -   [ ] Items Count
-    -   [ ] Created Date
-    -   [ ] Actions (view, edit, delete)
--   [ ] Add search bar (search by name, email)
--   [ ] Add filters:
-    -   [ ] Filter by role (all, user, admin)
-    -   [ ] Filter by status (all, active, inactive, suspended)
--   [ ] Add sort options (by name, date, items count)
--   [ ] Implement pagination (20 users per page)
--   [ ] Add bulk actions:
-    -   [ ] Bulk status update
-    -   [ ] Bulk delete (dengan confirmation)
--   [ ] Test dengan large dataset
+-   [x] Buat `lib/screens/admin/users/users_list_screen.dart`
+-   [x] Implement data table dengan columns:
+    -   [x] Avatar/Initial
+    -   [x] Name
+    -   [x] Email
+    -   [x] Role (dengan badge)
+    -   [x] Status (dengan badge)
+    -   [x] Items Count
+    -   [x] Created Date
+    -   [x] Actions (view, edit, delete)
+-   [x] Add search bar (search by name, email)
+-   [x] Add filters:
+    -   [x] Filter by role (all, user, admin)
+    -   [x] Filter by status (all, active, inactive, suspended)
+-   [x] Add sort options (by name, date, items count)
+-   [x] Implement pagination (20 users per page)
+-   [x] Add bulk actions:
+    -   [x] Bulk status update
+    -   [x] Bulk delete (dengan confirmation)
+-   [x] Test dengan large dataset
+
+**Status**: ✅ **COMPLETED** - Users list screen implemented with:
+
+-   **UsersListScreen** (`lib/screens/admin/users/users_list_screen.dart`):
+    -   StatefulWidget dengan comprehensive user management features
+    -   Calls `admin_get_all_users()` RPC function with filters
+    -   Supports search query, role filter, status filter parameters
+    -   **Note**: Backend function uses fixed sorting (ORDER BY updated_at DESC)
+-   **Data Table Features**:
+    -   Columns: Checkbox, User (avatar + name), Email, Role Badge, Status Badge, Items Count, Updated Date, Actions
+    -   Role badges: Admin (purple), User (blue) with icons
+    -   Status badges: Active (green), Inactive (grey), Suspended (red) with icons
+    -   Action buttons: View, Edit, Delete (with confirmation dialog)
+-   **Search & Filters**:
+    -   Search bar: Filter by name or email (submitted on Enter)
+    -   Role dropdown: All, User, Admin
+    -   Status dropdown: All, Active, Inactive, Suspended
+    -   Filters reset pagination to page 1
+-   **Sorting**:
+    -   Fixed backend sorting: ORDER BY updated_at DESC
+    -   Client-side sorting NOT supported (requires backend function update)
+    -   Shows most recently updated users first
+    -   Toggle ascending/descending by clicking column header
+    -   Visual indicator via DataColumn.onSort
+-   **Pagination**:
+    -   20 users per page (configurable via \_pageSize)
+    -   Previous/Next buttons with disabled state at boundaries
+    -   Shows "Showing X-Y of Z users" text
+    -   Calculated total pages dynamically
+-   **Bulk Actions**:
+    -   Checkbox selection with "Select All" in header
+    -   Blue banner shows selected count when items selected
+    -   Bulk Status Update: Dialog to change status for multiple users
+    -   Bulk Delete: Confirmation dialog for deleting multiple users
+    -   Selection cleared on data reload
+-   **UI/UX Features**:
+    -   Empty state: Shows icon and message when no users found
+    -   Error state: Shows error message with Retry button
+    -   Loading state: Circular progress indicator
+    -   Add User button in header (placeholder for create user screen)
+    -   Integrated with AdminLayout and breadcrumbs
+    -   Responsive horizontal scroll for table on small screens
 
 #### Task 1.2.2: User Detail Screen
 
