@@ -97,25 +97,41 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
 
 #### Task 0.3.1: User Management Functions
 
--   [ ] Buat migration file `004_admin_functions_users.sql`
--   [ ] Create function `admin_get_all_users()`:
+-   [x] Buat migration file `008_admin_functions_users.sql`
+-   [x] Create function `admin_get_all_users()`:
     -   Returns: user list dengan stats (item count, last login)
     -   Include: role, status, created_at
--   [ ] Create function `admin_get_user_details(user_id UUID)`:
+    -   Filters: role, status, search (name/email)
+    -   Pagination: limit, offset
+-   [x] Create function `admin_get_user_details(user_id UUID)`:
     -   Returns: complete user info + activity metrics
--   [ ] Create function `admin_update_user_role(user_id UUID, new_role TEXT)`:
+    -   Includes: overdue items, storage files count
+-   [x] Create function `admin_update_user_role(user_id UUID, new_role TEXT)`:
     -   Update role dengan validation
+    -   Prevent self-demotion
     -   Create audit log
--   [ ] Create function `admin_delete_user(user_id UUID, hard_delete BOOLEAN)`:
+-   [x] Create function `admin_update_user_status(user_id UUID, new_status TEXT, reason TEXT)`:
+    -   Update status dengan validation
+    -   Prevent self-deactivation
+    -   Create audit log with reason
+-   [x] Create function `admin_delete_user(user_id UUID, hard_delete BOOLEAN)`:
     -   Soft delete: set status='inactive'
     -   Hard delete: cascade delete items, files, logs
+    -   Prevent self-deletion
     -   Create audit log
--   [ ] Test semua functions
--   [ ] Handle error cases
+-   [x] Create helper function `create_admin_audit_log()`:
+    -   Reusable audit logging
+    -   Consistent across all admin operations
+-   [x] Create test script `test_admin_user_functions.sql`
+-   [x] Handle error cases with validation and RAISE EXCEPTION
+-   [x] Update SCHEMA_DOCS.md with function documentation
+-   [x] Update admin-implementation-plan.md with completed tasks
+
+**Status**: ✅ **COMPLETED** - All user management functions created and documented
 
 #### Task 0.3.2: Items Management Functions
 
--   [ ] Buat migration file `005_admin_functions_items.sql`
+-   [ ] Buat migration file `009_admin_functions_items.sql`
 -   [ ] Create function `admin_get_all_items(limit INT, offset INT)`:
     -   Returns: items dengan user info
     -   Support pagination
