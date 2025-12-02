@@ -10,6 +10,7 @@ import 'providers/loan_provider.dart';
 import 'providers/persistence_provider.dart';
 import 'providers/theme_provider.dart';
 import 'screens/admin/admin_dashboard_screen.dart';
+import 'screens/admin/users/create_user_screen.dart';
 import 'screens/admin/users/user_detail_screen.dart';
 import 'screens/admin/users/users_list_screen.dart';
 import 'screens/splash_screen.dart';
@@ -121,7 +122,9 @@ class _MaterialAppWrapper extends StatelessWidget {
   /// Route helper for admin screens
   Widget _getAdminScreen(String route) {
     // Handle user detail route with ID parameter
-    if (route.startsWith('/admin/users/') && route != '/admin/users') {
+    if (route.startsWith('/admin/users/') &&
+        route != '/admin/users' &&
+        route != '/admin/users/create') {
       final userId = route.split('/').last;
       return UserDetailScreen(userId: userId);
     }
@@ -132,6 +135,8 @@ class _MaterialAppWrapper extends StatelessWidget {
         return const AdminDashboardScreen();
       case '/admin/users':
         return const UsersListScreen();
+      case '/admin/users/create':
+        return const CreateUserScreen();
       case '/admin/items':
         return const UnauthorizedScreen(); // Placeholder
       case '/admin/storage':

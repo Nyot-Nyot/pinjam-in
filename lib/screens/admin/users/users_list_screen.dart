@@ -192,10 +192,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
               ),
               ElevatedButton.icon(
                 onPressed: () {
-                  // TODO: Navigate to create user screen
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Create user coming soon...')),
-                  );
+                  Navigator.of(context).pushNamed('/admin/users/create');
                 },
                 icon: const Icon(Icons.add),
                 label: const Text('Add User'),
