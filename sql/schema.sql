@@ -18,25 +18,41 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 -- Enable RLS on profiles
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- RLS Policy: Users can view their own profile
-CREATE POLICY "Allow users to view own profile" ON public.profiles
-  FOR SELECT USING (auth.uid() = id);
-
--- RLS Policy: Users can update their own profile
-CREATE POLICY "Allow users to update own profile" ON public.profiles
-  FOR UPDATE USING (auth.uid() = id);
-
--- RLS Policy: Admins can view all profiles
-CREATE POLICY "Allow admins to view all profiles" ON public.profiles
+-- RLS Policy: Users can view own profile OR admins can view all
+CREATE POLICY "Users can view own profile or admins can view all" ON public.profiles
   FOR SELECT USING (
-    EXISTS (
+    auth.uid() = id
+    OR EXISTS (
       SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role = 'admin'
     )
   );
 
--- RLS Policy: Admins can update all profiles
-CREATE POLICY "Allow admins to update all profiles" ON public.profiles
+-- RLS Policy: Users can update own profile OR admins can update all
+CREATE POLICY "Users can update own profile or admins can update all" ON public.profiles
   FOR UPDATE USING (
+    auth.uid() = id
+    OR EXISTS (
+      SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role = 'admin'
+    )
+  ) WITH CHECK (
+    auth.uid() = id
+    OR EXISTS (
+      SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role = 'admin'
+    )
+  );
+
+-- RLS Policy: Users can insert own profile OR admins can insert any
+CREATE POLICY "Users can insert own profile or admins can insert any" ON public.profiles
+  FOR INSERT WITH CHECK (
+    auth.uid() = id
+    OR EXISTS (
+      SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role = 'admin'
+    )
+  );
+
+-- RLS Policy: Only admins can delete profiles
+CREATE POLICY "Only admins can delete profiles" ON public.profiles
+  FOR DELETE USING (
     EXISTS (
       SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role = 'admin'
     )
@@ -215,6 +231,27 @@ CREATE POLICY "Allow users to delete their own photos or admins"
 ON storage.objects
 FOR DELETE
 USING (
+  bucket_id = 'item_photos' AND (
+    auth.uid()::text = (storage.foldername(name))[1]
+    OR EXISTS (
+      SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role = 'admin'
+    )
+  )
+);
+
+-- RLS Policy: Allow users to update their own photos OR admins update all
+CREATE POLICY "Allow users to update their own photos or admins"
+ON storage.objects
+FOR UPDATE
+USING (
+  bucket_id = 'item_photos' AND (
+    auth.uid()::text = (storage.foldername(name))[1]
+    OR EXISTS (
+      SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role = 'admin'
+    )
+  )
+)
+WITH CHECK (
   bucket_id = 'item_photos' AND (
     auth.uid()::text = (storage.foldername(name))[1]
     OR EXISTS (
