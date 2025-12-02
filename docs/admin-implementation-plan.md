@@ -156,16 +156,25 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
 
 #### Task 0.3.3: Analytics Functions
 
--   [ ] Buat migration file `006_admin_functions_analytics.sql`
--   [ ] Create function `admin_get_dashboard_stats()`:
-    -   Returns: total users, total items, active items, storage usage
--   [ ] Create function `admin_get_user_growth(days INT)`:
-    -   Returns: user registrations per day
--   [ ] Create function `admin_get_item_statistics()`:
-    -   Returns: borrowed vs returned, overdue count
--   [ ] Create function `admin_get_top_users(limit INT)`:
-    -   Returns: users dengan most items
--   [ ] Test functions
+-   [x] Buat migration file `010_admin_functions_analytics.sql`
+-   [x] Create function `admin_get_dashboard_stats()`:
+    -   Returns: total_users, active_users, inactive_users, admin_users, total_items, borrowed_items, returned_items, overdue_items, total_storage_files, new_users_today, new_items_today (11 metrics)
+-   [x] Create function `admin_get_user_growth(days INT)`:
+    -   Returns: date, new_users, cumulative_users
+    -   Uses generate_series() for complete date coverage
+    -   Parameter validation: 1-365 days
+-   [x] Create function `admin_get_item_statistics()`:
+    -   Returns: total_items, borrowed_items, returned_items, overdue_items, borrowed_percentage, returned_percentage, overdue_percentage, avg_loan_duration_days, total_completed_loans, items_never_returned (10 metrics)
+-   [x] Create function `admin_get_top_users(limit INT)`:
+    -   Returns: user_id, full_name, email, total_items, borrowed_items, returned_items, overdue_items
+    -   Ranked by total_items descending
+    -   Parameter validation: 1-100 limit
+-   [x] Create test helper functions in 010b_admin_functions_analytics_test_helpers.sql
+-   [x] Create test script quick_test_admin_analytics.sql with 14 automated tests
+-   [x] Update SCHEMA_DOCS.md with complete function documentation and performance notes
+-   [x] Update admin-implementation-plan.md with completed tasks
+
+**Status**: ✅ **COMPLETED** - All analytics functions created, tested, and documented with comprehensive performance guidelines
 
 #### Task 0.3.4: Audit & Utility Functions
 
