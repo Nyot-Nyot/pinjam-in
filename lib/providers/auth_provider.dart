@@ -30,6 +30,9 @@ class AuthProvider with ChangeNotifier {
   bool get hasError => _errorMessage != null;
   bool get isInitialized => _isInitialized;
 
+  /// Check apakah user adalah admin
+  bool get isAdmin => _profile?.role == 'admin';
+
   /// Check apakah user sudah login
   bool get isAuthenticated => _user != null && _session != null;
 
@@ -285,6 +288,21 @@ class AuthProvider with ChangeNotifier {
   /// Clear error message
   void clearError() {
     _clearError();
+  }
+
+  /// Check apakah user memiliki permission tertentu
+  ///
+  /// Untuk saat ini, admin memiliki semua permission.
+  /// Di masa depan, bisa diperluas dengan permission granular.
+  ///
+  /// Contoh permission: 'users:read', 'users:write', 'items:delete', dll
+  bool hasPermission(String permission) {
+    // Admin memiliki semua permission
+    if (isAdmin) return true;
+
+    // User biasa tidak punya permission admin
+    // TODO: Implementasi permission granular jika diperlukan
+    return false;
   }
 
   /// Load the current user's profile (from public.profiles)
