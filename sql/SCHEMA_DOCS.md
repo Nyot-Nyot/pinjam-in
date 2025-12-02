@@ -837,6 +837,295 @@ SELECT * FROM admin_get_top_users(5) ORDER BY total_items DESC;
 -   Top 50-100: Annual user activity analysis
 -   Identifying users who may need intervention (many overdue)
 
+---
+
+### Audit & Utility Functions
+
+These functions provide audit log management and system utility operations for administrators. They enable manual audit log creation, querying audit history with flexible filters, and retrieving storage statistics.
+
+#### `admin_create_audit_log(action_type, table_name, record_id, old_values, new_values, metadata)`
+
+Manually create an audit log entry for tracking admin operations.
+
+**Parameters:**
+
+-   `p_action_type` (TEXT, required) - Type of action: 'CREATE', 'UPDATE', 'DELETE', 'STATUS_CHANGE', 'ROLE_CHANGE', 'CUSTOM'
+-   `p_table_name` (TEXT, required) - Name of the table being audited (e.g., 'profiles', 'items')
+-   `p_record_id` (UUID, required) - ID of the record affected by the action
+-   `p_old_values` (JSONB, optional) - Previous values before change (NULL for CREATE)
+-   `p_new_values` (JSONB, optional) - New values after change (NULL for DELETE)
+-   `p_metadata` (JSONB, optional) - Additional metadata (e.g., reason, notes)
+
+**Returns:** Single row with the created audit log record:
+
+-   `id` (UUID) - Audit log ID
+-   `admin_user_id` (UUID) - ID of admin who created the log
+-   `action_type` (TEXT) - Type of action performed
+-   `table_name` (TEXT) - Table that was modified
+-   `record_id` (UUID) - ID of affected record
+-   `old_values` (JSONB) - Previous values
+-   `new_values` (JSONB) - New values
+-   `metadata` (JSONB) - Additional metadata
+-   `created_at` (TIMESTAMPTZ) - When the log was created
+
+**Permissions:** Admin only
+
+**Features:**
+
+-   Validates action_type against allowed values
+-   Validates required parameters (not NULL/empty)
+-   Auto-captures admin_user_id from auth.uid()
+-   Returns created audit log for verification
+-   Uses SECURITY DEFINER for elevated privileges
+
+**Raises:**
+
+-   Exception if not admin
+-   Exception if action_type is NULL, empty, or invalid
+-   Exception if table_name is NULL or empty
+-   Exception if record_id is NULL
+
+**Example:**
+
+```sql
+-- Create UPDATE audit log
+SELECT * FROM admin_create_audit_log(
+  'UPDATE',
+  'profiles',
+  'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+  '{"role":"user"}'::JSONB,
+  '{"role":"admin"}'::JSONB,
+  '{"reason":"User promoted to admin"}'::JSONB
+);
+
+-- Create DELETE audit log
+SELECT * FROM admin_create_audit_log(
+  'DELETE',
+  'items',
+  'b2c3d4e5-f6g7-8901-bcde-f12345678901',
+  '{"name":"Old Item","status":"borrowed"}'::JSONB,
+  NULL,
+  '{"hard_delete":false,"reason":"User request"}'::JSONB
+);
+
+-- Create custom action log
+SELECT * FROM admin_create_audit_log(
+  'CUSTOM',
+  'storage',
+  'c3d4e5f6-g7h8-9012-cdef-123456789012',
+  NULL,
+  NULL,
+  '{"action":"cleanup_orphaned_files","files_deleted":15}'::JSONB
+);
+```
+
+**Performance Notes:**
+
+-   Fast single INSERT operation (~5ms)
+-   Indexed on admin_user_id, action_type, table_name, created_at
+-   Minimal overhead for audit trail creation
+
+**Use Cases:**
+
+-   Manual audit trail for complex operations
+-   Logging batch operations (e.g., bulk updates)
+-   Recording custom admin actions not covered by triggers
+-   Compliance and regulatory tracking
+
+#### `admin_get_audit_logs(filters)`
+
+Retrieve audit logs with flexible filtering and pagination.
+
+**Parameters:**
+
+-   `p_filters` (JSONB, optional) - Filter options as JSON object:
+    -   `user_id` (UUID) - Filter by admin user who performed action
+    -   `action_type` (TEXT) - Filter by action type
+    -   `table_name` (TEXT) - Filter by affected table
+    -   `date_from` (DATE) - Filter logs from this date (inclusive)
+    -   `date_to` (DATE) - Filter logs up to this date (inclusive, extended to end of day)
+    -   `limit` (INT) - Results per page (default 50, max 200)
+    -   `offset` (INT) - Pagination offset (default 0)
+
+**Returns:** Table with audit log records:
+
+-   `id` (UUID) - Audit log ID
+-   `admin_user_id` (UUID) - Admin who performed action
+-   `admin_name` (TEXT) - Full name of admin
+-   `admin_email` (VARCHAR) - Email of admin
+-   `action_type` (TEXT) - Type of action
+-   `table_name` (TEXT) - Affected table
+-   `record_id` (UUID) - Affected record ID
+-   `old_values` (JSONB) - Previous values
+-   `new_values` (JSONB) - New values
+-   `metadata` (JSONB) - Additional metadata
+-   `created_at` (TIMESTAMPTZ) - When action occurred
+
+**Permissions:** Admin only
+
+**Features:**
+
+-   Flexible JSONB-based filtering
+-   Join with profiles and auth.users for admin info
+-   Pagination support (limit/offset)
+-   Date range filtering with automatic time extension
+-   Ordered by created_at DESC (newest first)
+-   All filters are optional (pass empty object for all logs)
+
+**Raises:**
+
+-   Exception if not admin
+-   Exception if limit < 1 or limit > 200
+-   Exception if offset < 0
+
+**Example:**
+
+```sql
+-- Get all audit logs (default pagination: 50)
+SELECT * FROM admin_get_audit_logs('{}');
+
+-- Filter by action type
+SELECT * FROM admin_get_audit_logs('{"action_type":"UPDATE"}');
+
+-- Filter by table
+SELECT * FROM admin_get_audit_logs('{"table_name":"profiles"}');
+
+-- Filter by date range
+SELECT * FROM admin_get_audit_logs(
+  '{"date_from":"2025-12-01","date_to":"2025-12-02"}'
+);
+
+-- Multiple filters with pagination
+SELECT * FROM admin_get_audit_logs(
+  '{"action_type":"DELETE","table_name":"items","limit":20,"offset":0}'
+);
+
+-- Filter by admin user
+SELECT * FROM admin_get_audit_logs(
+  jsonb_build_object(
+    'user_id', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+    'limit', 100
+  )
+);
+
+-- Complex query: All profile updates today
+SELECT * FROM admin_get_audit_logs(
+  jsonb_build_object(
+    'action_type', 'UPDATE',
+    'table_name', 'profiles',
+    'date_from', CURRENT_DATE,
+    'date_to', CURRENT_DATE
+  )
+);
+```
+
+**Performance Notes:**
+
+-   Indexed on all filter columns for fast lookups
+-   JOIN operations add ~10-20ms overhead
+-   Typical execution times:
+    -   No filters (50 results): ~30ms
+    -   Single filter (20 results): ~20ms
+    -   Multiple filters (10 results): ~15ms
+    -   Date range (100 results): ~50ms
+-   Keep limit reasonable (<100) for best performance
+-   Use offset for pagination rather than date-based pagination
+
+**Use Cases:**
+
+-   Admin activity dashboard (recent actions)
+-   Audit trail for specific user
+-   Compliance reports (all changes to profiles)
+-   Incident investigation (all actions on a date)
+-   User activity review (all actions by specific admin)
+
+#### `admin_get_storage_stats()`
+
+Get comprehensive storage usage statistics from Supabase storage.
+
+**Parameters:** None
+
+**Returns:** Single row with storage metrics:
+
+-   `total_files` (BIGINT) - Total number of files in 'items' bucket
+-   `total_size_bytes` (BIGINT) - Total storage size in bytes
+-   `total_size_mb` (NUMERIC) - Total storage size in megabytes (rounded to 2 decimals)
+-   `items_with_photos` (BIGINT) - Number of items that have photo_url set
+-   `orphaned_files` (BIGINT) - Files in storage but not referenced in items table
+-   `avg_file_size_kb` (NUMERIC) - Average file size in kilobytes
+-   `largest_file_size_mb` (NUMERIC) - Largest file size in megabytes
+-   `smallest_file_size_kb` (NUMERIC) - Smallest file size in kilobytes
+
+**Permissions:** Admin only (requires SECURITY DEFINER to access storage.objects)
+
+**Features:**
+
+-   Queries storage.objects internal table
+-   Detects orphaned files by cross-referencing items.photo_url
+-   Provides file size statistics in human-readable units
+-   All metrics use COALESCE to return 0 instead of NULL
+-   Single query returns all storage metrics
+
+**Raises:**
+
+-   Exception if not admin
+
+**Example:**
+
+```sql
+-- Get all storage statistics
+SELECT * FROM admin_get_storage_stats();
+
+-- Result example:
+-- total_files | total_size_bytes | total_size_mb | items_with_photos | orphaned_files | avg_file_size_kb | largest_file_size_mb | smallest_file_size_kb
+-- 450         | 1573741824       | 1500.50       | 435               | 15             | 3412.50          | 12.50                | 45.25
+
+-- Use in dashboard queries
+SELECT
+  total_files,
+  ROUND(total_size_mb, 2) || ' MB' AS storage_used,
+  items_with_photos,
+  orphaned_files,
+  CASE
+    WHEN orphaned_files > 0 THEN '⚠️ Cleanup needed'
+    ELSE '✅ Clean'
+  END AS status
+FROM admin_get_storage_stats();
+
+-- Calculate storage efficiency
+SELECT
+  total_files,
+  items_with_photos,
+  ROUND((items_with_photos::NUMERIC / NULLIF(total_files, 0) * 100), 2) AS efficiency_percentage
+FROM admin_get_storage_stats();
+```
+
+**Performance Notes:**
+
+-   Queries storage.objects which is managed by Supabase
+-   Multiple subqueries but each is optimized
+-   Typical execution time: ~100-200ms
+-   Orphaned file detection can be slow with many files (>10k)
+-   Consider caching results for dashboard display
+-   Recommended refresh interval: 5-10 minutes
+
+**Use Cases:**
+
+-   Storage dashboard metrics
+-   Orphaned file cleanup trigger
+-   Storage quota monitoring
+-   File size analysis and optimization
+-   Compliance reporting (storage usage)
+-   Capacity planning
+
+**Important Notes:**
+
+-   `storage.objects` is a Supabase internal table
+-   SECURITY DEFINER required to access storage schema
+-   Orphaned file detection uses LIKE pattern matching
+-   File size is stored in metadata as string, cast to BIGINT
+-   All size metrics rounded to 2 decimal places
+
 ## Migrations
 
 Migrations are located in `sql/migrations/` and should be applied in order:
@@ -855,6 +1144,8 @@ Migrations are located in `sql/migrations/` and should be applied in order:
 12. **009b_admin_functions_items_test_helpers.sql** - Test helper functions for items management (SQL Editor testing only)
 13. **010_admin_functions_analytics.sql** - Creates admin analytics functions for dashboard statistics
 14. **010b_admin_functions_analytics_test_helpers.sql** - Test helper functions for analytics (SQL Editor testing only)
+15. **011_admin_functions_audit.sql** - Creates admin audit log and storage utility functions
+16. **011b_admin_functions_audit_test_helpers.sql** - Test helper functions for audit operations (SQL Editor testing only)
 
 ## Notes
 

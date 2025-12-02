@@ -178,16 +178,28 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
 
 #### Task 0.3.4: Audit & Utility Functions
 
--   [ ] Buat migration file `007_admin_functions_audit.sql`
--   [ ] Create function `admin_create_audit_log()`:
-    -   Parameters: action_type, table_name, record_id, old_values, new_values, metadata
-    -   Returns: created audit log
--   [ ] Create function `admin_get_audit_logs(filters JSONB)`:
-    -   Filter by: user, action, table, date range
-    -   Pagination support
--   [ ] Create function `admin_get_storage_stats()`:
-    -   Returns: storage usage by user, orphaned files count
--   [ ] Test functions
+-   [x] Buat migration file `011_admin_functions_audit.sql`
+-   [x] Create function `admin_create_audit_log()`:
+    -   [x] Parameters: action_type, table_name, record_id, old_values, new_values, metadata
+    -   [x] Returns: created audit log with admin info
+    -   [x] Validates action_type (CREATE, UPDATE, DELETE, STATUS_CHANGE, ROLE_CHANGE, CUSTOM)
+    -   [x] Validates required parameters (not NULL/empty)
+-   [x] Create function `admin_get_audit_logs(filters JSONB)`:
+    -   [x] Filter by: user_id, action_type, table_name, date_from, date_to
+    -   [x] Pagination support (limit: 1-200, offset: >= 0)
+    -   [x] Returns audit logs with admin name and email
+    -   [x] Ordered by created_at DESC (newest first)
+-   [x] Create function `admin_get_storage_stats()`:
+    -   [x] Returns: total_files, total_size (bytes/MB), items_with_photos
+    -   [x] Returns: orphaned_files count, avg/largest/smallest file sizes
+    -   [x] Queries storage.objects with SECURITY DEFINER
+    -   [x] Detects orphaned files by cross-referencing items.photo_url
+-   [x] Create test helper functions in 011b_admin_functions_audit_test_helpers.sql
+-   [x] Create comprehensive test script quick_test_admin_audit.sql with 16 automated tests
+-   [x] Update SCHEMA_DOCS.md with complete function documentation, examples, and performance notes
+-   [x] Update admin-implementation-plan.md with completed tasks
+
+**Status**: ✅ **COMPLETED** - All audit and utility functions created, tested, and documented
 
 ### 0.4 Admin Authentication (2 hari)
 
