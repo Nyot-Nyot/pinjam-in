@@ -131,17 +131,28 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
 
 #### Task 0.3.2: Items Management Functions
 
--   [ ] Buat migration file `009_admin_functions_items.sql`
--   [ ] Create function `admin_get_all_items(limit INT, offset INT)`:
+-   [x] Buat migration file `009_admin_functions_items.sql`
+-   [x] Create function `admin_get_all_items(limit INT, offset INT)`:
     -   Returns: items dengan user info
     -   Support pagination
--   [ ] Create function `admin_get_item_details(item_id UUID)`:
+    -   Support filtering by status, owner, and search
+-   [x] Create function `admin_get_item_details(item_id UUID)`:
     -   Returns: item + owner info + history
--   [ ] Create function `admin_update_item_status(item_id UUID, new_status TEXT)`:
+    -   Includes computed fields (is_overdue, days_borrowed, days_overdue)
+-   [x] Create function `admin_update_item_status(item_id UUID, new_status TEXT)`:
     -   Update status dengan audit
--   [ ] Create function `admin_delete_item(item_id UUID)`:
+    -   Validates status values
+    -   Records reason in metadata
+-   [x] Create function `admin_delete_item(item_id UUID)`:
     -   Delete dengan audit log
--   [ ] Test functions
+    -   Supports soft delete (default) and hard delete
+    -   Note: Hard delete does not remove photo from storage
+-   [x] Create test helper functions in 009b_admin_functions_items_test_helpers.sql
+-   [x] Create test script quick_test_admin_items.sql with 16 automated tests
+-   [x] Update SCHEMA_DOCS.md with complete function documentation
+-   [x] Update admin-implementation-plan.md with completed tasks
+
+**Status**: ✅ **COMPLETED** - All items management functions created, tested, and documented
 
 #### Task 0.3.3: Analytics Functions
 

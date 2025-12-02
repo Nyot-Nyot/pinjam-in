@@ -406,6 +406,201 @@ SELECT * FROM admin_delete_user('user-id', FALSE, 'Account closure requested');
 SELECT * FROM admin_delete_user('user-id', TRUE, 'Legal requirement');
 ```
 
+### Items Management Functions
+
+These functions allow admins to manage items in the system, including viewing, updating status, and deleting items.
+
+#### `admin_get_all_items(limit, offset, status_filter, user_filter, search)`
+
+Get paginated list of all items with owner information and filtering options.
+
+**Parameters:**
+
+-   `p_limit` (INTEGER, default: 50) - Number of items to return
+-   `p_offset` (INTEGER, default: 0) - Number of items to skip (for pagination)
+-   `p_status_filter` (TEXT, optional) - Filter by status ('available', 'borrowed', 'unavailable')
+-   `p_user_filter` (UUID, optional) - Filter by owner user ID
+-   `p_search` (TEXT, optional) - Search in item name, borrower name, or notes
+
+**Returns TABLE:**
+
+-   `id` (UUID) - Item ID
+-   `item_name` (TEXT) - Name of the item
+-   `borrower_name` (TEXT) - Name of the borrower
+-   `contact_info` (TEXT) - Contact information
+-   `borrow_date` (TIMESTAMPTZ) - When item was borrowed
+-   `return_date` (TIMESTAMPTZ) - Expected return date
+-   `status` (TEXT) - Current status
+-   `notes` (TEXT) - Additional notes
+-   `photo_url` (TEXT) - Photo URL
+-   `owner_id` (UUID) - Owner user ID
+-   `owner_name` (TEXT) - Owner's full name
+-   `owner_email` (VARCHAR) - Owner's email
+-   `created_at` (TIMESTAMPTZ) - Creation timestamp
+-   `updated_at` (TIMESTAMPTZ) - Last update timestamp
+-   `is_overdue` (BOOLEAN) - True if borrowed and past return date
+-   `days_borrowed` (INTEGER) - Number of days since borrow date
+
+**Permissions:** Admin only
+
+**Features:**
+
+-   Supports multiple filter types (status, owner, search)
+-   Automatically sorts overdue items first
+-   Calculates if item is overdue
+-   Shows owner information with email
+-   Full-text search across item name, borrower, and notes
+
+**Example:**
+
+```sql
+-- Get all items
+SELECT * FROM admin_get_all_items();
+
+-- Get borrowed items only
+SELECT * FROM admin_get_all_items(50, 0, 'borrowed', NULL, NULL);
+
+-- Get items owned by specific user
+SELECT * FROM admin_get_all_items(50, 0, NULL, 'user-uuid', NULL);
+
+-- Search for items containing "laptop"
+SELECT * FROM admin_get_all_items(50, 0, NULL, NULL, 'laptop');
+```
+
+#### `admin_get_item_details(item_id)`
+
+Get complete details for a specific item including owner and borrower information.
+
+**Parameters:**
+
+-   `p_item_id` (UUID) - The item ID to retrieve
+
+**Returns TABLE:**
+
+-   All item fields (id, item_name, borrower_name, etc.)
+-   Owner information (owner_id, owner_name, owner_email, owner_role, owner_status)
+-   Computed fields:
+    -   `is_overdue` (BOOLEAN) - Whether item is overdue
+    -   `days_borrowed` (INTEGER) - Days since borrowed
+    -   `days_overdue` (INTEGER) - Days past return date (if overdue)
+    -   `owner_total_items` (BIGINT) - Total items owned by this user
+    -   `owner_borrowed_items` (BIGINT) - Currently borrowed items by this user
+
+**Permissions:** Admin only
+
+**Raises:**
+
+-   Exception if item not found
+
+**Example:**
+
+```sql
+SELECT * FROM admin_get_item_details('item-uuid');
+```
+
+#### `admin_update_item_status(item_id, new_status, reason)`
+
+Update an item's status with audit logging.
+
+**Parameters:**
+
+-   `p_item_id` (UUID) - The item ID to update
+-   `p_new_status` (TEXT) - New status ('available', 'borrowed', 'unavailable')
+-   `p_reason` (TEXT, optional) - Reason for status change (logged in audit)
+
+**Returns TABLE:**
+
+-   `item_id` (UUID) - The item ID
+-   `item_name` (TEXT) - Name of the item
+-   `old_status` (TEXT) - Previous status
+-   `new_status` (TEXT) - New status
+-   `message` (TEXT) - Confirmation message
+
+**Permissions:** Admin only
+
+**Features:**
+
+-   Validates status values
+-   Prevents setting same status
+-   Creates audit log with old/new values
+-   Records reason in audit metadata
+
+**Raises:**
+
+-   Exception if item not found
+-   Exception if invalid status provided
+-   Exception if status is already the new value
+
+**Valid Status Values:**
+
+-   `available` - Item is available and not borrowed
+-   `borrowed` - Item is currently borrowed
+-   `unavailable` - Item is not available (lost, damaged, soft deleted)
+
+**Example:**
+
+```sql
+-- Mark item as returned
+SELECT * FROM admin_update_item_status('item-id', 'available', 'Item returned in good condition');
+
+-- Mark item as unavailable
+SELECT * FROM admin_update_item_status('item-id', 'unavailable', 'Item damaged and under repair');
+```
+
+#### `admin_delete_item(item_id, hard_delete, reason)`
+
+Delete an item with optional hard delete and audit logging.
+
+**Parameters:**
+
+-   `p_item_id` (UUID) - The item ID to delete
+-   `p_hard_delete` (BOOLEAN, default: FALSE) - Whether to permanently delete
+-   `p_reason` (TEXT, optional) - Reason for deletion (logged in audit)
+
+**Returns TABLE:**
+
+-   `item_id` (UUID) - The item ID
+-   `item_name` (TEXT) - Name of the item
+-   `delete_type` (TEXT) - 'soft_delete' or 'hard_delete'
+-   `message` (TEXT) - Confirmation message
+
+**Permissions:** Admin only
+
+**Soft Delete (default):**
+
+-   Sets item status to 'unavailable'
+-   Item remains in database
+-   Can be recovered by changing status back to 'available'
+-   Creates audit log with action='update'
+
+**Hard Delete:**
+
+-   Permanently removes item from database
+-   **Cannot be undone**
+-   Creates audit log with full item data snapshot
+-   **Note:** Does NOT delete photo from storage automatically
+
+**Raises:**
+
+-   Exception if item not found
+
+**Example:**
+
+```sql
+-- Soft delete (recommended)
+SELECT * FROM admin_delete_item('item-id', FALSE, 'Owner requested removal');
+
+-- Hard delete (permanent - use with caution)
+SELECT * FROM admin_delete_item('item-id', TRUE, 'Legal compliance requirement');
+```
+
+**Important Notes:**
+
+-   Hard delete does not remove photos from Supabase Storage
+-   Use storage management tools to clean up orphaned files
+-   Audit logs will capture full item data before hard delete
+-   Soft delete is reversible, hard delete is not
+
 ## Migrations
 
 Migrations are located in `sql/migrations/` and should be applied in order:
@@ -418,6 +613,10 @@ Migrations are located in `sql/migrations/` and should be applied in order:
 6. **006_fix_rls_infinite_recursion.sql** - Fixes infinite recursion in RLS policies by using is_admin function
 7. **007_remove_old_admin_check.sql** - Removes redundant admin_users table from old implementation
 8. **008_admin_functions_users.sql** - Creates admin functions for user management operations
+9. **008b_admin_functions_test_helpers.sql** - Test helper functions for user management (SQL Editor testing only)
+10. **008c_fix_email_type.sql** - Fixes email type mismatch in user management functions
+11. **009_admin_functions_items.sql** - Creates admin functions for items management operations
+12. **009b_admin_functions_items_test_helpers.sql** - Test helper functions for items management (SQL Editor testing only)
 
 ## Notes
 
