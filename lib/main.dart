@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'constants/storage_keys.dart';
+import 'providers/admin_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/loan_provider.dart';
 import 'providers/persistence_provider.dart';
@@ -81,7 +82,10 @@ class MainApp extends StatelessWidget {
         // 3. ThemeProvider - Independent, manages app theme
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
 
-        // 4. LoanProvider - Depends on PersistenceProvider
+        // 4. AdminProvider - Independent, manages admin dashboard state
+        ChangeNotifierProvider(create: (_) => AdminProvider()),
+
+        // 5. LoanProvider - Depends on PersistenceProvider
         ChangeNotifierProxyProvider<PersistenceProvider, LoanProvider?>(
           create: (context) => null,
           update: (context, persistenceProvider, previous) {

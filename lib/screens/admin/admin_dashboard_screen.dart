@@ -1,128 +1,77 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:provider/provider.dart';
 
+import '../../providers/admin_provider.dart';
 import '../../widgets/admin/breadcrumbs.dart';
 import 'admin_layout.dart';
 
 /// AdminDashboardScreen - Main dashboard for admin panel
 /// Displays key metrics, charts, and recent activity
-class AdminDashboardScreen extends StatefulWidget {
+class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
 
   @override
-  State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
-}
-
-class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
-  final _supabase = Supabase.instance.client;
-
-  // Data state
-  Map<String, dynamic>? _dashboardStats;
-  List<Map<String, dynamic>> _userGrowth = [];
-  List<Map<String, dynamic>> _recentActivity = [];
-
-  // Loading and error states
-  bool _isLoading = true;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadDashboardData();
-  }
-
-  Future<void> _loadDashboardData() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      // Fetch dashboard stats
-      final statsResponse = await _supabase.rpc('admin_get_dashboard_stats');
-
-      // Fetch user growth (last 30 days)
-      final growthResponse = await _supabase.rpc(
-        'admin_get_user_growth',
-        params: {'p_days': 30},
-      );
-
-      // Fetch recent audit logs (last 10)
-      final activityResponse = await _supabase
-          .from('audit_logs')
-          .select(
-            'id, action_type, table_name, record_id, metadata, created_at, admin_user_id',
-          )
-          .order('created_at', ascending: false)
-          .limit(10);
-
-      setState(() {
-        // RPC functions return List, even for single row - get first item
-        final statsList = statsResponse as List;
-        _dashboardStats = statsList.isNotEmpty
-            ? statsList.first as Map<String, dynamic>
-            : null;
-        _userGrowth = (growthResponse as List).cast<Map<String, dynamic>>();
-        _recentActivity = (activityResponse as List)
-            .cast<Map<String, dynamic>>();
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return AdminLayout(
-      currentRoute: '/admin',
-      breadcrumbs: const [
-        BreadcrumbItem(label: 'Admin'),
-        BreadcrumbItem(label: 'Dashboard'),
-      ],
-      child: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-          ? _buildErrorWidget()
-          : RefreshIndicator(
-              onRefresh: _loadDashboardData,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Welcome header
-                    _buildWelcomeHeader(context),
-                    const SizedBox(height: 32),
+    return Consumer<AdminProvider>(
+      builder: (context, adminProvider, child) {
+        return AdminLayout(
+          currentRoute: '/admin',
+          breadcrumbs: const [
+            BreadcrumbItem(label: 'Admin'),
+            BreadcrumbItem(label: 'Dashboard'),
+          ],
+          child: adminProvider.isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : adminProvider.error != null
+              ? _buildErrorWidget(context, adminProvider)
+              : RefreshIndicator(
+                  onRefresh: () => adminProvider.refreshStats(),
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Welcome header
+                        _buildWelcomeHeader(context),
+                        const SizedBox(height: 32),
 
-                    // Metrics cards
-                    _buildMetricsSection(context),
-                    const SizedBox(height: 32),
+                        // Metrics cards
+                        _buildMetricsSection(
+                          context,
+                          adminProvider.dashboardStats!,
+                        ),
+                        const SizedBox(height: 32),
 
-                    // Charts row
-                    _buildChartsSection(context),
-                    const SizedBox(height: 32),
+                        // Charts row
+                        _buildChartsSection(
+                          context,
+                          adminProvider.userGrowth,
+                          adminProvider.dashboardStats!,
+                        ),
+                        const SizedBox(height: 32),
 
-                    // Quick actions
-                    _buildQuickActionsSection(context),
-                    const SizedBox(height: 32),
+                        // Quick actions
+                        _buildQuickActionsSection(context),
+                        const SizedBox(height: 32),
 
-                    // Recent activity
-                    _buildRecentActivitySection(context),
-                  ],
+                        // Recent activity
+                        _buildRecentActivitySection(
+                          context,
+                          adminProvider.recentActivity,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
+        );
+      },
     );
   }
 
-  Widget _buildErrorWidget() {
+  Widget _buildErrorWidget(BuildContext context, AdminProvider adminProvider) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -137,7 +86,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              _error ?? 'Unknown error',
+              adminProvider.error ?? 'Unknown error',
               textAlign: TextAlign.center,
               style: Theme.of(
                 context,
@@ -145,7 +94,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
-              onPressed: _loadDashboardData,
+              onPressed: () => adminProvider.retry(),
               icon: const Icon(Icons.refresh),
               label: const Text('Retry'),
             ),
@@ -176,8 +125,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildMetricsSection(BuildContext context) {
-    final stats = _dashboardStats ?? {};
+  Widget _buildMetricsSection(
+    BuildContext context,
+    Map<String, dynamic> stats,
+  ) {
     final totalUsers = stats['total_users'] ?? 0;
     final activeUsers = stats['active_users'] ?? 0;
     final totalItems = stats['total_items'] ?? 0;
@@ -320,19 +271,26 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildChartsSection(BuildContext context) {
+  Widget _buildChartsSection(
+    BuildContext context,
+    List<Map<String, dynamic>> userGrowth,
+    Map<String, dynamic> stats,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildUserGrowthChart(context),
+        _buildUserGrowthChart(context, userGrowth),
         const SizedBox(height: 24),
-        _buildItemsStatusChart(context),
+        _buildItemsStatusChart(context, stats),
       ],
     );
   }
 
-  Widget _buildUserGrowthChart(BuildContext context) {
-    if (_userGrowth.isEmpty) {
+  Widget _buildUserGrowthChart(
+    BuildContext context,
+    List<Map<String, dynamic>> userGrowth,
+  ) {
+    if (userGrowth.isEmpty) {
       return _buildEmptyChartCard(
         context,
         'User Growth',
@@ -389,13 +347,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       sideTitles: SideTitles(
                         showTitles: true,
                         reservedSize: 30,
-                        interval: _userGrowth.length / 5,
+                        interval: userGrowth.length / 5,
                         getTitlesWidget: (value, meta) {
-                          if (value.toInt() >= _userGrowth.length) {
+                          if (value.toInt() >= userGrowth.length) {
                             return const SizedBox();
                           }
                           final date = DateTime.parse(
-                            _userGrowth[value.toInt()]['date'] as String,
+                            userGrowth[value.toInt()]['date'] as String,
                           );
                           return Padding(
                             padding: const EdgeInsets.only(top: 8),
@@ -411,7 +369,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   borderData: FlBorderData(show: false),
                   lineBarsData: [
                     LineChartBarData(
-                      spots: _userGrowth.asMap().entries.map((entry) {
+                      spots: userGrowth.asMap().entries.map((entry) {
                         return FlSpot(
                           entry.key.toDouble(),
                           (entry.value['cumulative_users'] as num).toDouble(),
@@ -437,8 +395,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildItemsStatusChart(BuildContext context) {
-    final stats = _dashboardStats ?? {};
+  Widget _buildItemsStatusChart(
+    BuildContext context,
+    Map<String, dynamic> stats,
+  ) {
     final borrowedItems = (stats['borrowed_items'] as num?)?.toDouble() ?? 0;
     final returnedItems = (stats['returned_items'] as num?)?.toDouble() ?? 0;
     final overdueItems = (stats['overdue_items'] as num?)?.toDouble() ?? 0;
@@ -653,7 +613,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildRecentActivitySection(BuildContext context) {
+  Widget _buildRecentActivitySection(
+    BuildContext context,
+    List<Map<String, dynamic>> recentActivity,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -664,7 +627,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
-        if (_recentActivity.isEmpty)
+        if (recentActivity.isEmpty)
           Card(
             child: Padding(
               padding: const EdgeInsets.all(32),
@@ -702,10 +665,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
-              itemCount: _recentActivity.length,
+              itemCount: recentActivity.length,
               separatorBuilder: (context, index) => const Divider(height: 24),
               itemBuilder: (context, index) {
-                final activity = _recentActivity[index];
+                final activity = recentActivity[index];
                 return _buildActivityItem(context, activity);
               },
             ),
