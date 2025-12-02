@@ -589,12 +589,15 @@ class SupabasePersistence implements PersistenceService {
   Future<String?> getSignedUrl(String photoUrl) async {
     if (photoUrl.isEmpty) return null;
 
+    print('getSignedUrl: Input URL: $photoUrl');
+
     // Check in-memory cache first
     try {
       final cached = _signedUrlCache[photoUrl];
       if (cached != null) {
         // signed URLs are set to be long-lived; reuse if not too old (7 days)
         if (DateTime.now().difference(cached.ts) < const Duration(days: 7)) {
+          print('getSignedUrl: Using cached URL');
           return cached.url;
         } else {
           _signedUrlCache.remove(photoUrl);
@@ -602,30 +605,52 @@ class SupabasePersistence implements PersistenceService {
       }
     } catch (_) {}
 
+    print('getSignedUrl: Creating new signed URL');
+
     try {
       final storage = _client.storage;
       final from = (storage as dynamic).from(_kImagesBucket);
 
-      // Extract just the path if it's a full URL
+      // Extract just the path from the URL
       String path = photoUrl;
+
+      // If it's a full URL, extract the path after the bucket name
       if (photoUrl.contains('/storage/v1/object/')) {
-        // Extract path from full URL
+        // For URLs like:
+        // https://xxx.supabase.co/storage/v1/object/public/item_photos/user_id/file.jpg
+        // We need to extract: user_id/file.jpg
+
         final parts = photoUrl.split('/storage/v1/object/');
         if (parts.length > 1) {
-          // Remove bucket prefix (public/bucket_name/ or authenticated/bucket_name/)
           final afterObject = parts[1];
+          // Split by '/' and skip 'public' or 'authenticated' and bucket name
           final pathParts = afterObject.split('/');
-          if (pathParts.length > 2) {
-            path = pathParts.sublist(2).join('/');
+
+          // Find where our bucket name is
+          int bucketIndex = -1;
+          for (int i = 0; i < pathParts.length; i++) {
+            if (pathParts[i] == _kImagesBucket) {
+              bucketIndex = i;
+              break;
+            }
+          }
+
+          // If found, take everything after the bucket name
+          if (bucketIndex >= 0 && bucketIndex + 1 < pathParts.length) {
+            path = pathParts.sublist(bucketIndex + 1).join('/');
           }
         }
       }
+
+      print('getSignedUrl: Extracted path: $path');
 
       // Create a signed URL valid for 1 year
       final signed = await (from as dynamic).createSignedUrl(
         path,
         60 * 60 * 24 * 365, // 1 year in seconds
       );
+
+      print('getSignedUrl: Signed result: $signed');
 
       if (signed is Map &&
           (signed['signedURL'] != null || signed['signedUrl'] != null)) {
@@ -638,6 +663,7 @@ class SupabasePersistence implements PersistenceService {
         return signed;
       }
     } catch (e) {
+      print('getSignedUrl: Error - $e');
       AppLogger.error(
         'Error creating signed URL for $photoUrl',
         e,

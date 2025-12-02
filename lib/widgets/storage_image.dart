@@ -61,6 +61,10 @@ class _StorageImageState extends State<StorageImage> {
       return;
     }
 
+    print('StorageImage: Loading URL: ${widget.imageUrl}');
+
+    // Always go through getSignedUrl for Supabase Storage URLs
+    // This handles both public and private buckets correctly
     setState(() {
       _loading = true;
       _error = null;
@@ -68,8 +72,10 @@ class _StorageImageState extends State<StorageImage> {
 
     try {
       if (widget.persistence is SupabasePersistence) {
+        print('StorageImage: Calling getSignedUrl');
         final signedUrl = await (widget.persistence as SupabasePersistence)
             .getSignedUrl(widget.imageUrl!);
+        print('StorageImage: Got signed URL: $signedUrl');
         if (mounted) {
           setState(() {
             _signedUrl = signedUrl;
@@ -86,6 +92,7 @@ class _StorageImageState extends State<StorageImage> {
         }
       }
     } catch (e) {
+      print('StorageImage: Error loading signed URL: $e');
       if (mounted) {
         setState(() {
           _error = e.toString();
@@ -160,24 +167,42 @@ class _StorageImageState extends State<StorageImage> {
   }
 
   Widget _buildPlaceholder(String? error) {
+    // Calculate appropriate icon size based on container size
+    final double iconSize = widget.width != null && widget.height != null
+        ? (widget.width! < widget.height! ? widget.width! : widget.height!) *
+              0.5
+        : 48.0;
+    final clampedIconSize = iconSize.clamp(24.0, 48.0);
+
     return Container(
       width: widget.width,
       height: widget.height,
       color: Colors.grey[300],
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.image_not_supported, color: Colors.grey[600], size: 48),
-          if (error != null)
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                error,
-                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
-                textAlign: TextAlign.center,
-              ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.image_not_supported,
+              color: Colors.grey[600],
+              size: clampedIconSize,
             ),
-        ],
+            if (error != null && (widget.height == null || widget.height! > 80))
+              Flexible(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(
+                    error,
+                    style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
