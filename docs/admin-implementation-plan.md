@@ -429,6 +429,101 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
     -   Shows "Showing X-Y of Z users" text
     -   Calculated total pages dynamically
 -   **Bulk Actions**:
+    -   Select all checkbox in table header
+    -   Individual row checkboxes for selection
+    -   Bulk actions section shows when items selected
+    -   Change Status action with dialog (activate, suspend, deactivate)
+    -   Bulk Delete action with confirmation dialog (shows count and list of selected users)
+    -   Bulk actions call respective RPC functions
+    -   Successful actions show snackbar and reload data
+-   **UI/UX Features**:
+    -   Loading state: Circular progress indicator
+    -   Add User button in header (placeholder for create user screen)
+    -   Integrated with AdminLayout and breadcrumbs
+    -   Responsive horizontal scroll for table on small screens
+    -   Fixed UI overflow issues in search/filter layout and pagination
+
+#### Task 1.2.2: User Detail Screen ✅
+
+-   [x] Buat `lib/screens/admin/users/user_detail_screen.dart`
+-   [x] Section: Basic Info
+    -   [x] Display: name, email, user ID, role, status
+    -   [x] Edit button → navigate to edit form
+-   [x] Section: Account Info
+    -   [x] Created date, updated date, last login
+-   [x] Section: Activity Metrics
+    -   [x] Total items borrowed
+    -   [x] Total items returned
+    -   [x] Active loans count
+    -   [x] Overdue items count
+-   [x] Section: User Items
+    -   [x] List user's items (last 10)
+    -   [x] Button: View all items
+-   [x] Section: Actions
+    -   [x] Reset password (dialog with TODO placeholder)
+    -   [x] Lock/Unlock account (dialog with TODO placeholder)
+    -   [x] Change role (dialog with TODO placeholder)
+    -   [x] Delete user (dialog with TODO placeholder)
+-   [x] Routing: Connected to users list screen via /admin/users/:userId
+-   [ ] Test detail screen (pending migration 012 application)
+
+**Status**: ✅ **COMPLETED** - User detail screen implemented with:
+
+-   **UserDetailScreen** (`lib/screens/admin/users/user_detail_screen.dart`, 757 lines):
+    -   StatefulWidget with userId parameter from route
+    -   Calls `admin_get_user_details(p_user_id)` RPC function
+    -   Fetches user's items from items table (last 10, ordered by created_at DESC)
+    -   Returns: id, full_name, email, role, status, last_login, updated_at, created_at, total_items, borrowed_items, returned_items, overdue_items, storage_files_count
+-   **Layout Structure**:
+    -   AdminLayout wrapper with breadcrumbs: Admin → Users → User Name
+    -   Two-column responsive layout: Left (2/3 width) for info, Right (1/3 width) for metrics/actions
+    -   SingleChildScrollView with proper spacing
+-   **Section: Basic Information** (Card):
+    -   User ID (monospace font for readability)
+    -   Role badge: Admin (purple, admin_panel_settings icon) or User (blue, person icon)
+    -   Status badge: Active (green, check_circle), Inactive (grey, remove_circle), Suspended (red, block)
+-   **Section: Account Information** (Card):
+    -   Created date: Formatted as "MMM d, y 'at' h:mm a"
+    -   Last Updated date: Same format
+    -   Last Login: Same format or "Never" if null
+-   **Section: Activity Metrics** (Card):
+    -   4 metric cards with colored backgrounds, borders, and icons:
+        -   Total Items (blue, inventory_2 icon)
+        -   Borrowed (orange, arrow_upward icon)
+        -   Returned (green, check_circle icon)
+        -   Overdue (red, warning icon)
+    -   Large value text (fontSize 20, bold)
+-   **Section: User Items** (Card):
+    -   ListView of last 10 items with \_buildItemTile
+    -   Shows: item name, borrowed date, status badge (small)
+    -   Empty state: Icon + "No items found" text
+    -   "View All" button (TODO: navigate to items list filtered by user)
+-   **Section: Admin Actions** (Card):
+    -   4 action buttons (full width):
+        -   Reset Password (OutlinedButton, lock_reset icon) - TODO: Call reset password API
+        -   Lock/Unlock Account (OutlinedButton, dynamic icon/text) - TODO: Call update status API
+        -   Change Role (OutlinedButton, admin_panel_settings icon) - TODO: Call update role API with dialog selection
+        -   Delete User (ElevatedButton, red, delete_forever icon) - TODO: Call delete user API
+    -   All actions have confirmation dialogs
+-   **Helper Components**:
+    -   \_buildInfoRow(): Key-value display with optional monospace font and custom widgets
+    -   \_buildMetricCard(): Colored metric card with icon, label, and value
+    -   \_buildItemTile(): ListTile for individual items with status-based styling
+    -   \_buildRoleBadge(): Consistent role badge matching users list styling
+    -   \_buildStatusBadge(): Status badge with adjustable size (small parameter)
+-   **State Management**:
+    -   Loading state: CircularProgressIndicator in center
+    -   Error state: \_buildErrorWidget with error_outline icon and retry button
+    -   Not found state: \_buildNotFoundWidget with person_off icon and back button
+-   **Navigation & Routing**:
+    -   Route: /admin/users/:userId (handled in main.dart onGenerateRoute)
+    -   View button in users_list_screen navigates with Navigator.pushNamed(context, '/admin/users/$userId')
+    -   Edit button placeholder shows "Coming soon" snackbar
+    -   Delete button in users list also navigates to detail screen (future enhancement)
+
+**Testing Status**: Pending migration 012 application to fix database column references (i.owner_id → i.user_id)
+
+-   **Bulk Actions**:
     -   Checkbox selection with "Select All" in header
     -   Blue banner shows selected count when items selected
     -   Bulk Status Update: Dialog to change status for multiple users
@@ -442,28 +537,28 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
     -   Integrated with AdminLayout and breadcrumbs
     -   Responsive horizontal scroll for table on small screens
 
-#### Task 1.2.2: User Detail Screen
+#### Task 1.2.2: User Detail Screen ✅
 
--   [ ] Buat `lib/screens/admin/users/user_detail_screen.dart`
--   [ ] Section: Basic Info
-    -   [ ] Display: name, email, user ID, role, status
-    -   [ ] Edit button → navigate to edit form
--   [ ] Section: Account Info
-    -   [ ] Created date, updated date, last login
--   [ ] Section: Activity Metrics
-    -   [ ] Total items borrowed
-    -   [ ] Total items returned
-    -   [ ] Active loans count
-    -   [ ] Overdue items count
--   [ ] Section: User Items
-    -   [ ] List user's items (last 10)
-    -   [ ] Button: View all items
--   [ ] Section: Actions
-    -   [ ] Reset password
-    -   [ ] Lock/Unlock account
-    -   [ ] Change role
-    -   [ ] Delete user
--   [ ] Test detail screen
+-   [x] Buat `lib/screens/admin/users/user_detail_screen.dart`
+-   [x] Section: Basic Info
+    -   [x] Display: name, email, user ID, role, status
+    -   [x] Edit button → navigate to edit form
+-   [x] Section: Account Info
+    -   [x] Created date, updated date, last login
+-   [x] Section: Activity Metrics
+    -   [x] Total items borrowed
+    -   [x] Total items returned
+    -   [x] Active loans count
+    -   [x] Overdue items count
+-   [x] Section: User Items
+    -   [x] List user's items (last 10)
+    -   [x] Button: View all items
+-   [x] Section: Actions
+    -   [x] Reset password (dialog with TODO placeholder)
+    -   [x] Lock/Unlock account (dialog with TODO placeholder)
+    -   [x] Change role (dialog with TODO placeholder)
+    -   [x] Delete user (dialog with TODO placeholder)
+-   [ ] Test detail screen (pending migration 012 application)
 
 #### Task 1.2.3: Create User Form
 

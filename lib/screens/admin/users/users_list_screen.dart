@@ -142,19 +142,6 @@ class _UsersListScreenState extends State<UsersListScreen> {
     });
   }
 
-  void _toggleSelectAll() {
-    setState(() {
-      if (_selectedUserIds.length == _users.length) {
-        _selectedUserIds.clear();
-      } else {
-        _selectedUserIds.clear();
-        for (var user in _users) {
-          _selectedUserIds.add(user['id'] as String);
-        }
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return AdminLayout(
@@ -372,24 +359,37 @@ class _UsersListScreenState extends State<UsersListScreen> {
       color: Colors.blue[50],
       child: Row(
         children: [
-          Text(
-            '${_selectedUserIds.length} user(s) selected',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(width: 16),
-          TextButton.icon(
-            onPressed: _handleBulkStatusUpdate,
-            icon: const Icon(Icons.edit),
-            label: const Text('Update Status'),
+          Flexible(
+            child: Text(
+              '${_selectedUserIds.length} selected',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
           const SizedBox(width: 8),
           TextButton.icon(
+            onPressed: _handleBulkStatusUpdate,
+            icon: const Icon(Icons.edit, size: 18),
+            label: const Text('Status', style: TextStyle(fontSize: 13)),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              minimumSize: const Size(0, 32),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+          const SizedBox(width: 4),
+          TextButton.icon(
             onPressed: _handleBulkDelete,
-            icon: const Icon(Icons.delete),
-            label: const Text('Delete'),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            icon: const Icon(Icons.delete, size: 18),
+            label: const Text('Delete', style: TextStyle(fontSize: 13)),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              minimumSize: const Size(0, 32),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
           ),
         ],
       ),
@@ -431,15 +431,6 @@ class _UsersListScreenState extends State<UsersListScreen> {
         child: DataTable(
           showCheckboxColumn: true,
           columns: [
-            DataColumn(
-              label: Checkbox(
-                value:
-                    _selectedUserIds.length == _users.length &&
-                    _users.isNotEmpty,
-                onChanged: (_) => _toggleSelectAll(),
-                tristate: true,
-              ),
-            ),
             const DataColumn(
               label: Text('User'),
               // Sorting disabled: backend function uses fixed ORDER BY updated_at DESC
@@ -479,12 +470,6 @@ class _UsersListScreenState extends State<UsersListScreen> {
       selected: _selectedUserIds.contains(userId),
       onSelectChanged: (_) => _toggleUserSelection(userId),
       cells: [
-        DataCell(
-          Checkbox(
-            value: _selectedUserIds.contains(userId),
-            onChanged: (_) => _toggleUserSelection(userId),
-          ),
-        ),
         DataCell(
           Row(
             children: [
@@ -676,10 +661,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
 
   // Action handlers
   void _handleViewUser(String userId) {
-    // TODO: Navigate to user detail screen
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('View user: $userId')));
+    Navigator.pushNamed(context, '/admin/users/$userId');
   }
 
   void _handleEditUser(String userId) {
