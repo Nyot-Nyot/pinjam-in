@@ -34,8 +34,8 @@ class UnauthorizedScreen extends StatelessWidget {
               Text(
                 'Access Denied',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  fontWeight: FontWeight.bold,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -45,8 +45,8 @@ class UnauthorizedScreen extends StatelessWidget {
                 'You do not have permission to access this area.\n'
                 'This section is restricted to administrators only.',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
@@ -56,8 +56,8 @@ class UnauthorizedScreen extends StatelessWidget {
                 Text(
                   'Logged in as: ${authProvider.userEmail ?? "Unknown"}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               const SizedBox(height: 32),

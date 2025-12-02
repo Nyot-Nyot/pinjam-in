@@ -9,13 +9,13 @@ import 'logger.dart' as logger;
 /// Utility functions untuk admin authorization
 class AdminGuard {
   /// Check apakah user adalah admin, throw exception jika bukan
-  /// 
+  ///
   /// Gunakan di dalam methods/functions yang hanya boleh diakses admin
-  /// 
+  ///
   /// Throws:
   /// - [UnauthorizedException] jika user tidak login
   /// - [ForbiddenException] jika user login tapi bukan admin
-  /// 
+  ///
   /// Example:
   /// ```dart
   /// Future<void> deleteUser(String userId) async {
@@ -25,8 +25,12 @@ class AdminGuard {
   /// ```
   static void requireAdmin(AuthProvider authProvider) {
     if (!authProvider.isAuthenticated) {
-      logger.AppLogger.warning('Unauthorized access attempt - not authenticated');
-      throw UnauthorizedException('You must be logged in to access this resource');
+      logger.AppLogger.warning(
+        'Unauthorized access attempt - not authenticated',
+      );
+      throw UnauthorizedException(
+        'You must be logged in to access this resource',
+      );
     }
 
     if (!authProvider.isAdmin) {
@@ -42,31 +46,30 @@ class AdminGuard {
   }
 
   /// Check apakah user punya permission tertentu
-  /// 
+  ///
   /// Throws:
   /// - [UnauthorizedException] jika user tidak login
   /// - [ForbiddenException] jika user tidak punya permission
-  /// 
+  ///
   /// Example:
   /// ```dart
   /// AdminGuard.requirePermission(authProvider, 'users:delete');
   /// ```
-  static void requirePermission(
-    AuthProvider authProvider,
-    String permission,
-  ) {
+  static void requirePermission(AuthProvider authProvider, String permission) {
     if (!authProvider.isAuthenticated) {
-      logger.AppLogger.warning('Unauthorized access attempt - not authenticated');
-      throw UnauthorizedException('You must be logged in to access this resource');
+      logger.AppLogger.warning(
+        'Unauthorized access attempt - not authenticated',
+      );
+      throw UnauthorizedException(
+        'You must be logged in to access this resource',
+      );
     }
 
     if (!authProvider.hasPermission(permission)) {
       logger.AppLogger.warning(
         'Forbidden access attempt by user ${authProvider.userEmail} for permission: $permission',
       );
-      throw ForbiddenException(
-        'You do not have permission: $permission',
-      );
+      throw ForbiddenException('You do not have permission: $permission');
     }
 
     logger.AppLogger.info(
@@ -76,11 +79,11 @@ class AdminGuard {
 }
 
 /// Widget guard untuk protect admin routes
-/// 
+///
 /// Gunakan untuk wrap admin screens/widgets.
 /// Jika user bukan admin, akan show unauthorized screen.
 /// Jika user belum login, akan redirect ke login.
-/// 
+///
 /// Example:
 /// ```dart
 /// AdminGuardWidget(
@@ -104,19 +107,15 @@ class AdminGuardWidget extends StatelessWidget {
     // Not authenticated - redirect to login
     if (!authProvider.isAuthenticated) {
       logger.AppLogger.warning('AdminGuard: User not authenticated');
-      
+
       if (redirectToLogin) {
         // Navigate to login after frame is built
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Navigator.of(context).pushReplacementNamed('/login');
         });
       }
-      
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     // Authenticated but not admin - show unauthorized
@@ -128,7 +127,9 @@ class AdminGuardWidget extends StatelessWidget {
     }
 
     // Admin - show content
-    logger.AppLogger.info('AdminGuard: Access granted to ${authProvider.userEmail}');
+    logger.AppLogger.info(
+      'AdminGuard: Access granted to ${authProvider.userEmail}',
+    );
     return child;
   }
 }

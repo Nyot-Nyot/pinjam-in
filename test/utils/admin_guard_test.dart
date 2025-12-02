@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pinjam_in/providers/auth_provider.dart';
 import 'package:pinjam_in/utils/admin_guard.dart';
 import 'package:pinjam_in/utils/exceptions.dart';
-import 'package:pinjam_in/providers/auth_provider.dart';
 
 // Mock AuthProvider untuk testing
 class MockAuthProvider extends AuthProvider {
@@ -47,18 +47,21 @@ void main() {
       );
     });
 
-    test('should throw ForbiddenException when authenticated but not admin', () {
-      final authProvider = MockAuthProvider(
-        mockIsAuthenticated: true,
-        mockIsAdmin: false,
-        mockUserEmail: 'user@example.com',
-      );
+    test(
+      'should throw ForbiddenException when authenticated but not admin',
+      () {
+        final authProvider = MockAuthProvider(
+          mockIsAuthenticated: true,
+          mockIsAdmin: false,
+          mockUserEmail: 'user@example.com',
+        );
 
-      expect(
-        () => AdminGuard.requireAdmin(authProvider),
-        throwsA(isA<ForbiddenException>()),
-      );
-    });
+        expect(
+          () => AdminGuard.requireAdmin(authProvider),
+          throwsA(isA<ForbiddenException>()),
+        );
+      },
+    );
 
     test('should not throw when authenticated and is admin', () {
       final authProvider = MockAuthProvider(
@@ -67,10 +70,7 @@ void main() {
         mockUserEmail: 'admin@example.com',
       );
 
-      expect(
-        () => AdminGuard.requireAdmin(authProvider),
-        returnsNormally,
-      );
+      expect(() => AdminGuard.requireAdmin(authProvider), returnsNormally);
     });
   });
 
