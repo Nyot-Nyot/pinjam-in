@@ -264,19 +264,40 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
 
 #### Task 1.1.1: Create Admin Layout
 
--   [ ] Buat `lib/screens/admin/admin_layout.dart`
--   [ ] Design sidebar navigation:
-    -   [ ] Dashboard
-    -   [ ] Users
-    -   [ ] Items
-    -   [ ] Storage
-    -   [ ] Analytics
-    -   [ ] Audit Logs
--   [ ] Implement responsive layout (drawer for mobile)
--   [ ] Add breadcrumbs widget
--   [ ] Add user profile dropdown (admin name, logout)
--   [ ] Add theme toggle (light/dark)
--   [ ] Test layout di berbagai screen sizes
+-   [x] Buat `lib/screens/admin/admin_layout.dart`
+-   [x] Design sidebar navigation:
+    -   [x] Dashboard
+    -   [x] Users
+    -   [x] Items
+    -   [x] Storage
+    -   [x] Analytics
+    -   [x] Audit Logs
+-   [x] Implement responsive layout (drawer for mobile)
+-   [x] Add breadcrumbs widget
+-   [x] Add user profile dropdown (admin name, logout)
+-   [x] Add theme toggle (light/dark)
+-   [x] Test layout di berbagai screen sizes
+
+**Status**: ✅ **COMPLETED** - Admin layout created with:
+
+-   **AdminLayout widget** (`lib/screens/admin/admin_layout.dart`):
+    -   Sidebar navigation with 6 menu items (Dashboard, Users, Items, Storage, Analytics, Audit Logs)
+    -   Responsive design: permanent sidebar on desktop (≥768px), drawer on mobile
+    -   Integrated breadcrumbs support for navigation paths
+    -   AppBar with app title, theme toggle, and user profile menu
+    -   Protected with AdminGuardWidget - requires admin authentication
+-   **Breadcrumbs widget** (`lib/widgets/admin/breadcrumbs.dart`):
+    -   Display navigation path with clickable links
+    -   Chevron separators between items
+    -   Last item non-clickable (current page)
+-   **ThemeProvider** (`lib/providers/theme_provider.dart`):
+    -   Toggle between light/dark mode
+    -   Persists theme preference in SharedPreferences
+    -   Integrated with MaterialApp themeMode
+-   **User Profile Menu**:
+    -   Shows admin name, email, and "ADMIN" badge
+    -   Logout action
+-   **Test file**: `test/screens/admin/admin_layout_test.dart` with comprehensive widget tests
 
 #### Task 1.1.2: Create Dashboard Home
 
