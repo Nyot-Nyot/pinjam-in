@@ -1,4 +1,5 @@
 /// Custom exceptions untuk aplikasi Pinjam In
+library;
 
 /// Exception untuk unauthorized access
 class UnauthorizedException implements Exception {

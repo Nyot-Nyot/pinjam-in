@@ -26,7 +26,7 @@ class AdminLayout extends StatefulWidget {
 }
 
 class _AdminLayoutState extends State<AdminLayout> {
-  bool _isDrawerOpen = true;
+  final bool _isDrawerOpen = true;
 
   @override
   Widget build(BuildContext context) {

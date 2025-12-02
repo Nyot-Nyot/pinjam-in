@@ -301,23 +301,43 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
 
 #### Task 1.1.2: Create Dashboard Home
 
--   [ ] Buat `lib/screens/admin/dashboard_home.dart`
--   [ ] Implement metrics cards:
-    -   [ ] Total Users (dengan growth %)
-    -   [ ] Total Items (dengan today's count)
-    -   [ ] Active Loans
-    -   [ ] Overdue Items (dengan warning badge)
-    -   [ ] Storage Usage (dengan progress bar)
--   [ ] Implement quick actions section:
-    -   [ ] Create User
-    -   [ ] View All Items
-    -   [ ] View Audit Logs
--   [ ] Add recent activity feed (last 10 actions)
--   [ ] Add charts:
-    -   [ ] User growth line chart (last 30 days)
-    -   [ ] Items status pie chart
--   [ ] Connect to backend analytics functions
--   [ ] Test dashboard loading & error states
+-   [x] Buat `lib/screens/admin/admin_dashboard_screen.dart` (StatefulWidget)
+-   [x] Implement metrics cards:
+    -   [x] Total Users (dengan active users subtitle)
+    -   [x] Total Items (dengan borrowed count)
+    -   [x] Overdue Items (dengan warning badge)
+    -   [x] Storage Files (total photos uploaded)
+-   [x] Implement quick actions section:
+    -   [x] Manage Users
+    -   [x] View Analytics
+    -   [x] Audit Logs
+-   [x] Add recent activity feed (last 10 actions from audit_logs)
+    -   [x] Shows action type with icons and colors
+    -   [x] Shows relative time (just now, 5m ago, etc.)
+    -   [x] Handles empty state
+-   [x] Add charts:
+    -   [x] User growth line chart (last 30 days) using fl_chart
+    -   [x] Items status pie chart (borrowed/returned/overdue)
+    -   [x] Empty states for charts
+-   [x] Connect to backend analytics functions:
+    -   [x] admin_get_dashboard_stats()
+    -   [x] admin_get_user_growth(30)
+    -   [x] audit_logs table query
+-   [x] Test dashboard loading & error states:
+    -   [x] Loading indicator during data fetch
+    -   [x] Error widget with retry button
+    -   [x] RefreshIndicator for pull-to-refresh
+-   [x] Add fl_chart ^0.69.0 dependency to pubspec.yaml
+
+**Status**: ✅ **COMPLETED** - Dashboard home implemented with:
+
+-   **Data fetching**: Connects to Supabase RPC functions (admin_get_dashboard_stats, admin_get_user_growth) and audit_logs table
+-   **Metrics cards**: 4 cards showing Total Users, Total Items, Overdue Items, and Storage Files with real data
+-   **User growth chart**: Line chart showing cumulative user growth over 30 days with fl_chart
+-   **Items status chart**: Pie chart showing distribution of borrowed/returned/overdue items
+-   **Recent activity**: ListView showing last 10 admin actions from audit_logs with icons, colors, and relative timestamps
+-   **Error handling**: Loading states, error messages with retry button, pull-to-refresh
+-   **Empty states**: Graceful handling of no data scenarios for charts and activity feed
 
 #### Task 1.1.3: Admin State Management
 
