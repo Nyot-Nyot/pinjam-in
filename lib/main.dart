@@ -7,7 +7,12 @@ import 'constants/storage_keys.dart';
 import 'providers/auth_provider.dart';
 import 'providers/loan_provider.dart';
 import 'providers/persistence_provider.dart';
+import 'providers/theme_provider.dart';
+import 'screens/admin/admin_dashboard_screen.dart';
 import 'screens/splash_screen.dart';
+import 'screens/unauthorized_screen.dart';
+import 'theme/app_theme.dart';
+import 'utils/admin_guard.dart';
 import 'utils/logger.dart';
 
 Future<void> main() async {
@@ -73,7 +78,10 @@ class MainApp extends StatelessWidget {
         // 2. AuthProvider - Independent dari persistence
         ChangeNotifierProvider(create: (_) => AuthProvider()),
 
-        // 3. LoanProvider - Depends on PersistenceProvider
+        // 3. ThemeProvider - Independent, manages app theme
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+
+        // 4. LoanProvider - Depends on PersistenceProvider
         ChangeNotifierProxyProvider<PersistenceProvider, LoanProvider?>(
           create: (context) => null,
           update: (context, persistenceProvider, previous) {
@@ -95,12 +103,120 @@ class MainApp extends StatelessWidget {
           },
         ),
       ],
-      child: MaterialApp(
-        title: 'Pinjam In',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(primarySwatch: Colors.indigo),
-        home: const SplashScreen(),
+      child: const _MaterialAppWrapper(),
+    );
+  }
+}
+
+/// Wrapper widget to access providers in MaterialApp
+class _MaterialAppWrapper extends StatelessWidget {
+  const _MaterialAppWrapper();
+
+  /// Route helper for admin screens
+  Widget _getAdminScreen(String route) {
+    switch (route) {
+      case '/admin':
+      case '/admin/dashboard':
+        return const AdminDashboardScreen();
+      case '/admin/users':
+        return const UnauthorizedScreen(); // Placeholder
+      case '/admin/items':
+        return const UnauthorizedScreen(); // Placeholder
+      case '/admin/storage':
+        return const UnauthorizedScreen(); // Placeholder
+      case '/admin/analytics':
+        return const UnauthorizedScreen(); // Placeholder
+      case '/admin/audit':
+        return const UnauthorizedScreen(); // Placeholder
+      default:
+        return const AdminDashboardScreen();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Pinjam In',
+      debugShowCheckedModeBanner: false,
+      themeMode: context.watch<ThemeProvider>().themeMode,
+      theme: ThemeData(
+        primarySwatch: Colors.deepPurple,
+        primaryColor: AppTheme.primaryPurple,
+        scaffoldBackgroundColor: AppTheme.backgroundLight,
+        brightness: Brightness.light,
+        colorScheme: ColorScheme.light(
+          primary: AppTheme.primaryPurple,
+          secondary: AppTheme.primaryPurpleLight,
+          surface: AppTheme.backgroundWhite,
+        ),
+        appBarTheme: AppBarTheme(
+          backgroundColor: AppTheme.primaryPurple,
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
+        cardTheme: CardThemeData(
+          color: AppTheme.backgroundWhite,
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusM),
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.primaryPurple,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusS),
+            ),
+          ),
+        ),
       ),
+      darkTheme: ThemeData(
+        primarySwatch: Colors.deepPurple,
+        primaryColor: AppTheme.primaryPurple,
+        scaffoldBackgroundColor: const Color(0xFF1A1A1A),
+        brightness: Brightness.dark,
+        colorScheme: ColorScheme.dark(
+          primary: AppTheme.primaryPurple,
+          secondary: AppTheme.primaryPurpleLight,
+          surface: const Color(0xFF2A2A2A),
+        ),
+        appBarTheme: AppBarTheme(
+          backgroundColor: AppTheme.primaryPurple,
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
+        cardTheme: CardThemeData(
+          color: const Color(0xFF2A2A2A),
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusM),
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.primaryPurple,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusS),
+            ),
+          ),
+        ),
+      ),
+      home: const SplashScreen(),
+      onGenerateRoute: (settings) {
+        // Admin routes with guard protection
+        if (settings.name?.startsWith('/admin') ?? false) {
+          return MaterialPageRoute(
+            builder: (context) =>
+                AdminGuardWidget(child: _getAdminScreen(settings.name!)),
+            settings: settings,
+          );
+        }
+
+        // Handle other routes (to be added later)
+        return null;
+      },
     );
   }
 }

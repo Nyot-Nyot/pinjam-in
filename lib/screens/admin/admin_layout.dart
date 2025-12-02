@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
+import '../../theme/app_theme.dart';
 import '../../utils/admin_guard.dart';
 import '../../widgets/admin/breadcrumbs.dart';
 
@@ -34,6 +35,7 @@ class _AdminLayoutState extends State<AdminLayout> {
       child: Builder(
         builder: (context) {
           return Scaffold(
+            backgroundColor: AppTheme.backgroundLight,
             appBar: _buildAppBar(context),
             drawer: _buildDrawer(context),
             body: Row(
@@ -71,9 +73,7 @@ class _AdminLayoutState extends State<AdminLayout> {
       actions: [
         // Theme toggle
         IconButton(
-          icon: Icon(
-            themeProvider.isDark ? Icons.light_mode : Icons.dark_mode,
-          ),
+          icon: Icon(themeProvider.isDark ? Icons.light_mode : Icons.dark_mode),
           onPressed: () => themeProvider.toggleTheme(),
           tooltip: 'Toggle theme',
         ),
@@ -112,16 +112,15 @@ class _AdminLayoutState extends State<AdminLayout> {
               ),
               Text(
                 authProvider.userEmail ?? '',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: Colors.grey[600], fontSize: 12),
               ),
               if (authProvider.isAdmin)
                 Container(
                   margin: const EdgeInsets.only(top: 4),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.orange[100],
                     borderRadius: BorderRadius.circular(4),
@@ -162,9 +161,7 @@ class _AdminLayoutState extends State<AdminLayout> {
   Widget _buildDrawer(BuildContext context) {
     // For mobile, use standard drawer
     if (MediaQuery.of(context).size.width < 768) {
-      return Drawer(
-        child: _buildNavigationMenu(context),
-      );
+      return Drawer(child: _buildNavigationMenu(context));
     }
     return const SizedBox.shrink();
   }
@@ -174,9 +171,7 @@ class _AdminLayoutState extends State<AdminLayout> {
       width: 250,
       decoration: BoxDecoration(
         border: Border(
-          right: BorderSide(
-            color: Theme.of(context).dividerColor,
-          ),
+          right: BorderSide(color: Theme.of(context).dividerColor),
         ),
       ),
       child: _buildNavigationMenu(context),
@@ -188,9 +183,7 @@ class _AdminLayoutState extends State<AdminLayout> {
       padding: EdgeInsets.zero,
       children: [
         DrawerHeader(
-          decoration: BoxDecoration(
-            color: Theme.of(context).primaryColor,
-          ),
+          decoration: BoxDecoration(color: Theme.of(context).primaryColor),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

@@ -5,10 +5,7 @@ import 'package:flutter/material.dart';
 class Breadcrumbs extends StatelessWidget {
   final List<BreadcrumbItem> items;
 
-  const Breadcrumbs({
-    super.key,
-    required this.items,
-  });
+  const Breadcrumbs({super.key, required this.items});
 
   @override
   Widget build(BuildContext context) {
@@ -68,8 +65,5 @@ class BreadcrumbItem {
   final String label;
   final VoidCallback? onTap;
 
-  const BreadcrumbItem({
-    required this.label,
-    this.onTap,
-  });
+  const BreadcrumbItem({required this.label, this.onTap});
 }

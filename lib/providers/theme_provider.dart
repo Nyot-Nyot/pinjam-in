@@ -20,14 +20,14 @@ class ThemeProvider with ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       final themeModeString = prefs.getString(_themeKey);
-      
+
       if (themeModeString != null) {
         _themeMode = ThemeMode.values.firstWhere(
           (mode) => mode.toString() == themeModeString,
           orElse: () => ThemeMode.system,
         );
       }
-      
+
       _isInitialized = true;
       notifyListeners();
     } catch (e) {

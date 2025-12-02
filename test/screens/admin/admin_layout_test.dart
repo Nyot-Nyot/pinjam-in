@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:provider/provider.dart';
-
+import 'package:pinjam_in/models/user_profile.dart';
 import 'package:pinjam_in/providers/auth_provider.dart';
 import 'package:pinjam_in/providers/theme_provider.dart';
 import 'package:pinjam_in/screens/admin/admin_layout.dart';
-import 'package:pinjam_in/models/user_profile.dart';
 import 'package:pinjam_in/widgets/admin/breadcrumbs.dart';
+import 'package:provider/provider.dart';
 
 // Mock AuthProvider for testing
 class MockAuthProvider extends AuthProvider {
@@ -55,11 +54,7 @@ void main() {
     setUp(() {
       mockAuthProvider = MockAuthProvider();
       mockAuthProvider.setProfile(
-        const UserProfile(
-          id: 'test-id',
-          fullName: 'Admin User',
-          role: 'admin',
-        ),
+        const UserProfile(id: 'test-id', fullName: 'Admin User', role: 'admin'),
       );
       themeProvider = ThemeProvider();
     });
@@ -85,21 +80,13 @@ void main() {
     }
 
     testWidgets('should display app bar with title', (tester) async {
-      await tester.pumpWidget(
-        createTestWidget(
-          child: const Text('Content'),
-        ),
-      );
+      await tester.pumpWidget(createTestWidget(child: const Text('Content')));
 
       expect(find.text('Admin Dashboard'), findsOneWidget);
     });
 
     testWidgets('should display navigation menu items', (tester) async {
-      await tester.pumpWidget(
-        createTestWidget(
-          child: const Text('Content'),
-        ),
-      );
+      await tester.pumpWidget(createTestWidget(child: const Text('Content')));
 
       // Open drawer on mobile
       await tester.tap(find.byType(IconButton).first);
@@ -114,11 +101,7 @@ void main() {
     });
 
     testWidgets('should display user profile in menu', (tester) async {
-      await tester.pumpWidget(
-        createTestWidget(
-          child: const Text('Content'),
-        ),
-      );
+      await tester.pumpWidget(createTestWidget(child: const Text('Content')));
 
       // Find and tap user profile avatar
       final avatarFinder = find.byType(CircleAvatar).last;
@@ -153,11 +136,7 @@ void main() {
     });
 
     testWidgets('should display theme toggle button', (tester) async {
-      await tester.pumpWidget(
-        createTestWidget(
-          child: const Text('Content'),
-        ),
-      );
+      await tester.pumpWidget(createTestWidget(child: const Text('Content')));
 
       // Find theme toggle button
       final themeToggleButton = find.byIcon(Icons.dark_mode);
@@ -166,9 +145,7 @@ void main() {
 
     testWidgets('should render child content', (tester) async {
       await tester.pumpWidget(
-        createTestWidget(
-          child: const Text('Test Content'),
-        ),
+        createTestWidget(child: const Text('Test Content')),
       );
 
       expect(find.text('Test Content'), findsOneWidget);
@@ -191,7 +168,7 @@ void main() {
         of: find.text('Users'),
         matching: find.byType(ListTile),
       );
-      
+
       expect(usersListTile, findsOneWidget);
     });
   });
@@ -206,9 +183,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: Breadcrumbs(items: items),
-          ),
+          home: Scaffold(body: Breadcrumbs(items: items)),
         ),
       );
 
@@ -225,9 +200,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: Breadcrumbs(items: items),
-          ),
+          home: Scaffold(body: Breadcrumbs(items: items)),
         ),
       );
 
@@ -238,18 +211,13 @@ void main() {
       bool tapped = false;
 
       final items = [
-        BreadcrumbItem(
-          label: 'Home',
-          onTap: () => tapped = true,
-        ),
+        BreadcrumbItem(label: 'Home', onTap: () => tapped = true),
         const BreadcrumbItem(label: 'Current'),
       ];
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: Breadcrumbs(items: items),
-          ),
+          home: Scaffold(body: Breadcrumbs(items: items)),
         ),
       );
 
@@ -268,7 +236,7 @@ void main() {
 
     test('should toggle theme between light and dark', () async {
       final provider = ThemeProvider();
-      
+
       await provider.setThemeMode(ThemeMode.light);
       expect(provider.themeMode, ThemeMode.light);
       expect(provider.isLight, isTrue);

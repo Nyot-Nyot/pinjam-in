@@ -155,6 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       bottomNavigationBar: _buildBottomNav(),
+      floatingActionButton: _buildAdminFab(),
     );
   }
 
@@ -302,6 +303,25 @@ class _HomeScreenState extends State<HomeScreen> {
           curve: Curves.ease,
         );
       },
+    );
+  }
+
+  /// Build admin floating action button (only visible for admin users)
+  Widget? _buildAdminFab() {
+    final authProvider = Provider.of<AuthProvider?>(context, listen: false);
+
+    // Only show for admin users
+    if (authProvider?.isAdmin != true) {
+      return null;
+    }
+
+    return FloatingActionButton.extended(
+      onPressed: () {
+        Navigator.pushNamed(context, '/admin');
+      },
+      icon: const Icon(Icons.admin_panel_settings),
+      label: const Text('Admin'),
+      backgroundColor: Colors.deepPurple,
     );
   }
 }
