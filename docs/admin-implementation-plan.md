@@ -223,10 +223,32 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
 
 #### Task 0.4.2: Create Admin Guard
 
--   [ ] Buat `lib/utils/admin_guard.dart`
--   [ ] Implement `requireAdmin()` → throws jika bukan admin
--   [ ] Add widget `AdminGuard` untuk wrap admin routes
--   [ ] Test guards dengan different roles
+-   [x] Buat `lib/utils/admin_guard.dart`
+-   [x] Implement `requireAdmin()` → throws jika bukan admin
+-   [x] Implement `requirePermission()` → throws jika tidak punya permission
+-   [x] Add widget `AdminGuardWidget` untuk wrap admin routes
+-   [x] Create custom exceptions: `UnauthorizedException`, `ForbiddenException`
+-   [x] Create `UnauthorizedScreen` untuk non-admin users
+-   [x] Create test file `test/utils/admin_guard_test.dart` dengan 11 tests
+-   [x] Test guards dengan different roles - all 11 tests passed
+
+**Status**: ✅ **COMPLETED** - Admin guard system implemented:
+- **AdminGuard utility class** with two static methods:
+  - `requireAdmin()`: Throws UnauthorizedException if not authenticated, ForbiddenException if not admin
+  - `requirePermission(permission)`: Check specific permission (admin has all, others need explicit grant)
+- **AdminGuardWidget**: Widget wrapper for admin routes
+  - Redirects to login if not authenticated
+  - Shows UnauthorizedScreen if authenticated but not admin
+  - Shows child content if admin
+- **Custom Exceptions** (lib/utils/exceptions.dart):
+  - UnauthorizedException: For unauthenticated access attempts
+  - ForbiddenException: For authenticated but insufficient permissions
+- **UnauthorizedScreen** (lib/screens/unauthorized_screen.dart):
+  - User-friendly access denied message
+  - Shows current user email
+  - "Go Back" button to return to previous screen
+  - "Logout" button to switch accounts
+- **Comprehensive testing**: 11 tests covering all guard scenarios, exception handling, and permission checks
 
 ---
 
