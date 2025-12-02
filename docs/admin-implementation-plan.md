@@ -62,27 +62,36 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
 
 #### Task 0.2.1: Create Admin RLS Bypass Policies
 
--   [ ] Buat migration file `003_admin_rls_policies.sql`
--   [ ] Update RLS untuk `items` table:
-    -   [ ] Policy: "Admin can view all items" (SELECT untuk role='admin')
-    -   [ ] Policy: "Admin can update all items" (UPDATE untuk role='admin')
-    -   [ ] Policy: "Admin can delete all items" (DELETE untuk role='admin')
--   [ ] Update RLS untuk `profiles` table:
-    -   [ ] Policy: "Admin can view all profiles"
-    -   [ ] Policy: "Admin can update all profiles"
--   [ ] Update storage policies:
-    -   [ ] Policy: "Admin can view all files"
-    -   [ ] Policy: "Admin can delete all files"
--   [ ] Test policies dengan different user roles
--   [ ] Dokumentasi policies
+-   [x] Buat migration file `004_admin_rls_policies.sql`
+-   [x] Update RLS untuk `items` table:
+    -   [x] Policy: "Admin can view all items" (SELECT untuk role='admin')
+    -   [x] Policy: "Admin can update all items" (UPDATE untuk role='admin')
+    -   [x] Policy: "Admin can delete all items" (DELETE untuk role='admin')
+-   [x] Update RLS untuk `profiles` table:
+    -   [x] Policy: "Admin can view all profiles"
+    -   [x] Policy: "Admin can update all profiles"
+    -   [x] Policy: "Admin can insert profiles"
+    -   [x] Policy: "Admin can delete profiles"
+-   [x] Update storage policies:
+    -   [x] Policy: "Admin can view all files"
+    -   [x] Policy: "Admin can update all files"
+    -   [x] Policy: "Admin can delete all files"
+-   [x] Create is_admin() SECURITY DEFINER function
+-   [x] Fix infinite recursion issue with migration 007
+-   [x] Test policies dengan different user roles
+-   [x] Dokumentasi policies
 
 #### Task 0.2.2: Test RLS Security
 
--   [ ] Buat test users: regular user, admin
--   [ ] Test regular user tidak bisa akses data user lain
--   [ ] Test admin bisa akses semua data
--   [ ] Dokumentasi test results
--   [ ] Fix security issues jika ditemukan
+-   [x] Buat test users: regular user, admin
+-   [x] Test regular user tidak bisa akses data user lain
+-   [x] Test admin bisa akses semua data
+-   [x] Create smoke test script (test_rls_smoke.sql)
+-   [x] Verify no infinite recursion errors
+-   [x] Dokumentasi test results
+-   [x] Fix security issues jika ditemukan
+
+**Status**: ✅ **COMPLETED** - All RLS policies implemented and tested successfully
 
 ### 0.3 Database Functions (4 hari)
 

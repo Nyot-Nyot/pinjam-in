@@ -26,8 +26,14 @@ This table stores user metadata and role information.
 
 **Row Level Security (RLS) Policies:**
 
--   Users can view and update their own profile
--   Admins can view and update all profiles
+-   **SELECT**: Users can view own profile OR admins can view all profiles
+-   **UPDATE**: Users can update own profile OR admins can update all profiles
+-   **INSERT**: Users can insert own profile OR admins can insert any profile
+-   **DELETE**: Only admins can delete profiles (regular users cannot delete their own)
+
+**Policy Details:**
+
+All policies use the pattern: `auth.uid() = id OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')` to allow both owner access and admin bypass.
 
 ### 2. `audit_logs` Table
 
@@ -55,8 +61,13 @@ This table tracks all administrative actions for compliance and security monitor
 
 **Row Level Security (RLS) Policies:**
 
--   Only admins can view audit logs
--   Only admins can insert audit logs (immutable - no updates/deletes)
+-   **SELECT**: Only admins can view audit logs
+-   **INSERT**: Only admins can insert audit logs
+-   **UPDATE/DELETE**: Not allowed (audit logs are immutable for compliance)
+
+**Policy Details:**
+
+All policies check: `EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')` to ensure only admins have access.
 
 ### 3. `items` Table
 
@@ -81,8 +92,14 @@ This table stores all the borrowed item records.
 
 **Row Level Security (RLS) Policies:**
 
--   Users can view, insert, update, and delete their own items
--   Admins can view, insert, update, and delete all items
+-   **SELECT**: Users can view own items OR admins can view all items
+-   **INSERT**: Users can insert own items OR admins can insert any items
+-   **UPDATE**: Users can update own items OR admins can update all items
+-   **DELETE**: Users can delete own items OR admins can delete all items
+
+**Policy Details:**
+
+All policies use the pattern: `auth.uid() = user_id OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')` to allow both owner access and admin bypass.
 
 ### 4. Storage Bucket: `item_photos`
 
@@ -92,16 +109,23 @@ This bucket stores photos of borrowed items.
 
 **Row Level Security (RLS) Policies:**
 
--   Users can view, upload, and delete photos in their own folder (matched by user_id)
--   Admins can view, upload, and delete all photos
+-   **SELECT**: Users can view photos in their own folder OR admins can view all photos
+-   **INSERT**: Users can upload photos to their own folder OR admins can upload anywhere
+-   **UPDATE**: Users can update photos in their own folder OR admins can update all photos
+-   **DELETE**: Users can delete photos in their own folder OR admins can delete all photos
+
+**Policy Details:**
+
+All policies check bucket_id = 'item_photos' AND (auth.uid()::text = (storage.foldername(name))[1] OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')) to allow both owner access and admin bypass.
 
 ## Migrations
 
 Migrations are located in `sql/migrations/` and should be applied in order:
 
-1. **001_add_profiles_and_admin_rls.sql** - Creates profiles table and adds admin role support to RLS policies
-2. **002_create_audit_logs.sql** - Creates audit_logs table for tracking admin actions (upcoming)
-3. **003_update_profiles_admin.sql** - Adds status and last_login to profiles (upcoming)
+1. **001_add_profiles_and_admin_rls.sql** - Creates profiles table and adds admin role support to items and storage RLS policies
+2. **002_create_audit_logs.sql** - Creates audit_logs table for tracking admin actions with indexes and RLS
+3. **003_update_profiles_admin.sql** - Adds status and last_login columns to profiles with helper functions
+4. **004_admin_rls_policies.sql** - Enables RLS on profiles table and adds comprehensive admin bypass policies for all tables
 
 ## Notes
 
