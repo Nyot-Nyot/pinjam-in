@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' hide Provider;
 
 import '../constants/app_constants.dart';
 import '../models/loan_item.dart';
+import '../providers/auth_provider.dart';
 import '../providers/loan_provider.dart';
 import '../providers/persistence_provider.dart';
 import '../utils/date_helper.dart';
@@ -16,7 +16,7 @@ import '../widgets/home_header.dart';
 import '../widgets/loan_card.dart';
 import 'add_item_screen.dart';
 import 'history_screen.dart';
-import 'login_screen.dart';
+import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -47,25 +47,6 @@ class _HomeScreenState extends State<HomeScreen> {
     if (loanProvider == null) return;
     // Delegate to provider to mark as returned
     loanProvider.markAsReturned(id, DateHelper.nowUtc());
-  }
-
-  Future<void> _handleLogout() async {
-    try {
-      // AuthProvider handles sign out; fallback to direct supabase sign out
-      try {
-        await Supabase.instance.client.auth.signOut();
-      } catch (_) {}
-
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ErrorHandler.showError(context, 'Gagal logout: $e');
-      }
-    }
   }
 
   @override
@@ -169,6 +150,8 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
+          // Profile screen (moved from header to bottom nav)
+          const ProfileScreen(),
         ],
       ),
       bottomNavigationBar: _buildBottomNav(),
@@ -217,6 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHome(LoanProvider loanProvider, dynamic persistence) {
+    final authProvider = Provider.of<AuthProvider?>(context);
     final visible = _query.isEmpty
         ? loanProvider.activeLoans
         : loanProvider.searchActiveLoans(_query);
@@ -236,7 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
           overdueCount: overdueCount,
           searchController: _searchController,
           searchFocusNode: _searchFocusNode,
-          onLogout: _handleLogout,
+          role: authProvider?.role,
         ),
 
         // small gap between header/search and the list
@@ -268,7 +252,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: ListView.separated(
                     padding: const EdgeInsets.only(top: 8.0, bottom: 24.0),
                     itemCount: visible.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12.0),
+                    separatorBuilder: (_, _) => const SizedBox(height: 12.0),
                     itemBuilder: (context, index) {
                       final item = visible[index];
                       return LoanCard(

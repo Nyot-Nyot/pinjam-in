@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../utils/logger.dart' as logger;
+
+import '../models/user_profile.dart';
 import '../utils/error_handler.dart';
+import '../utils/logger.dart' as logger;
 
 /// Provider untuk mengelola state dan operasi authentikasi
 ///
@@ -13,6 +15,7 @@ class AuthProvider with ChangeNotifier {
   // State
   User? _user;
   Session? _session;
+  UserProfile? _profile;
   bool _isLoading = false;
   String? _errorMessage;
   bool _isInitialized = false;
@@ -20,6 +23,8 @@ class AuthProvider with ChangeNotifier {
   // Getters
   User? get user => _user;
   Session? get session => _session;
+  UserProfile? get profile => _profile;
+  String? get role => _profile?.role;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get hasError => _errorMessage != null;
@@ -47,18 +52,34 @@ class AuthProvider with ChangeNotifier {
       final client = Supabase.instance.client;
       _session = client.auth.currentSession;
       _user = client.auth.currentUser;
+      // If there's an active user, load profile (role)
+      if (_user != null) {
+        try {
+          await loadProfile();
+        } catch (_) {}
+      }
 
       logger.AppLogger.info(
         'Auth initialized: ${_user != null ? "logged in as ${_user!.email}" : "not logged in"}',
       );
 
       // Listen to auth state changes
-      client.auth.onAuthStateChange.listen((data) {
+      client.auth.onAuthStateChange.listen((data) async {
         final event = data.event;
         logger.AppLogger.info('Auth state changed: $event');
 
         _session = data.session;
         _user = _session?.user;
+        // Load or clear profile depending on auth state
+        if (_user != null) {
+          try {
+            await loadProfile();
+          } catch (_) {
+            _profile = null;
+          }
+        } else {
+          _profile = null;
+        }
         notifyListeners();
       });
 
@@ -87,6 +108,13 @@ class AuthProvider with ChangeNotifier {
 
       _session = response.session;
       _user = response.user;
+
+      // Load profile for the authenticated user
+      if (_user != null) {
+        try {
+          await loadProfile();
+        } catch (_) {}
+      }
 
       if (_user == null) {
         throw Exception('Login failed: No user returned');
@@ -120,6 +148,13 @@ class AuthProvider with ChangeNotifier {
       // Note: Supabase might require email confirmation
       _session = response.session;
       _user = response.user;
+
+      // Attempt to load profile if available
+      if (_user != null) {
+        try {
+          await loadProfile();
+        } catch (_) {}
+      }
 
       if (_user == null) {
         throw Exception('Registration failed: No user returned');
@@ -156,6 +191,7 @@ class AuthProvider with ChangeNotifier {
       await client.auth.signOut();
 
       _user = null;
+      _profile = null;
       _session = null;
 
       logger.AppLogger.success('Logout successful');
@@ -232,6 +268,11 @@ class AuthProvider with ChangeNotifier {
 
       _session = response.session;
       _user = response.user;
+      if (_user != null) {
+        try {
+          await loadProfile();
+        } catch (_) {}
+      }
 
       logger.AppLogger.success('Session refreshed');
       notifyListeners();
@@ -244,6 +285,33 @@ class AuthProvider with ChangeNotifier {
   /// Clear error message
   void clearError() {
     _clearError();
+  }
+
+  /// Load the current user's profile (from public.profiles)
+  Future<void> loadProfile() async {
+    if (_user == null) return;
+    try {
+      final client = Supabase.instance.client;
+      // select single profile row for current user
+      final res = await client
+          .from('profiles')
+          .select()
+          .eq('id', _user!.id)
+          .maybeSingle();
+      if (res == null) {
+        _profile = null;
+      } else {
+        try {
+          final map = Map<String, dynamic>.from(res as Map);
+          _profile = UserProfile.fromMap(map);
+        } catch (_) {
+          _profile = null;
+        }
+      }
+      notifyListeners();
+    } catch (e) {
+      logger.AppLogger.error('Failed to load profile', e);
+    }
   }
 
   // Private helpers
