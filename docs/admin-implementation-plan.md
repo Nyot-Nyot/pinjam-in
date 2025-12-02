@@ -31,8 +31,8 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
 
 #### Task 0.1.1: Create Audit Logs Table
 
--   [ ] Buat migration file `001_create_audit_logs.sql`
--   [ ] Define schema untuk `audit_logs`:
+-   [x] Buat migration file `001_create_audit_logs.sql`
+-   [x] Define schema untuk `audit_logs`:
     -   `id` (UUID, primary key)
     -   `admin_user_id` (UUID, references profiles.id)
     -   `action_type` (TEXT: 'create', 'update', 'delete', 'view')
@@ -42,21 +42,21 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
     -   `new_values` (JSONB: nilai baru setelah update, nullable)
     -   `metadata` (JSONB: additional info seperti timestamp detail)
     -   `created_at` (TIMESTAMPTZ)
--   [ ] Tambahkan indexes: `admin_user_id`, `action_type`, `table_name`, `created_at`
--   [ ] Create RLS policy: admin can read
--   [ ] Test migration di dev environment
--   [ ] Dokumentasi schema di SCHEMA_DOCS.md
+-   [x] Tambahkan indexes: `admin_user_id`, `action_type`, `table_name`, `created_at`
+-   [x] Create RLS policy: admin can read
+-   [x] Test migration di dev environment
+-   [x] Dokumentasi schema di SCHEMA_DOCS.md
 
 #### Task 0.1.2: Update Profiles Table
 
--   [ ] Buat migration file `002_update_profiles_admin.sql`
--   [ ] Add/update columns:
+-   [x] Buat migration file `002_update_profiles_admin.sql`
+-   [x] Add/update columns:
     -   `role` (TEXT: 'user' atau 'admin') - sudah ada
     -   `status` (TEXT: 'active', 'inactive', 'suspended')
     -   `last_login` (TIMESTAMPTZ)
--   [ ] Update RLS policies untuk support admin access
--   [ ] Create function `update_last_login()` trigger
--   [ ] Test migration
+-   [x] Update RLS policies untuk support admin access
+-   [x] Create function `update_last_login()` trigger
+-   [x] Test migration
 
 ### 0.2 RLS Policies for Admin (3 hari)
 
