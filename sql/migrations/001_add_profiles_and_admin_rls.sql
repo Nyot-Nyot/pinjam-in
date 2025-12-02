@@ -1,5 +1,5 @@
 -- Migration: Add profiles table and update RLS to allow admin role
--- Filename: sql/migrations/002_add_profiles_and_admin_rls.sql
+-- Filename: sql/migrations/001_add_profiles_and_admin_rls.sql
 -- Purpose: Create a simple `profiles` table to hold user role metadata
 -- and update Row Level Security (RLS) policies so users with role='admin'
 -- can view/modify/delete all items while regular users keep their own-only access.
