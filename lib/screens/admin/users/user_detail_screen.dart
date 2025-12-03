@@ -875,115 +875,551 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     );
   }
 
-  void _handleResetPassword() {
-    // TODO: Show reset password dialog
-    showDialog(
+  void _handleResetPassword() async {
+    if (_userDetails == null) return;
+
+    final userEmail = _userDetails!['email'] as String? ?? '';
+    final userName = _userDetails!['full_name'] ?? 'Unknown User';
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Reset Password'),
-        content: const Text('Send a password reset email to this user?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // TODO: Call reset password API
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Reset password - Coming soon')),
-              );
-            },
-            child: const Text('Send Email'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _handleToggleAccountStatus() {
-    final status = _userDetails!['status'] as String? ?? 'active';
-    final isActive = status == 'active';
-    final newStatus = isActive ? 'suspended' : 'active';
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(isActive ? 'Lock Account' : 'Unlock Account'),
-        content: Text(
-          isActive
-              ? 'This will prevent the user from logging in. Continue?'
-              : 'This will allow the user to log in again. Continue?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // TODO: Call update status API
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Update status to $newStatus - Coming soon'),
-                ),
-              );
-            },
-            child: Text(isActive ? 'Lock' : 'Unlock'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _handleChangeRole() {
-    final currentRole = _userDetails!['role'] as String? ?? 'user';
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Change Role'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Select new role for this user:'),
+            const Text('Send a password reset email to this user?'),
             const SizedBox(height: 16),
-            RadioListTile<String>(
-              title: const Text('User'),
-              value: 'user',
-              groupValue: currentRole,
-              onChanged: (value) {
-                Navigator.pop(context);
-                // TODO: Call update role API
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Change role - Coming soon')),
-                );
-              },
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    userName,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    userEmail,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            RadioListTile<String>(
-              title: const Text('Admin'),
-              value: 'admin',
-              groupValue: currentRole,
-              onChanged: (value) {
-                Navigator.pop(context);
-                // TODO: Call update role API
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Change role - Coming soon')),
-                );
-              },
+            const SizedBox(height: 16),
+            Text(
+              'The user will receive an email with a link to reset their password.',
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Send Email'),
           ),
         ],
       ),
     );
+
+    if (confirmed != true || !mounted) return;
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Sending password reset email...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      // Send password reset email using regular Supabase Auth
+      // This doesn't require admin API, just sends reset email to the user
+      await _supabase.auth.resetPasswordForEmail(
+        userEmail,
+        redirectTo: 'io.supabase.pinjam_in://reset-password',
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Password reset email sent to $userEmail'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+
+      // Create audit log
+      try {
+        await _supabase.rpc(
+          'admin_create_audit_log',
+          params: {
+            'p_action_type': 'reset_password',
+            'p_table_name': 'profiles',
+            'p_record_id': widget.userId,
+            'p_metadata': {
+              'email': userEmail,
+              'admin_action': 'sent_reset_email',
+            },
+          },
+        );
+      } catch (auditError) {
+        // Audit log failed but reset email was sent, just log it
+        print('Failed to create audit log: $auditError');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      // Show error with retry option
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to send reset email: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          action: SnackBarAction(
+            label: 'Retry',
+            onPressed: _handleResetPassword,
+          ),
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
+  }
+
+  void _handleToggleAccountStatus() async {
+    if (_userDetails == null) return;
+
+    final status = _userDetails!['status'] as String? ?? 'active';
+    final isActive = status == 'active';
+    final newStatus = isActive ? 'suspended' : 'active';
+    final userName = _userDetails!['full_name'] ?? 'Unknown User';
+    final userEmail = _userDetails!['email'] ?? '';
+
+    // Show confirmation dialog with reason input
+    String? reason;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        final reasonController = TextEditingController();
+        return AlertDialog(
+          title: Text(isActive ? 'Lock Account' : 'Unlock Account'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? Colors.orange.withOpacity(0.1)
+                        : Colors.green.withOpacity(0.1),
+                    border: Border.all(
+                      color: isActive ? Colors.orange : Colors.green,
+                      width: 1,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        isActive ? Icons.lock : Icons.lock_open,
+                        color: isActive ? Colors.orange : Colors.green,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              userName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              userEmail,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  isActive
+                      ? 'This will prevent the user from logging in. The user\'s data and items will be preserved.'
+                      : 'This will allow the user to log in again and access their account.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: reasonController,
+                  decoration: InputDecoration(
+                    labelText:
+                        'Reason ${isActive ? "(required)" : "(optional)"}',
+                    hintText: isActive
+                        ? 'e.g., Policy violation, suspicious activity'
+                        : 'e.g., Issue resolved, account verified',
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  maxLines: 2,
+                  maxLength: 200,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final text = reasonController.text.trim();
+                if (isActive && text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Please provide a reason for locking the account',
+                      ),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+                reason = text.isEmpty ? null : text;
+                Navigator.pop(context, true);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isActive ? Colors.orange : Colors.green,
+              ),
+              child: Text(isActive ? 'Lock Account' : 'Unlock Account'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text('${isActive ? "Locking" : "Unlocking"} account...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      // Call admin_update_user_status RPC
+      final response = await _supabase.rpc(
+        'admin_update_user_status',
+        params: {
+          'p_user_id': widget.userId,
+          'p_new_status': newStatus,
+          'p_reason': reason,
+        },
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      // Extract message from response
+      String message = 'Account status updated successfully';
+      if (response is List && response.isNotEmpty) {
+        message = response[0]['message'] as String? ?? message;
+      } else if (response is Map) {
+        message = response['message'] as String? ?? message;
+      }
+
+      // Reload user details to show updated state
+      await _loadUserDetails();
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      // Show error with retry option
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update status: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          action: SnackBarAction(
+            label: 'Retry',
+            onPressed: _handleToggleAccountStatus,
+          ),
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
+  }
+
+  void _handleChangeRole() async {
+    if (_userDetails == null) return;
+
+    final currentRole = _userDetails!['role'] as String? ?? 'user';
+    final userName = _userDetails!['full_name'] ?? 'Unknown User';
+    final userEmail = _userDetails!['email'] ?? '';
+
+    // Show role selection dialog
+    String? selectedRole;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        String tempRole = currentRole;
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Change Role'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // User info
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.person,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                userName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                userEmail,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Select new role for this user:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Role options
+                  RadioListTile<String>(
+                    title: const Text('User'),
+                    subtitle: const Text(
+                      'Can borrow items and manage own profile',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    value: 'user',
+                    groupValue: tempRole,
+                    onChanged: (value) {
+                      setState(() => tempRole = value!);
+                    },
+                  ),
+                  RadioListTile<String>(
+                    title: const Text('Admin'),
+                    subtitle: const Text(
+                      'Full access to all features and data',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    value: 'admin',
+                    groupValue: tempRole,
+                    onChanged: (value) {
+                      setState(() => tempRole = value!);
+                    },
+                  ),
+
+                  // Warning for admin role
+                  if (tempRole == 'admin' && currentRole != 'admin')
+                    Container(
+                      margin: const EdgeInsets.only(top: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        border: Border.all(color: Colors.orange, width: 1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.warning, color: Colors.orange, size: 20),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Admin users have full access to all features and can modify any data.',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: tempRole == currentRole
+                      ? null
+                      : () {
+                          selectedRole = tempRole;
+                          Navigator.pop(context, true);
+                        },
+                  child: const Text('Change Role'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (confirmed != true || selectedRole == null || !mounted) return;
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Updating role...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      // Call admin_update_user_role RPC
+      final response = await _supabase.rpc(
+        'admin_update_user_role',
+        params: {'p_user_id': widget.userId, 'p_new_role': selectedRole},
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      // Extract message from response
+      String message = 'User role updated successfully';
+      if (response is List && response.isNotEmpty) {
+        message = response[0]['message'] as String? ?? message;
+      } else if (response is Map) {
+        message = response['message'] as String? ?? message;
+      }
+
+      // Reload user details to show updated state
+      await _loadUserDetails();
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      // Show error with retry option
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update role: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          action: SnackBarAction(label: 'Retry', onPressed: _handleChangeRole),
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
   }
 
   void _handleDeleteUser() async {
