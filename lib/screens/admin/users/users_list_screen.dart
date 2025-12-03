@@ -52,6 +52,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
   }
 
   Future<void> _loadUsers() async {
+    print('_loadUsers called, fetching from database...');
     setState(() {
       _isLoading = true;
       _error = null;
@@ -76,6 +77,13 @@ class _UsersListScreenState extends State<UsersListScreen> {
       // Parse response
       final List<dynamic> usersList = response as List;
 
+      print('Fetched ${usersList.length} users from database');
+      if (usersList.isNotEmpty) {
+        print(
+          'First user: ${usersList[0]['full_name']} (${usersList[0]['email']})',
+        );
+      }
+
       // Note: Sorting is done on the database side (ORDER BY updated_at DESC)
       // Client-side sorting is not supported by this RPC function
 
@@ -91,7 +99,10 @@ class _UsersListScreenState extends State<UsersListScreen> {
         _isLoading = false;
         _selectedUserIds.clear(); // Clear selection on reload
       });
+
+      print('Users list updated in state, should trigger rebuild');
     } catch (e) {
+      print('Error loading users: $e');
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -661,11 +672,50 @@ class _UsersListScreenState extends State<UsersListScreen> {
     Navigator.pushNamed(context, '/admin/users/$userId');
   }
 
-  void _handleEditUser(String userId) {
-    // TODO: Navigate to edit user screen
-    ScaffoldMessenger.of(
+  void _handleEditUser(String userId) async {
+    // Show debug snackbar
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Opening edit for user: $userId'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+
+    final result = await Navigator.pushNamed(
       context,
-    ).showSnackBar(SnackBar(content: Text('Edit user: $userId')));
+      '/admin/users/$userId/edit',
+    );
+
+    // Show result
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Edit returned with: $result (type: ${result.runtimeType})',
+          ),
+          duration: const Duration(seconds: 3),
+          backgroundColor: Colors.blue,
+        ),
+      );
+    }
+
+    // Reload list if user was updated
+    if (result == true) {
+      print('Result is true, reloading users...');
+      if (mounted) {
+        await _loadUsers();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('User list reloaded!'),
+            duration: Duration(seconds: 2),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } else {
+      print('Result is NOT true: $result');
+    }
   }
 
   void _handleDeleteUser(String userId) {

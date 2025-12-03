@@ -11,6 +11,7 @@ import 'providers/persistence_provider.dart';
 import 'providers/theme_provider.dart';
 import 'screens/admin/admin_dashboard_screen.dart';
 import 'screens/admin/users/create_user_screen.dart';
+import 'screens/admin/users/edit_user_screen.dart';
 import 'screens/admin/users/user_detail_screen.dart';
 import 'screens/admin/users/users_list_screen.dart';
 import 'screens/splash_screen.dart';
@@ -121,6 +122,16 @@ class _MaterialAppWrapper extends StatelessWidget {
 
   /// Route helper for admin screens
   Widget _getAdminScreen(String route) {
+    // Handle user edit route with ID parameter
+    if (route.startsWith('/admin/users/') && route.endsWith('/edit')) {
+      final parts = route.split('/');
+      if (parts.length >= 4) {
+        final userId =
+            parts[3]; // Extract userId from /admin/users/:userId/edit
+        return EditUserScreen(userId: userId);
+      }
+    }
+
     // Handle user detail route with ID parameter
     if (route.startsWith('/admin/users/') &&
         route != '/admin/users' &&

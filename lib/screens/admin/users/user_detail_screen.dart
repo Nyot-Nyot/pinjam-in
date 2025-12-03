@@ -38,6 +38,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   }
 
   Future<void> _loadUserDetails() async {
+    print('Loading user details for: ${widget.userId}');
     setState(() {
       _isLoading = true;
       _error = null;
@@ -49,6 +50,8 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
         'admin_get_user_details',
         params: {'p_user_id': widget.userId},
       );
+
+      print('User details response: $response');
 
       // Get user's items (last 10)
       final itemsResponse = await _supabase
@@ -64,6 +67,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
           _userItems = (itemsResponse as List).cast<Map<String, dynamic>>();
           _isLoading = false;
         });
+        print('User details updated: ${_userDetails?['full_name']}');
       }
     } catch (e) {
       print('Error loading user details: $e');
@@ -226,7 +230,10 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: _handleEditUser,
+                  onPressed: () {
+                    print('MOBILE Edit button pressed!');
+                    _handleEditUser();
+                  },
                   icon: const Icon(Icons.edit, size: 18),
                   label: const Text('Edit User'),
                 ),
@@ -277,7 +284,10 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
 
             // Edit button
             ElevatedButton.icon(
-              onPressed: _handleEditUser,
+              onPressed: () {
+                print('DESKTOP Edit button pressed!');
+                _handleEditUser();
+              },
               icon: const Icon(Icons.edit, size: 18),
               label: const Text('Edit User'),
             ),
@@ -808,11 +818,53 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   }
 
   // Action handlers
-  void _handleEditUser() {
-    // TODO: Navigate to edit user screen
-    ScaffoldMessenger.of(
+  void _handleEditUser() async {
+    print('Edit button clicked, navigating to edit screen...');
+
+    // Show debug snackbar
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Opening edit screen...'),
+        duration: Duration(seconds: 1),
+      ),
+    );
+
+    final result = await Navigator.pushNamed(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Edit user - Coming soon')));
+      '/admin/users/${widget.userId}/edit',
+    );
+
+    print('Returned from edit screen with result: $result');
+
+    // Show result in snackbar for debugging
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Returned with result: $result'),
+          duration: const Duration(seconds: 2),
+          backgroundColor: Colors.blue,
+        ),
+      );
+    }
+
+    // Reload data if user was updated
+    if (result == true) {
+      print('User was updated, reloading details...');
+      if (mounted) {
+        await _loadUserDetails();
+
+        // Show reload confirmation
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Data reloaded!'),
+            duration: Duration(seconds: 1),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } else {
+      print('No update or result is not true');
+    }
   }
 
   void _handleViewAllItems() {
