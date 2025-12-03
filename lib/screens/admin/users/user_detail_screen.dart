@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../widgets/admin/breadcrumbs.dart';
+import '../../../widgets/admin/delete_user_dialog.dart';
 import '../admin_layout.dart';
 
 /// UserDetailScreen - Admin screen to view detailed user information
@@ -985,36 +986,89 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     );
   }
 
-  void _handleDeleteUser() {
-    showDialog(
+  void _handleDeleteUser() async {
+    if (_userDetails == null) return;
+
+    final userName = _userDetails!['full_name'] ?? 'Unknown User';
+    final userEmail = _userDetails!['email'] ?? '';
+    final itemsCount = (_userDetails!['total_items'] ?? 0) as int;
+
+    // Show delete dialog
+    final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete User'),
-        content: const Text(
-          'Are you sure you want to delete this user? This action cannot be undone.\n\n'
-          'All items owned by this user will also be deleted.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // TODO: Call delete user API
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Delete user - Coming soon')),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
+      builder: (context) => DeleteUserDialog(
+        userId: widget.userId,
+        userName: userName,
+        userEmail: userEmail,
+        itemsCount: itemsCount,
       ),
     );
+
+    if (result == null || !mounted) return;
+
+    final hardDelete = result['hardDelete'] as bool;
+    final reason = result['reason'] as String;
+
+    // Show loading dialog
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Deleting user...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      // Call delete RPC
+      final response = await _supabase.rpc(
+        'admin_delete_user',
+        params: {
+          'p_user_id': widget.userId,
+          'p_hard_delete': hardDelete,
+          'p_reason': reason.isEmpty ? null : reason,
+        },
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      // Show success message and navigate back
+      final message = response[0]['message'] as String;
+      Navigator.pushReplacementNamed(context, '/admin/users');
+
+      // Show snackbar after navigation
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), backgroundColor: Colors.green),
+        );
+      });
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      // Show error with retry option
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete user: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          action: SnackBarAction(label: 'Retry', onPressed: _handleDeleteUser),
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
   }
 }

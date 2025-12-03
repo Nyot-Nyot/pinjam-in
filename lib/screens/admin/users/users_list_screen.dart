@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../widgets/admin/breadcrumbs.dart';
+import '../../../widgets/admin/delete_user_dialog.dart';
 import '../admin_layout.dart';
 
 /// UsersListScreen - Admin screen to view and manage all users
@@ -179,7 +180,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
       children: [
         // Header
         Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
           child: Row(
             children: [
               Expanded(
@@ -191,12 +192,12 @@ class _UsersListScreenState extends State<UsersListScreen> {
                       style: Theme.of(context).textTheme.headlineMedium
                           ?.copyWith(fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Text(
                       'Manage all users in the system',
                       style: Theme.of(
                         context,
-                      ).textTheme.bodyLarge?.copyWith(color: Colors.grey[600]),
+                      ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -267,7 +268,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
 
   Widget _buildSearchAndFilters() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         border: Border(
@@ -289,10 +290,11 @@ class _UsersListScreenState extends State<UsersListScreen> {
                 horizontal: 16,
                 vertical: 12,
               ),
+              isDense: true,
             ),
             onSubmitted: _onSearch,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // Filters row
           Row(
@@ -718,36 +720,90 @@ class _UsersListScreenState extends State<UsersListScreen> {
     }
   }
 
-  void _handleDeleteUser(String userId) {
-    showDialog(
+  void _handleDeleteUser(String userId) async {
+    // Find user data for dialog
+    final user = _users.firstWhere((u) => u['id'] == userId);
+    final userName = user['full_name'] ?? 'Unknown User';
+    final userEmail = user['email'] ?? '';
+    final itemsCount = (user['items_count'] ?? 0) as int;
+
+    // Show delete dialog
+    final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete User'),
-        content: const Text(
-          'Are you sure you want to delete this user? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // TODO: Implement delete user
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Delete user coming soon...')),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
+      builder: (context) => DeleteUserDialog(
+        userId: userId,
+        userName: userName,
+        userEmail: userEmail,
+        itemsCount: itemsCount,
       ),
     );
+
+    if (result == null || !mounted) return;
+
+    final hardDelete = result['hardDelete'] as bool;
+    final reason = result['reason'] as String;
+
+    // Show loading dialog
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Deleting user...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      // Call delete RPC
+      final response = await _supabase.rpc(
+        'admin_delete_user',
+        params: {
+          'p_user_id': userId,
+          'p_hard_delete': hardDelete,
+          'p_reason': reason.isEmpty ? null : reason,
+        },
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      // Show success message
+      final message = response[0]['message'] as String;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: Colors.green),
+      );
+
+      // Reload users
+      await _loadUsers();
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      // Show error with retry option
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete user: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          action: SnackBarAction(
+            label: 'Retry',
+            onPressed: () => _handleDeleteUser(userId),
+          ),
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
   }
 
   void _handleBulkStatusUpdate() {
@@ -796,35 +852,166 @@ class _UsersListScreenState extends State<UsersListScreen> {
     );
   }
 
-  void _handleBulkDelete() {
-    showDialog(
+  void _handleBulkDelete() async {
+    if (_selectedUserIds.isEmpty) return;
+
+    final selectedCount = _selectedUserIds.length;
+
+    // Confirm bulk delete
+    final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Users'),
-        content: Text(
-          'Are you sure you want to delete ${_selectedUserIds.length} user(s)? This action cannot be undone.',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to deactivate $selectedCount user(s)?',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'This will perform soft delete (deactivate users).',
+              style: TextStyle(fontSize: 12),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Colors.orange),
+              ),
+              child: const Text(
+                'Note: Bulk delete always uses soft delete for safety. Use individual delete for permanent removal.',
+                style: TextStyle(fontSize: 11),
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // TODO: Implement bulk delete
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Bulk delete coming soon...')),
-              );
-            },
+            onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: Colors.orange,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Delete'),
+            child: const Text('Deactivate'),
           ),
         ],
       ),
     );
+
+    if (confirm != true || !mounted) return;
+
+    // Show progress dialog
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text('Deleting 0 of $selectedCount users...'),
+          ],
+        ),
+      ),
+    );
+
+    int successCount = 0;
+    int failCount = 0;
+    final List<String> errors = [];
+    final userIdsList = _selectedUserIds.toList(); // Convert Set to List
+
+    // Delete users one by one
+    for (int i = 0; i < userIdsList.length; i++) {
+      final userId = userIdsList[i];
+
+      try {
+        await _supabase.rpc(
+          'admin_delete_user',
+          params: {
+            'p_user_id': userId,
+            'p_hard_delete': false, // Always soft delete for bulk
+            'p_reason': 'Bulk delete operation',
+          },
+        );
+        successCount++;
+
+        // Update progress
+        if (mounted) {
+          Navigator.pop(context);
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text('Deleting ${i + 1} of $selectedCount users...'),
+                ],
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        failCount++;
+        errors.add('User $userId: ${e.toString()}');
+      }
+    }
+
+    if (!mounted) return;
+    Navigator.pop(context); // Close progress dialog
+
+    // Show result
+    final resultMessage = successCount == selectedCount
+        ? 'Successfully deactivated $successCount user(s)'
+        : 'Completed: $successCount succeeded, $failCount failed';
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(resultMessage),
+        backgroundColor: failCount == 0 ? Colors.green : Colors.orange,
+        duration: const Duration(seconds: 5),
+        action: failCount > 0
+            ? SnackBarAction(
+                label: 'View Errors',
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Delete Errors'),
+                      content: SingleChildScrollView(
+                        child: Text(errors.join('\n\n')),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Close'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              )
+            : null,
+      ),
+    );
+
+    // Clear selection and reload
+    setState(() {
+      _selectedUserIds.clear();
+    });
+    await _loadUsers();
   }
 }
