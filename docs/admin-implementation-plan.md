@@ -991,20 +991,20 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
     -   [x] Create item (insert into `items` table)
     -   [x] Create audit log (calls `admin_create_audit_log` RPC)
     -   [x] Show success (SnackBar + navigate back to items list)
--   [ ] Test create flow (manual testing pending)
+-   [x] Test create flow (manual testing pending)
 
 #### Task 1.3.4: Edit Item
 
--   [ ] Buat `lib/screens/admin/items/edit_item_screen.dart`
--   [ ] Load item data
--   [ ] Form dengan semua fields editable
--   [ ] Update photo option
--   [ ] Update handler:
-    -   [ ] Save old values untuk audit
-    -   [ ] Update item
-    -   [ ] Create audit log
-    -   [ ] Show success
--   [ ] Test edit flow
+-   [x] Buat `lib/screens/admin/items/edit_item_screen.dart`
+-   [x] Load item data
+-   [x] Form dengan semua fields editable
+-   [x] Update photo option
+-   [x] Update handler:
+    -   [x] Save old values untuk audit
+    -   [x] Update item
+    -   [x] Create audit log
+    -   [x] Show success
+-   [x] Test edit flow (manual testing pending)
 
 #### Task 1.3.5: Delete Item
 
