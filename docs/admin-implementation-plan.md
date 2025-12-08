@@ -1008,16 +1008,16 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
 
 #### Task 1.3.5: Delete Item
 
--   [ ] Confirmation dialog
--   [ ] Options:
-    -   [ ] Delete item only
-    -   [ ] Delete item + photo
--   [ ] Delete handler:
-    -   [ ] Delete photo dari storage
-    -   [ ] Delete item record
-    -   [ ] Create audit log
-    -   [ ] Show success
--   [ ] Test delete
+-   [x] Confirmation dialog
+-   [x] Options:
+    -   [x] Delete item only
+    -   [x] Delete item + photo
+-   [x] Delete handler:
+    -   [x] Delete photo dari storage (optional)
+    -   [x] Delete item record (via `admin_delete_item` RPC)
+    -   [x] Create audit log (RPC creates audit)
+    -   [x] Show success
+-   [ ] Test delete (manual testing pending)
 
 ### 1.4 Admin Services (2 hari)
 

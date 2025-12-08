@@ -44,6 +44,8 @@ class _EditItemScreenState extends State<EditItemScreen> {
   bool _showUserList = false;
   bool _isLoading = true;
   bool _isSubmitting = false;
+  // delete flow flags (local state toggles handled in dialog)
+  bool _isDeleting = false;
 
   Map<String, dynamic>? _originalValues;
 
@@ -102,11 +104,9 @@ class _EditItemScreenState extends State<EditItemScreen> {
               .from('profiles')
               .select('id,full_name,email')
               .limit(1000);
-          if (direct != null) {
-            setState(
-              () => _users = (direct as List).cast<Map<String, dynamic>>(),
-            );
-          }
+          setState(
+            () => _users = (direct as List).cast<Map<String, dynamic>>(),
+          );
         } catch (_) {}
       }
     } catch (e) {
@@ -336,6 +336,151 @@ class _EditItemScreenState extends State<EditItemScreen> {
         ).showSnackBar(SnackBar(content: Text('Update failed: $e')));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _confirmAndDelete() async {
+    // Show a dialog that lets the admin choose soft/hard delete and whether to remove photo from storage
+    final result = await showDialog<Map<String, dynamic>?>(
+      context: context,
+      builder: (context) {
+        bool deletePhoto = false;
+        bool hardDelete = false;
+        String reason = '';
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Row(
+                children: [
+                  Icon(Icons.delete_forever, color: Colors.red),
+                  SizedBox(width: 12),
+                  Text('Delete Item'),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Choose delete options. Soft delete is reversible; hard delete permanently removes the record.',
+                    ),
+                    const SizedBox(height: 12),
+                    CheckboxListTile(
+                      value: hardDelete,
+                      onChanged: (v) => setState(() => hardDelete = v ?? false),
+                      title: const Text('Permanently delete (hard delete)'),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      dense: true,
+                    ),
+                    CheckboxListTile(
+                      value: deletePhoto,
+                      onChanged: (v) =>
+                          setState(() => deletePhoto = v ?? false),
+                      title: const Text(
+                        'Also delete photo from storage (if exists)',
+                      ),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      dense: true,
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      decoration: const InputDecoration(
+                        labelText: 'Reason (optional)',
+                        isDense: true,
+                      ),
+                      onChanged: (v) => reason = v.trim(),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, null),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  onPressed: () => Navigator.pop(context, {
+                    'confirmed': true,
+                    'hardDelete': hardDelete,
+                    'deletePhoto': deletePhoto,
+                    'reason': reason,
+                  }),
+                  child: const Text('Delete'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (result == null || result['confirmed'] != true) return;
+
+    final bool hardDelete = result['hardDelete'] as bool? ?? false;
+    final bool deletePhoto = result['deletePhoto'] as bool? ?? false;
+    final String reason =
+        (result['reason'] as String?) ?? 'Deleted via admin UI';
+
+    await _performDelete(
+      hardDelete: hardDelete,
+      deletePhoto: deletePhoto,
+      reason: reason,
+    );
+  }
+
+  Future<void> _performDelete({
+    required bool hardDelete,
+    required bool deletePhoto,
+    required String reason,
+  }) async {
+    if (_isDeleting) return;
+    setState(() => _isDeleting = true);
+    try {
+      // Call admin RPC to perform delete (soft or hard). RPC will create audit logs.
+      await _supabase.rpc(
+        'admin_delete_item',
+        params: {
+          'p_item_id': widget.itemId,
+          'p_hard_delete': hardDelete,
+          'p_reason': reason,
+        },
+      );
+
+      // If requested, delete photo from storage using existing URL
+      if (deletePhoto &&
+          _existingPhotoUrl != null &&
+          _existingPhotoUrl!.isNotEmpty) {
+        final path = _extractStoragePath(_existingPhotoUrl!);
+        if (path != null && path.isNotEmpty) {
+          try {
+            await _supabase.storage.from(StorageKeys.imagesBucket).remove([
+              path,
+            ]);
+          } catch (e) {
+            debugPrint('EditItem: delete photo during item delete failed: $e');
+          }
+        }
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Item deleted'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pushReplacementNamed(context, '/admin/items');
+      }
+    } catch (e) {
+      debugPrint('EditItem: delete failed $e');
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
+    } finally {
+      if (mounted) setState(() => _isDeleting = false);
     }
   }
 
@@ -641,6 +786,30 @@ class _EditItemScreenState extends State<EditItemScreen> {
                                 child: _isSubmitting
                                     ? const CircularProgressIndicator.adaptive()
                                     : const Text('Save changes'),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: _isDeleting
+                                    ? null
+                                    : _confirmAndDelete,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  foregroundColor: Colors.white,
+                                ),
+                                icon: _isDeleting
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child:
+                                            CircularProgressIndicator.adaptive(
+                                              strokeWidth: 2,
+                                            ),
+                                      )
+                                    : const Icon(Icons.delete),
+                                label: const Text('Delete Item'),
                               ),
                             ),
                           ],
