@@ -10,6 +10,7 @@ import 'providers/loan_provider.dart';
 import 'providers/persistence_provider.dart';
 import 'providers/theme_provider.dart';
 import 'screens/admin/admin_dashboard_screen.dart';
+import 'screens/admin/items/item_detail_screen.dart';
 import 'screens/admin/items/items_list_screen.dart';
 import 'screens/admin/users/create_user_screen.dart';
 import 'screens/admin/users/edit_user_screen.dart';
@@ -139,6 +140,25 @@ class _MaterialAppWrapper extends StatelessWidget {
         route != '/admin/users/create') {
       final userId = route.split('/').last;
       return UserDetailScreen(userId: userId);
+    }
+
+    // Handle item edit route with ID parameter
+    if (route.startsWith('/admin/items/') && route.endsWith('/edit')) {
+      final parts = route.split('/');
+      if (parts.length >= 4) {
+        final itemId =
+            parts[3]; // Extract itemId from /admin/items/:itemId/edit
+        // TODO: Return EditItemScreen when it's created
+        return const UnauthorizedScreen(); // Placeholder
+      }
+    }
+
+    // Handle item detail route with ID parameter
+    if (route.startsWith('/admin/items/') &&
+        route != '/admin/items' &&
+        route != '/admin/items/create') {
+      final itemId = route.split('/').last;
+      return ItemDetailScreen(itemId: itemId);
     }
 
     switch (route) {

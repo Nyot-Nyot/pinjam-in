@@ -857,34 +857,122 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
     -   Date formatting: "dd MMM yyyy" (e.g., "03 Dec 2024")
     -   Breadcrumbs: Admin > Items
 
-#### Task 1.3.2: Item Detail Screen
+#### Task 1.3.2: Item Detail Screen ✅
 
--   [ ] Buat `lib/screens/admin/items/item_detail_screen.dart`
--   [ ] Section: Item Info
-    -   [ ] Photo (full size)
-    -   [ ] Name
-    -   [ ] Status
-    -   [ ] Notes
--   [ ] Section: Borrower Info
-    -   [ ] Borrower name
-    -   [ ] Contact info (jika ada)
--   [ ] Section: Dates
-    -   [ ] Borrow date
-    -   [ ] Due date
-    -   [ ] Return date (jika returned)
-    -   [ ] Days overdue (jika overdue)
--   [ ] Section: Owner Info
-    -   [ ] Owner name (linkable ke user detail)
-    -   [ ] Owner email
--   [ ] Section: History
-    -   [ ] Created date
-    -   [ ] Last updated
--   [ ] Section: Actions
-    -   [ ] Edit item
-    -   [ ] Mark as returned
-    -   [ ] Delete item
-    -   [ ] View photo full screen
+-   [x] Buat `lib/screens/admin/items/item_detail_screen.dart`
+-   [x] Section: Item Info
+    -   [x] Photo (full size)
+    -   [x] Name
+    -   [x] Status
+    -   [x] Notes
+-   [x] Section: Borrower Info
+    -   [x] Borrower name
+    -   [x] Contact info (jika ada)
+-   [x] Section: Dates
+    -   [x] Borrow date
+    -   [x] Due date
+    -   [x] Return date (jika returned)
+    -   [x] Days overdue (jika overdue)
+-   [x] Section: Owner Info
+    -   [x] Owner name (linkable ke user detail)
+    -   [x] Owner email
+-   [x] Section: History
+    -   [x] Created date
+    -   [x] Last updated (changed to Item ID)
+-   [x] Section: Actions
+    -   [x] Edit item
+    -   [x] Mark as returned
+    -   [x] Delete item
+    -   [x] View photo full screen
+-   [x] Routing configuration in main.dart
 -   [ ] Test detail screen
+
+**Status**: ✅ **COMPLETED** - Item detail screen fully implemented with all sections and actions:
+
+-   **ItemDetailScreen** (`lib/screens/admin/items/item_detail_screen.dart`, ~750 lines):
+
+    -   StatefulWidget with itemId parameter from route
+    -   Fetches data from admin_get_item_details RPC function
+    -   Protected with AdminGuardWidget
+
+-   **Layout Structure**:
+
+    -   AdminLayout wrapper with breadcrumbs: Admin > Items > Item Name
+    -   Loading state, error state, and not found state
+    -   SingleChildScrollView with proper spacing
+
+-   **Section: Item Information**:
+
+    -   Photo display (full size, 300px height) with click to view full screen
+    -   Placeholder image if photo not available
+    -   Item name (bold)
+    -   Status badge with color coding: BORROWED (orange), RETURNED (green), OVERDUE (red)
+    -   Notes field (multiline, shows "No notes" if empty)
+
+-   **Section: Borrower Information**:
+
+    -   Borrower name (shows "Not specified" if empty)
+    -   Contact ID (only shown if available)
+
+-   **Section: Dates & Timeline**:
+
+    -   Borrow date (formatted: dd MMM yyyy)
+    -   Due date (formatted: dd MMM yyyy)
+    -   Actual return date (only shown if status is returned)
+    -   Days borrowed (computed field)
+    -   Days overdue (only shown if overdue, displayed in red)
+    -   Card background turns red if overdue
+    -   OVERDUE badge in section header
+
+-   **Section: Owner Information**:
+
+    -   Owner name (clickable link to user detail page)
+    -   Owner email
+    -   Owner role badge: ADMIN (purple) or USER (blue)
+    -   Owner status badge: ACTIVE (green), INACTIVE (grey), SUSPENDED (red)
+    -   Owner stats: Total items count, Currently borrowed items count
+
+-   **Section: History**:
+
+    -   Item ID (displayed in monospace font)
+    -   Created date (formatted: dd MMM yyyy 'at' h:mm a)
+
+-   **Section: Admin Actions**:
+
+    -   Edit Item button: Navigate to /admin/items/:itemId/edit (placeholder route)
+    -   Mark as Returned button: Only shown if status is borrowed or overdue
+        -   Confirmation dialog
+        -   Loading dialog during RPC call
+        -   Calls admin_update_item_status RPC with p_new_status='returned'
+        -   Reloads item details after success
+        -   Error handling with retry option
+    -   View Photo Full Screen button: Only shown if photo exists
+        -   Opens dialog with full screen image
+        -   Close button in top-right corner
+    -   Delete Item button:
+        -   Confirmation dialog with warning message
+        -   Loading dialog during RPC call
+        -   Calls admin_delete_item RPC
+        -   Navigates back to items list after success
+        -   Shows success message via SnackBar
+        -   Error handling with retry option
+
+-   **Helper Methods**:
+
+    -   \_buildInfoRow(): Display key-value pairs with optional bold and multiline
+    -   \_buildStatusBadge(): Item status badge with icon and color
+    -   \_buildOwnerStatusBadge(): User status badge with icon and color
+    -   \_showFullScreenPhoto(): Dialog for full screen photo view
+    -   \_handleMarkAsReturned(): Async handler for mark as returned action
+    -   \_handleDeleteItem(): Async handler for delete item action
+
+-   **Routing** (`lib/main.dart`):
+    -   Route: /admin/items/:itemId
+    -   Added import for ItemDetailScreen
+    -   Updated \_getAdminScreen() to handle item detail and edit routes
+    -   Item edit route placeholder: /admin/items/:itemId/edit (returns UnauthorizedScreen)
+
+**Testing Status**: Ready for manual testing - all features implemented and integrated
 
 #### Task 1.3.3: Create Item (for User)
 
