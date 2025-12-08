@@ -10,6 +10,7 @@ import 'providers/loan_provider.dart';
 import 'providers/persistence_provider.dart';
 import 'providers/theme_provider.dart';
 import 'screens/admin/admin_dashboard_screen.dart';
+import 'screens/admin/items/create_item_screen.dart';
 import 'screens/admin/items/item_detail_screen.dart';
 import 'screens/admin/items/items_list_screen.dart';
 import 'screens/admin/users/create_user_screen.dart';
@@ -149,6 +150,7 @@ class _MaterialAppWrapper extends StatelessWidget {
         final itemId =
             parts[3]; // Extract itemId from /admin/items/:itemId/edit
         // TODO: Return EditItemScreen when it's created
+        debugPrint('Edit item requested for $itemId');
         return const UnauthorizedScreen(); // Placeholder
       }
     }
@@ -171,6 +173,8 @@ class _MaterialAppWrapper extends StatelessWidget {
         return const CreateUserScreen();
       case '/admin/items':
         return const ItemsListScreen();
+      case '/admin/items/create':
+        return const CreateItemScreen();
       case '/admin/storage':
         return const UnauthorizedScreen(); // Placeholder
       case '/admin/analytics':

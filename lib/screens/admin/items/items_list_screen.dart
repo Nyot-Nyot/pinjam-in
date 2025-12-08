@@ -22,25 +22,17 @@ class ItemsListScreen extends StatefulWidget {
 }
 
 class _ItemsListScreenState extends State<ItemsListScreen> {
-  final _supabase = Supabase.instance.client;
-
-  // Data state
+  final SupabaseClient _supabase = Supabase.instance.client;
   List<Map<String, dynamic>> _items = [];
   bool _isLoading = true;
   String? _error;
-
-  // Pagination
+  int _pageSize = 20;
   int _currentPage = 0;
-  final int _pageSize = 20;
   int _totalItems = 0;
-
-  // Search & Filters
   String _searchQuery = '';
-  String _statusFilter = 'all'; // all, borrowed, returned, overdue
-  String? _ownerFilter; // user_id or null for all
-
-  // Bulk selection
-  final Set<String> _selectedItemIds = {};
+  String _statusFilter = 'all';
+  String? _ownerFilter;
+  Set<String> _selectedItemIds = {};
 
   @override
   void initState() {
@@ -55,18 +47,6 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
     });
 
     try {
-      // Debug: Check authentication status
-      final user = _supabase.auth.currentUser;
-      print('[ItemsList] Current user: ${user?.email} (ID: ${user?.id})');
-      print(
-        '[ItemsList] Auth session exists: ${_supabase.auth.currentSession != null}',
-      );
-
-      if (user == null) {
-        throw Exception('Not authenticated - user is null');
-      }
-
-      // Calculate offset
       final offset = _currentPage * _pageSize;
 
       print('[ItemsList] Calling admin_get_all_items RPC...');
@@ -431,41 +411,60 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
             padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
-                Text(
-                  'Items Management',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    'Items Management',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const Spacer(),
-                if (_selectedItemIds.isNotEmpty) ...[
-                  Text(
-                    '${_selectedItemIds.length} selected',
-                    style: Theme.of(context).textTheme.bodyMedium,
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.end,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: () =>
+                            Navigator.pushNamed(context, '/admin/items/create'),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Create'),
+                      ),
+                      if (_selectedItemIds.isNotEmpty) ...[
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                          child: Text(
+                            '${_selectedItemIds.length} selected',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: () =>
+                              setState(() => _selectedItemIds.clear()),
+                          icon: const Icon(Icons.clear),
+                          label: const Text('Clear'),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: _handleBulkStatusUpdate,
+                          icon: const Icon(Icons.edit),
+                          label: const Text('Update Status'),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: _handleBulkDelete,
+                          icon: const Icon(Icons.delete),
+                          label: const Text('Delete'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  TextButton.icon(
-                    onPressed: () => setState(() => _selectedItemIds.clear()),
-                    icon: const Icon(Icons.clear),
-                    label: const Text('Clear'),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton.icon(
-                    onPressed: _handleBulkStatusUpdate,
-                    icon: const Icon(Icons.edit),
-                    label: const Text('Update Status'),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton.icon(
-                    onPressed: _handleBulkDelete,
-                    icon: const Icon(Icons.delete),
-                    label: const Text('Delete'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ],
+                ),
               ],
             ),
           ),

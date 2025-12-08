@@ -976,22 +976,22 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
 
 #### Task 1.3.3: Create Item (for User)
 
--   [ ] Buat `lib/screens/admin/items/create_item_screen.dart`
--   [ ] Select user (dropdown atau search)
--   [ ] Form fields:
-    -   [ ] Item name
-    -   [ ] Photo upload
-    -   [ ] Borrower name
-    -   [ ] Borrower contact (optional)
-    -   [ ] Borrow date
-    -   [ ] Due date
-    -   [ ] Notes
--   [ ] Submit handler:
-    -   [ ] Upload photo
-    -   [ ] Create item
-    -   [ ] Create audit log
-    -   [ ] Show success
--   [ ] Test create flow
+-   [x] Buat `lib/screens/admin/items/create_item_screen.dart`
+-   [x] Select user (dropdown atau search) (implemented with Autocomplete)
+-   [x] Form fields:
+    -   [x] Item name
+    -   [x] Photo upload
+    -   [x] Borrower name
+    -   [x] Borrower contact (optional)
+    -   [x] Borrow date
+    -   [x] Due date
+    -   [x] Notes
+-   [x] Submit handler:
+    -   [x] Upload photo (via PersistenceProvider, optional on failure)
+    -   [x] Create item (insert into `items` table)
+    -   [x] Create audit log (calls `admin_create_audit_log` RPC)
+    -   [x] Show success (SnackBar + navigate back to items list)
+-   [ ] Test create flow (manual testing pending)
 
 #### Task 1.3.4: Edit Item
 
