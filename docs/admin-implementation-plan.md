@@ -1038,14 +1038,19 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
 
 #### Task 1.4.2: Create Audit Service
 
--   [ ] Buat `lib/services/audit_service.dart`
--   [ ] Implement methods:
-    -   [ ] `createAuditLog(actionType, tableName, recordId, oldValues, newValues, metadata)`
-    -   [ ] `getAuditLogs({filters, pagination})`
-    -   [ ] `getUserAuditLogs(userId)`
-    -   [ ] `getTableAuditLogs(tableName)`
--   [ ] Auto-capture metadata (timestamp, dll)
--   [ ] Test audit service
+-   [x] Buat `lib/services/audit_service.dart`
+-   [x] Implement methods: - [x] `createAuditLog(actionType, tableName, recordId, oldValues, newValues, metadata)` - [x] `getAuditLogs({filters, pagination})` - [x] `getUserAuditLogs(userId)` - [x] `getTableAuditLogs(tableName)`
+
+    -   [x] Auto-capture metadata (timestamp, dll) — `client_time` included automatically; server will populate `created_at`.
+    -   [x] Test audit service
+
+    _Notes:_ AuditService implementation details:
+
+    -   File: `lib/services/audit_service.dart` — lightweight wrapper for `admin_create_audit_log` RPC and `admin_get_audit_logs` RPC
+    -   Methods implemented: createAuditLog, getAuditLogs, getUserAuditLogs, getTableAuditLogs
+    -   Metadata auto-capture: service adds `created_via: 'audit_service'` and `client_time` (ISO) to metadata sent to RPC
+    -   Error handling: methods throw `ServiceException` with extracted messages on failure
+    -   Tests: `test/services/audit_service_test.dart` verifies RPC invocation, metadata, and error wrapping
 
 ---
 
