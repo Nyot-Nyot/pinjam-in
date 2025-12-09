@@ -262,6 +262,57 @@ BEGIN
   RAISE NOTICE '   Orphaned files: %', v_result.orphaned_files;
 
   -- ============================================================================
+  -- TEST 10b: Get Storage by User
+  -- ============================================================================
+
+  RAISE NOTICE '';
+  RAISE NOTICE '────────────────────────────────────────────────────────────────';
+  RAISE NOTICE 'TEST 10b: Get Storage by User';
+  RAISE NOTICE '────────────────────────────────────────────────────────────────';
+
+  BEGIN
+    PERFORM public.admin_get_storage_by_user_test(v_admin_id);
+    RAISE NOTICE '✅ TEST 10b PASSED: admin_get_storage_by_user executed';
+  EXCEPTION
+    WHEN OTHERS THEN
+      RAISE EXCEPTION '❌ TEST 10b FAILED: %', SQLERRM;
+  END;
+
+  -- ============================================================================
+  -- TEST 10c: Get File Type Distribution
+  -- ============================================================================
+
+  RAISE NOTICE '';
+  RAISE NOTICE '────────────────────────────────────────────────────────────────';
+  RAISE NOTICE 'TEST 10c: Get File Type Distribution';
+  RAISE NOTICE '────────────────────────────────────────────────────────────────';
+
+  BEGIN
+    PERFORM public.admin_get_storage_file_type_distribution_test(v_admin_id);
+    RAISE NOTICE '✅ TEST 10c PASSED: admin_get_storage_file_type_distribution executed';
+  EXCEPTION
+    WHEN OTHERS THEN
+      RAISE EXCEPTION '❌ TEST 10c FAILED: %', SQLERRM;
+  END;
+
+  -- ============================================================================
+  -- TEST 10d: List storage files
+  -- ============================================================================
+
+  RAISE NOTICE '';
+  RAISE NOTICE '────────────────────────────────────────────────────────────────';
+  RAISE NOTICE 'TEST 10d: List storage files';
+  RAISE NOTICE '────────────────────────────────────────────────────────────────';
+
+  BEGIN
+    PERFORM public.admin_list_storage_files_test(v_admin_id);
+    RAISE NOTICE '✅ TEST 10d PASSED: admin_list_storage_files executed';
+  EXCEPTION
+    WHEN OTHERS THEN
+      RAISE EXCEPTION '❌ TEST 10d FAILED: %', SQLERRM;
+  END;
+
+  -- ============================================================================
   -- TEST 11: Parameter Validation - Invalid action_type
   -- ============================================================================
 

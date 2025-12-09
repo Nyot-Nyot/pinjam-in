@@ -326,6 +326,19 @@ class AdminService {
     }
   }
 
+  /// Delete a storage object from the specified bucket. Returns true on success.
+  Future<bool> deleteStorageObject(String path, {String? bucketId}) async {
+    try {
+      final bucket = bucketId ?? StorageKeys.imagesBucket;
+      await retry(() async {
+        return await _client.storage.from(bucket).remove([path]);
+      }, attempts: 2);
+      return true;
+    } catch (e) {
+      throw ServiceException(extractErrorMessage(e), cause: e);
+    }
+  }
+
   Future<Map<String, dynamic>> updateItem(
     String itemId,
     Map<String, dynamic> itemData,

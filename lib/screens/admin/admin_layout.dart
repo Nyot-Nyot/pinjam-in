@@ -185,20 +185,25 @@ class _AdminLayoutState extends State<AdminLayout> {
         DrawerHeader(
           decoration: BoxDecoration(color: Theme.of(context).primaryColor),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Icon(
                 Icons.admin_panel_settings,
-                size: 48,
+                size: 40,
                 color: Colors.white,
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Pinjam In',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+              const Flexible(
+                child: Text(
+                  'Pinjam In',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               Text(

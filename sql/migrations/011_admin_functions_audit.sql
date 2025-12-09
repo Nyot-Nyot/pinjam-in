@@ -248,7 +248,14 @@ COMMENT ON FUNCTION public.admin_get_audit_logs IS
 -- Note: Queries storage.objects which requires SECURITY DEFINER
 -- ============================================================================
 
-CREATE OR REPLACE FUNCTION public.admin_get_storage_stats()
+-- Drop any older overload with no parameters to avoid ambiguity when adding
+-- the new parameterized overload. This ensures CREATE OR REPLACE will not
+-- just add another overload and cause callers to be ambiguous.
+DROP FUNCTION IF EXISTS public.admin_get_storage_stats();
+
+CREATE OR REPLACE FUNCTION public.admin_get_storage_stats(
+  p_bucket_id TEXT DEFAULT 'item_photos'
+)
 RETURNS TABLE (
   total_files BIGINT,
   total_size_bytes BIGINT,
@@ -279,18 +286,18 @@ BEGIN
   SELECT
     -- Total files in storage
     (SELECT COUNT(*)::BIGINT
-     FROM storage.objects
-     WHERE bucket_id = 'items')::BIGINT AS total_files,
+  FROM storage.objects
+  WHERE bucket_id = p_bucket_id)::BIGINT AS total_files,
 
-    -- Total size in bytes
-    (SELECT COALESCE(SUM(metadata->>'size')::BIGINT, 0)
-     FROM storage.objects
-     WHERE bucket_id = 'items')::BIGINT AS total_size_bytes,
+  -- Total size in bytes (cast text to BIGINT before summing)
+  (SELECT COALESCE(SUM(NULLIF(metadata->>'size', '')::BIGINT), 0)
+  FROM storage.objects
+  WHERE bucket_id = p_bucket_id)::BIGINT AS total_size_bytes,
 
     -- Total size in MB
-    (SELECT COALESCE(ROUND((SUM((metadata->>'size')::BIGINT) / 1048576.0)::NUMERIC, 2), 0)
-     FROM storage.objects
-     WHERE bucket_id = 'items')::NUMERIC AS total_size_mb,
+  (SELECT COALESCE(ROUND((SUM(NULLIF(metadata->>'size', '')::BIGINT) / 1048576.0)::NUMERIC, 2), 0)
+  FROM storage.objects
+  WHERE bucket_id = p_bucket_id)::NUMERIC AS total_size_mb,
 
     -- Items with photos
     (SELECT COUNT(*)::BIGINT
@@ -299,27 +306,27 @@ BEGIN
 
     -- Orphaned files (files in storage but not in items table)
     (SELECT COUNT(*)::BIGINT
-     FROM storage.objects so
-     WHERE so.bucket_id = 'items'
+  FROM storage.objects so
+  WHERE so.bucket_id = p_bucket_id
        AND NOT EXISTS (
          SELECT 1 FROM public.items i
          WHERE i.photo_url LIKE '%' || so.name || '%'
        ))::BIGINT AS orphaned_files,
 
     -- Average file size in KB
-    (SELECT COALESCE(ROUND((AVG((metadata->>'size')::BIGINT) / 1024.0)::NUMERIC, 2), 0)
-     FROM storage.objects
-     WHERE bucket_id = 'items')::NUMERIC AS avg_file_size_kb,
+  (SELECT COALESCE(ROUND((AVG(NULLIF(metadata->>'size', '')::BIGINT) / 1024.0)::NUMERIC, 2), 0)
+  FROM storage.objects
+  WHERE bucket_id = p_bucket_id)::NUMERIC AS avg_file_size_kb,
 
     -- Largest file in MB
-    (SELECT COALESCE(ROUND((MAX((metadata->>'size')::BIGINT) / 1048576.0)::NUMERIC, 2), 0)
-     FROM storage.objects
-     WHERE bucket_id = 'items')::NUMERIC AS largest_file_size_mb,
+  (SELECT COALESCE(ROUND((MAX(NULLIF(metadata->>'size', '')::BIGINT) / 1048576.0)::NUMERIC, 2), 0)
+  FROM storage.objects
+  WHERE bucket_id = p_bucket_id)::NUMERIC AS largest_file_size_mb,
 
     -- Smallest file in KB
-    (SELECT COALESCE(ROUND((MIN((metadata->>'size')::BIGINT) / 1024.0)::NUMERIC, 2), 0)
-     FROM storage.objects
-     WHERE bucket_id = 'items')::NUMERIC AS smallest_file_size_kb;
+  (SELECT COALESCE(ROUND((MIN(NULLIF(metadata->>'size', '')::BIGINT) / 1024.0)::NUMERIC, 2), 0)
+  FROM storage.objects
+  WHERE bucket_id = p_bucket_id)::NUMERIC AS smallest_file_size_kb;
 END;
 $$;
 
@@ -327,6 +334,160 @@ GRANT EXECUTE ON FUNCTION public.admin_get_storage_stats TO authenticated;
 
 COMMENT ON FUNCTION public.admin_get_storage_stats IS
 'Get storage usage statistics including total files, size, orphaned files, and file size metrics. Admin only.';
+
+-- ==========================================================================
+-- FUNCTION 4: admin_get_storage_by_user
+-- Purpose: Return top users by storage usage for given bucket
+-- Returns: user_id, user_email, total_size_bytes, file_count
+-- Usage: SELECT * FROM admin_get_storage_by_user('item_photos', 10);
+-- ===========================================================================
+
+-- Ensure old overloads do not cause type mismatches
+DROP FUNCTION IF EXISTS public.admin_get_storage_by_user(TEXT, INT);
+CREATE OR REPLACE FUNCTION public.admin_get_storage_by_user(
+  p_bucket_id TEXT DEFAULT 'item_photos',
+  p_limit INT DEFAULT 10
+)
+RETURNS TABLE (
+  user_id UUID,
+  user_email TEXT,
+  total_size_bytes BIGINT,
+  file_count BIGINT
+)
+SECURITY DEFINER
+SET search_path = public, storage
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_admin_id UUID;
+BEGIN
+  v_admin_id := auth.uid();
+  IF NOT public.is_admin(v_admin_id) THEN
+    RAISE EXCEPTION 'Permission denied: Only admins can view storage by user';
+  END IF;
+
+  RETURN QUERY
+  SELECT
+    i.user_id,
+    au.email::text AS user_email,
+    COALESCE(SUM(NULLIF(so.metadata->>'size','')::BIGINT), 0)::BIGINT AS total_size_bytes,
+    COUNT(so.*)::BIGINT AS file_count
+  FROM storage.objects so
+  JOIN public.items i ON i.photo_url LIKE '%' || so.name || '%'
+  LEFT JOIN auth.users au ON au.id = i.user_id
+  WHERE so.bucket_id = p_bucket_id
+  GROUP BY i.user_id, au.email
+  ORDER BY total_size_bytes DESC
+  LIMIT p_limit;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.admin_get_storage_by_user TO authenticated;
+
+COMMENT ON FUNCTION public.admin_get_storage_by_user IS
+  'Get storage usage by user (top N). Use p_bucket_id and p_limit to filter.';
+
+-- ============================================================================
+-- FUNCTION 5: admin_get_storage_file_type_distribution
+-- Purpose: Return file type distribution by extension in the bucket
+-- Returns: extension, file_count, total_size_bytes
+-- Usage: SELECT * FROM admin_get_storage_file_type_distribution('item_photos');
+-- ============================================================================
+
+DROP FUNCTION IF EXISTS public.admin_get_storage_file_type_distribution(TEXT);
+CREATE OR REPLACE FUNCTION public.admin_get_storage_file_type_distribution(
+  p_bucket_id TEXT DEFAULT 'item_photos'
+)
+RETURNS TABLE (
+  extension TEXT,
+  file_count BIGINT,
+  total_size_bytes BIGINT
+)
+SECURITY DEFINER
+SET search_path = public, storage
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_admin_id UUID;
+BEGIN
+  v_admin_id := auth.uid();
+  IF NOT public.is_admin(v_admin_id) THEN
+    RAISE EXCEPTION 'Permission denied: Only admins can view file type distribution';
+  END IF;
+
+  RETURN QUERY
+  SELECT
+    LOWER(REGEXP_REPLACE(split_part(so.name, '.', array_length(string_to_array(so.name, '.'),1)) , '[^a-zA-Z0-9]+', '', 'g'))::text AS extension,
+    COUNT(*)::BIGINT AS file_count,
+    COALESCE(SUM(NULLIF(so.metadata->>'size','')::BIGINT), 0)::BIGINT AS total_size_bytes
+  FROM storage.objects so
+  WHERE so.bucket_id = p_bucket_id
+  GROUP BY extension
+  ORDER BY file_count DESC;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.admin_get_storage_file_type_distribution TO authenticated;
+
+-- ============================================================================
+-- FUNCTION 6: admin_list_storage_files
+-- Purpose: List files in a storage bucket (with pagination/search)
+-- Returns: id, name, owner, bucket_id, size_bytes, created_at, updated_at, metadata
+-- Usage: SELECT * FROM admin_list_storage_files('item_photos', 50, 0, 'user_');
+-- ============================================================================
+
+DROP FUNCTION IF EXISTS public.admin_list_storage_files(TEXT, INT, INT, TEXT);
+CREATE OR REPLACE FUNCTION public.admin_list_storage_files(
+  p_bucket_id TEXT DEFAULT 'item_photos',
+  p_limit INT DEFAULT 50,
+  p_offset INT DEFAULT 0,
+  p_search TEXT DEFAULT NULL
+)
+RETURNS TABLE (
+  id TEXT,
+  name TEXT,
+  owner UUID,
+  bucket_id TEXT,
+  size_bytes BIGINT,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ,
+  metadata JSONB
+)
+SECURITY DEFINER
+SET search_path = public, storage
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_admin_id UUID;
+BEGIN
+  v_admin_id := auth.uid();
+  IF NOT public.is_admin(v_admin_id) THEN
+    RAISE EXCEPTION 'Permission denied: Only admins can list storage files';
+  END IF;
+
+  RETURN QUERY
+  SELECT
+    so.id::text,
+    so.name::text AS name,
+    so.owner,
+    so.bucket_id::text AS bucket_id,
+    COALESCE(NULLIF(so.metadata->>'size','')::BIGINT, 0)::BIGINT AS size_bytes,
+    so.created_at,
+    so.updated_at,
+    so.metadata
+  FROM storage.objects so
+  WHERE so.bucket_id = p_bucket_id
+    AND (p_search IS NULL OR so.name ILIKE '%' || p_search || '%')
+  ORDER BY so.created_at DESC
+  LIMIT p_limit
+  OFFSET p_offset;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.admin_list_storage_files TO authenticated;
+
+COMMENT ON FUNCTION public.admin_list_storage_files IS
+  'List storage files with pagination and optional name search. Admin only.';
 
 -- ============================================================================
 -- Verification

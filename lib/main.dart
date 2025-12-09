@@ -14,6 +14,8 @@ import 'screens/admin/items/create_item_screen.dart';
 import 'screens/admin/items/edit_item_screen.dart';
 import 'screens/admin/items/item_detail_screen.dart';
 import 'screens/admin/items/items_list_screen.dart';
+import 'screens/admin/storage/file_browser_screen.dart';
+import 'screens/admin/storage/storage_dashboard.dart';
 import 'screens/admin/users/create_user_screen.dart';
 import 'screens/admin/users/edit_user_screen.dart';
 import 'screens/admin/users/user_detail_screen.dart';
@@ -175,7 +177,9 @@ class _MaterialAppWrapper extends StatelessWidget {
       case '/admin/items/create':
         return const CreateItemScreen();
       case '/admin/storage':
-        return const UnauthorizedScreen(); // Placeholder
+        return const StorageDashboardScreen();
+      case '/admin/storage/files':
+        return const FileBrowserScreen();
       case '/admin/analytics':
         return const UnauthorizedScreen(); // Placeholder
       case '/admin/audit':

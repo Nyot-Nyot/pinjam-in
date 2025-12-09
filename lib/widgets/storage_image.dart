@@ -4,7 +4,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../services/persistence_service.dart';
-import '../services/supabase_persistence.dart';
 
 /// Widget to display an image from Supabase Storage using signed URLs.
 /// Handles both local images (via imagePath) and remote images (via imageUrl).
@@ -71,25 +70,35 @@ class _StorageImageState extends State<StorageImage> {
     });
 
     try {
-      if (widget.persistence is SupabasePersistence) {
-        debugPrint('StorageImage: Calling getSignedUrl');
-        final signedUrl = await (widget.persistence as SupabasePersistence)
-            .getSignedUrl(widget.imageUrl!);
-        debugPrint('StorageImage: Got signed URL: $signedUrl');
-        if (mounted) {
-          setState(() {
-            _signedUrl = signedUrl;
-            _loading = false;
-          });
+      // Try to detect any persistence that exposes a getSignedUrl method
+      final ps = widget.persistence;
+      try {
+        final dyn = ps as dynamic;
+        final fn = dyn.getSignedUrl;
+        if (fn != null && fn is Function) {
+          debugPrint(
+            'StorageImage: Calling getSignedUrl via persistence instance',
+          );
+          final signedUrl = await dyn.getSignedUrl(widget.imageUrl!);
+          debugPrint('StorageImage: Got signed URL: $signedUrl');
+          if (mounted) {
+            setState(() {
+              _signedUrl = signedUrl;
+              _loading = false;
+            });
+          }
+          return;
         }
-      } else {
-        // Not using Supabase, just use the URL directly
-        if (mounted) {
-          setState(() {
-            _signedUrl = widget.imageUrl;
-            _loading = false;
-          });
-        }
+      } catch (_) {
+        // not present or not callable — continue to fallback below
+      }
+
+      // Not using a persistence with getSignedUrl. Just use the URL directly
+      if (mounted) {
+        setState(() {
+          _signedUrl = widget.imageUrl;
+          _loading = false;
+        });
       }
     } catch (e) {
       debugPrint('StorageImage: Error loading signed URL: $e');

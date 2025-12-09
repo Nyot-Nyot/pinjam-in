@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -683,8 +685,35 @@ class AdminDashboardScreen extends StatelessWidget {
   ) {
     final actionType = activity['action_type'] as String;
     final tableName = activity['table_name'] as String;
-    final createdAt = DateTime.parse(activity['created_at'] as String);
-    final metadata = activity['metadata'] as Map<String, dynamic>?;
+    final createdAtRaw = activity['created_at'];
+    DateTime createdAt;
+    if (createdAtRaw is String) {
+      try {
+        createdAt = DateTime.parse(createdAtRaw);
+      } catch (_) {
+        createdAt = DateTime.now();
+      }
+    } else if (createdAtRaw is DateTime) {
+      createdAt = createdAtRaw;
+    } else {
+      createdAt = DateTime.now();
+    }
+    final rawMetadata = activity['metadata'];
+    Map<String, dynamic>? metadata;
+    if (rawMetadata is String) {
+      try {
+        final parsed = jsonDecode(rawMetadata);
+        if (parsed is Map<String, dynamic>) metadata = parsed;
+      } catch (_) {
+        metadata = null;
+      }
+    } else if (rawMetadata is Map) {
+      metadata = Map<String, dynamic>.from(
+        rawMetadata.map((k, v) => MapEntry(k.toString(), v)),
+      );
+    } else {
+      metadata = null;
+    }
 
     IconData icon;
     Color color;

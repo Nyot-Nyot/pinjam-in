@@ -237,12 +237,12 @@ BEGIN
      WHERE bucket_id = 'items')::BIGINT AS total_files,
 
     -- Total size in bytes
-    (SELECT COALESCE(SUM((metadata->>'size')::BIGINT), 0)
+  (SELECT COALESCE(SUM(NULLIF(metadata->>'size', '')::BIGINT), 0)
      FROM storage.objects
      WHERE bucket_id = 'items')::BIGINT AS total_size_bytes,
 
     -- Total size in MB
-    (SELECT COALESCE(ROUND((SUM((metadata->>'size')::BIGINT) / 1048576.0)::NUMERIC, 2), 0)
+  (SELECT COALESCE(ROUND((SUM(NULLIF(metadata->>'size', '')::BIGINT) / 1048576.0)::NUMERIC, 2), 0)
      FROM storage.objects
      WHERE bucket_id = 'items')::NUMERIC AS total_size_mb,
 
@@ -261,17 +261,17 @@ BEGIN
        ))::BIGINT AS orphaned_files,
 
     -- Average file size in KB
-    (SELECT COALESCE(ROUND((AVG((metadata->>'size')::BIGINT) / 1024.0)::NUMERIC, 2), 0)
+  (SELECT COALESCE(ROUND((AVG(NULLIF(metadata->>'size', '')::BIGINT) / 1024.0)::NUMERIC, 2), 0)
      FROM storage.objects
      WHERE bucket_id = 'items')::NUMERIC AS avg_file_size_kb,
 
     -- Largest file in MB
-    (SELECT COALESCE(ROUND((MAX((metadata->>'size')::BIGINT) / 1048576.0)::NUMERIC, 2), 0)
+  (SELECT COALESCE(ROUND((MAX(NULLIF(metadata->>'size', '')::BIGINT) / 1048576.0)::NUMERIC, 2), 0)
      FROM storage.objects
      WHERE bucket_id = 'items')::NUMERIC AS largest_file_size_mb,
 
     -- Smallest file in KB
-    (SELECT COALESCE(ROUND((MIN((metadata->>'size')::BIGINT) / 1024.0)::NUMERIC, 2), 0)
+  (SELECT COALESCE(ROUND((MIN(NULLIF(metadata->>'size', '')::BIGINT) / 1024.0)::NUMERIC, 2), 0)
      FROM storage.objects
      WHERE bucket_id = 'items')::NUMERIC AS smallest_file_size_kb;
 END;
@@ -281,6 +281,146 @@ GRANT EXECUTE ON FUNCTION public.admin_get_storage_stats_test TO authenticated;
 
 COMMENT ON FUNCTION public.admin_get_storage_stats_test IS
 'TEST HELPER: Get storage statistics. For SQL Editor testing only.';
+
+-- ============================================================================
+-- TEST HELPER 4: admin_get_storage_by_user_test
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.admin_get_storage_by_user_test(
+  p_admin_user_id UUID,
+  p_bucket_id TEXT DEFAULT 'item_photos',
+  p_limit INT DEFAULT 10
+)
+RETURNS TABLE (
+  user_id UUID,
+  user_email TEXT,
+  total_size_bytes BIGINT,
+  file_count BIGINT
+)
+SECURITY DEFINER
+SET search_path = public, storage
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_admin_id UUID;
+BEGIN
+  IF NOT public.is_admin(p_admin_user_id) THEN
+    RAISE EXCEPTION 'Permission denied: Only admins can view storage by user';
+  END IF;
+
+  RETURN QUERY
+  SELECT
+    i.user_id,
+    au.email::text AS user_email,
+    COALESCE(SUM(NULLIF(so.metadata->>'size','')::BIGINT), 0)::BIGINT AS total_size_bytes,
+    COUNT(so.*)::BIGINT AS file_count
+  FROM storage.objects so
+  JOIN public.items i ON i.photo_url LIKE '%' || so.name || '%'
+  LEFT JOIN auth.users au ON au.id = i.user_id
+  WHERE so.bucket_id = p_bucket_id
+  GROUP BY i.user_id, au.email
+  ORDER BY total_size_bytes DESC
+  LIMIT p_limit;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.admin_get_storage_by_user_test TO authenticated;
+
+COMMENT ON FUNCTION public.admin_get_storage_by_user_test IS
+  'TEST HELPER: Get storage usage by user (top N). For SQL Editor testing only.';
+
+-- ============================================================================
+-- TEST HELPER 5: admin_get_storage_file_type_distribution_test
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.admin_get_storage_file_type_distribution_test(
+  p_admin_user_id UUID,
+  p_bucket_id TEXT DEFAULT 'item_photos'
+)
+RETURNS TABLE (
+  extension TEXT,
+  file_count BIGINT,
+  total_size_bytes BIGINT
+)
+SECURITY DEFINER
+SET search_path = public, storage
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF NOT public.is_admin(p_admin_user_id) THEN
+    RAISE EXCEPTION 'Permission denied: Only admins can view file type distribution';
+  END IF;
+
+  RETURN QUERY
+  SELECT
+    LOWER(REGEXP_REPLACE(split_part(so.name, '.', array_length(string_to_array(so.name, '.'),1)) , '[^a-zA-Z0-9]+', '', 'g'))::text AS extension,
+    COUNT(*)::BIGINT AS file_count,
+    COALESCE(SUM(NULLIF(so.metadata->>'size','')::BIGINT), 0)::BIGINT AS total_size_bytes
+  FROM storage.objects so
+  WHERE so.bucket_id = p_bucket_id
+  GROUP BY extension
+  ORDER BY file_count DESC;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.admin_get_storage_file_type_distribution_test TO authenticated;
+
+COMMENT ON FUNCTION public.admin_get_storage_file_type_distribution_test IS
+  'TEST HELPER: File type distribution. For SQL Editor testing only.';
+
+-- ============================================================================
+-- TEST HELPER 6: admin_list_storage_files_test
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.admin_list_storage_files_test(
+  p_admin_user_id UUID,
+  p_bucket_id TEXT DEFAULT 'item_photos',
+  p_limit INT DEFAULT 50,
+  p_offset INT DEFAULT 0,
+  p_search TEXT DEFAULT NULL
+)
+RETURNS TABLE (
+  id TEXT,
+  name TEXT,
+  owner UUID,
+  bucket_id TEXT,
+  size_bytes BIGINT,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ,
+  metadata JSONB
+)
+SECURITY DEFINER
+SET search_path = public, storage
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF NOT public.is_admin(p_admin_user_id) THEN
+    RAISE EXCEPTION 'Permission denied: Only admins can list storage files';
+  END IF;
+
+  RETURN QUERY
+  SELECT
+    so.id::text,
+    so.name::text AS name,
+    so.owner,
+    so.bucket_id::text AS bucket_id,
+    COALESCE(NULLIF(so.metadata->>'size','')::BIGINT, 0)::BIGINT AS size_bytes,
+    so.created_at,
+    so.updated_at,
+    so.metadata
+  FROM storage.objects so
+  WHERE so.bucket_id = p_bucket_id
+    AND (p_search IS NULL OR so.name ILIKE '%' || p_search || '%')
+  ORDER BY so.created_at DESC
+  LIMIT p_limit
+  OFFSET p_offset;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.admin_list_storage_files_test TO authenticated;
+
+COMMENT ON FUNCTION public.admin_list_storage_files_test IS
+  'TEST HELPER: List storage files for SQL Editor testing only.';
 
 -- ============================================================================
 -- Verification
