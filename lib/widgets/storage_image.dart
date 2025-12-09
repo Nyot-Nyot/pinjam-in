@@ -62,6 +62,23 @@ class _StorageImageState extends State<StorageImage> {
 
     debugPrint('StorageImage: Loading URL: ${widget.imageUrl}');
 
+    // If the imageUrl already looks like a proper URL (absolute), just use it
+    // without asking persistence for a signed url. This handles the case where
+    // callers pass a full URL. We validate that the URI has a scheme and host
+    // to avoid passing relative paths to network loaders which crash.
+    try {
+      final u = Uri.tryParse(widget.imageUrl ?? '');
+      if (u != null &&
+          (u.scheme == 'http' || u.scheme == 'https') &&
+          u.host.isNotEmpty) {
+        setState(() {
+          _signedUrl = widget.imageUrl;
+          _loading = false;
+        });
+        return;
+      }
+    } catch (_) {}
+
     // Always go through getSignedUrl for Supabase Storage URLs
     // This handles both public and private buckets correctly
     setState(() {
@@ -116,10 +133,14 @@ class _StorageImageState extends State<StorageImage> {
         // not present or not callable — continue to fallback below
       }
 
-      // Not using a persistence with getSignedUrl. Just use the URL directly
+      // Not using a persistence with getSignedUrl and/or the provided URL is a
+      // relative storage path (e.g. 'user_id/photo.jpg'). In this case do NOT
+      // pass the raw path to the network loader (it will crash with "No host
+      // specified"). Instead, fall back to placeholder UI by leaving
+      // _signedUrl null.
       if (mounted) {
         setState(() {
-          _signedUrl = widget.imageUrl;
+          _signedUrl = null;
           _loading = false;
         });
       }
