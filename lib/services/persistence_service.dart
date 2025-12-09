@@ -34,4 +34,8 @@ abstract class PersistenceService {
   /// Invalidate any caches maintained by the persistence backend.
   /// Implementations that do not cache may leave this as a no-op.
   Future<void> invalidateCache({String? itemId}) async {}
+
+  /// Optional: return a URL for a public resource (if persistence backend
+  /// supports it). Default implementation returns null.
+  Future<String?> getPublicUrl(String path) async => null;
 }

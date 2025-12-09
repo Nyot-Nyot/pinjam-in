@@ -38,7 +38,10 @@ class FakePersistence extends PersistenceService {
   Future<void> saveHistory(List items) async {}
 
   // Provide an optional getSignedUrl for the StorageImage dynamic detection.
-  Future<String?> getSignedUrl(String path) async => null;
+  // Return a small 1x1 PNG data URI so CachedNetworkImage does not attempt HTTP,
+  // which is disabled in widget tests.
+  Future<String?> getSignedUrl(String path) async =>
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAoMBg9f8CUcAAAAASUVORK5CYII=';
 }
 
 void main() {
@@ -51,6 +54,15 @@ void main() {
         'owner': 'uuid1',
         'bucket_id': 'item_photos',
         'size_bytes': 1024,
+        'created_at': now.toIso8601String(),
+        'metadata': <String, dynamic>{},
+      },
+      {
+        'id': '222',
+        'name': 'orphaned_photo.jpg',
+        'owner': null,
+        'bucket_id': 'item_photos',
+        'size_bytes': 2048,
         'created_at': now.toIso8601String(),
         'metadata': <String, dynamic>{},
       },
@@ -74,14 +86,57 @@ void main() {
       ),
     );
 
-    await tester.pumpAndSettle();
+    // Do not use pumpAndSettle unbounded as network placeholders in CachedNetworkImage
+    // use continuously-animating indicators in tests; pump a few frames instead.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
 
     expect(find.text('File Browser'), findsOneWidget);
-    // Should show the file name
-    expect(find.text('user1/photo1.jpg'), findsOneWidget);
+    // Should show the (basename) file name
+    expect(find.text('photo1.jpg'), findsOneWidget);
     // Buttons present
-    expect(find.byIcon(Icons.open_in_new), findsOneWidget);
-    expect(find.byIcon(Icons.download), findsOneWidget);
-    expect(find.byIcon(Icons.delete_forever), findsOneWidget);
+    expect(find.byIcon(Icons.open_in_new), findsWidgets);
+    expect(find.byIcon(Icons.download), findsWidgets);
+    expect(find.byIcon(Icons.delete_forever), findsWidgets);
+
+    // Orphaned filter: toggle orphaned only then expect only orphaned item
+    final orphanedCheckbox = find.descendant(
+      of: find.widgetWithText(Row, 'Orphaned only'),
+      matching: find.byType(Checkbox),
+    );
+    expect(orphanedCheckbox, findsOneWidget);
+    await tester.ensureVisible(orphanedCheckbox);
+    await tester.tap(orphanedCheckbox);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text('orphaned_photo.jpg'), findsOneWidget);
+    expect(find.text('photo1.jpg'), findsNothing);
+
+    // Toggle off orphaned filter and test bulk selection and delete (tap the checkbox)
+    await tester.ensureVisible(orphanedCheckbox);
+    await tester.tap(orphanedCheckbox);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    // Select first file's checkbox (search inside the list tile for the filename)
+    final fileCheckbox = find.descendant(
+      of: find.widgetWithText(ListTile, 'photo1.jpg'),
+      matching: find.byType(Checkbox),
+    );
+    expect(fileCheckbox, findsOneWidget);
+    await tester.tap(fileCheckbox);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text('Delete (1)'), findsOneWidget);
+    // Confirm bulk delete dialog (two-step: tap delete button)
+    await tester.tap(find.textContaining('Delete (1)'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    // Tap Delete on the dialog
+    await tester.tap(find.text('Delete').last);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    // After deletion the file list should refresh and show no items if only one was present
+    // (We can't assert delete is 100% here but we can assert snack bar message appears)
+    expect(find.text('Files deleted'), findsOneWidget);
   });
 }

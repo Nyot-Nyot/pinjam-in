@@ -689,6 +689,45 @@ class SupabasePersistence implements PersistenceService {
     return null;
   }
 
+  /// Return a public URL if the bucket/object is publicly accessible.
+  /// This is an optional helper to avoid using signed URLs for public buckets.
+  Future<String?> getPublicUrl(String photoUrl) async {
+    if (photoUrl.isEmpty) return null;
+    try {
+      final storage = _client.storage;
+      final from = (storage as dynamic).from(_kImagesBucket);
+
+      // If we've been given a full URL, try to extract the path
+      String path = photoUrl;
+      if (photoUrl.contains('/storage/v1/object/')) {
+        final parts = photoUrl.split('/storage/v1/object/');
+        if (parts.length > 1) {
+          final afterObject = parts[1];
+          final pathParts = afterObject.split('/');
+          int bucketIndex = -1;
+          for (int i = 0; i < pathParts.length; i++) {
+            if (pathParts[i] == _kImagesBucket) {
+              bucketIndex = i;
+              break;
+            }
+          }
+          if (bucketIndex >= 0 && bucketIndex + 1 < pathParts.length) {
+            path = pathParts.sublist(bucketIndex + 1).join('/');
+          }
+        }
+      }
+
+      final pub = (from as dynamic).getPublicUrl(path);
+      if (pub is Map && pub['publicUrl'] != null) {
+        return pub['publicUrl'] as String;
+      }
+      if (pub is String) return pub;
+    } catch (e) {
+      AppLogger.debug('getPublicUrl: error $e', 'SupabasePersistence');
+    }
+    return null;
+  }
+
   @override
   Future<void> invalidateCache({String? itemId}) async {
     await _invalidateCaches(itemId: itemId);

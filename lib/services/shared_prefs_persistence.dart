@@ -16,9 +16,7 @@ class SharedPrefsPersistence implements PersistenceService {
       if (a == null) return [];
       // Parse JSON in background isolate to avoid jank on main thread
       final parsed = await compute(_parseLoanList, a);
-      return parsed
-          .map((e) => LoanItem.fromJson(e))
-          .toList();
+      return parsed.map((e) => LoanItem.fromJson(e)).toList();
     } catch (_) {
       return [];
     }
@@ -32,9 +30,7 @@ class SharedPrefsPersistence implements PersistenceService {
       if (h == null) return [];
       // Parse JSON in background isolate to avoid jank on main thread
       final parsed = await compute(_parseLoanList, h);
-      return parsed
-          .map((e) => LoanItem.fromJson(e))
-          .toList();
+      return parsed.map((e) => LoanItem.fromJson(e)).toList();
     } catch (_) {
       return [];
     }
@@ -97,6 +93,9 @@ class SharedPrefsPersistence implements PersistenceService {
       await prefs.remove(StorageKeys.historyLoansKey);
     } catch (_) {}
   }
+
+  @override
+  Future<String?> getPublicUrl(String path) async => null;
 }
 
 /// Parse a JSON string containing a list of loan maps into a List<Map>.

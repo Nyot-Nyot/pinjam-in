@@ -74,21 +74,44 @@ class _StorageImageState extends State<StorageImage> {
       final ps = widget.persistence;
       try {
         final dyn = ps as dynamic;
-        final fn = dyn.getSignedUrl;
-        if (fn != null && fn is Function) {
-          debugPrint(
-            'StorageImage: Calling getSignedUrl via persistence instance',
-          );
-          final signedUrl = await dyn.getSignedUrl(widget.imageUrl!);
-          debugPrint('StorageImage: Got signed URL: $signedUrl');
-          if (mounted) {
-            setState(() {
-              _signedUrl = signedUrl;
-              _loading = false;
-            });
+        // Try to obtain signed url first (works for private buckets)
+        try {
+          final fn = dyn.getSignedUrl;
+          if (fn != null && fn is Function) {
+            debugPrint(
+              'StorageImage: Calling getSignedUrl via persistence instance',
+            );
+            final signedUrl = await dyn.getSignedUrl(widget.imageUrl!);
+            debugPrint('StorageImage: Got signed URL: $signedUrl');
+            if (signedUrl != null && mounted) {
+              setState(() {
+                _signedUrl = signedUrl;
+                _loading = false;
+              });
+            }
+            // If signedUrl was found - return, otherwise continue to try public URL
+            if (signedUrl != null) return;
           }
-          return;
-        }
+        } catch (_) {}
+
+        // If signed url not available, try to obtain a public URL (for public buckets)
+        try {
+          final pubFn = dyn.getPublicUrl;
+          if (pubFn != null && pubFn is Function) {
+            debugPrint(
+              'StorageImage: Calling getPublicUrl via persistence instance',
+            );
+            final pub = await dyn.getPublicUrl(widget.imageUrl!);
+            debugPrint('StorageImage: Got public URL: $pub');
+            if (pub != null && mounted) {
+              setState(() {
+                _signedUrl = pub;
+                _loading = false;
+              });
+            }
+            if (pub != null) return;
+          }
+        } catch (_) {}
       } catch (_) {
         // not present or not callable — continue to fallback below
       }
@@ -201,12 +224,26 @@ class _StorageImageState extends State<StorageImage> {
               Flexible(
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: Text(
-                    error,
-                    style: TextStyle(fontSize: 10, color: Colors.grey[600]),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        error,
+                        style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      // Allow a reload retry button when image fails to load
+                      IconButton(
+                        icon: const Icon(Icons.refresh, size: 18),
+                        tooltip: 'Retry',
+                        onPressed: () {
+                          _loadSignedUrl();
+                        },
+                      ),
+                    ],
                   ),
                 ),
               ),

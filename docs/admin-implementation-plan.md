@@ -1089,22 +1089,22 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
 
 #### Task 2.2.1: File Browser UI
 
--   [ ] Buat `lib/screens/admin/storage/file_browser_screen.dart`
--   [ ] Implement file list:
-    -   [ ] Thumbnail preview
-    -   [ ] File name (path)
-    -   [ ] Size
-    -   [ ] Upload date
-    -   [ ] Owner
-    -   [ ] Actions (view, download, delete)
--   [ ] Add search by filename
--   [ ] Add filters:
-    -   [ ] By user
-    -   [ ] By date range
-    -   [ ] Orphaned only
--   [ ] Pagination
--   [ ] Bulk selection & actions
--   [ ] Test file browser
+-   [x] Buat `lib/screens/admin/storage/file_browser_screen.dart`
+-   [x] Implement file list:
+    -   [x] Thumbnail preview
+    -   [x] File name (path)
+    -   [x] Size
+    -   [x] Upload date
+    -   [x] Owner
+    -   [x] Actions (view, download, delete)
+-   [x] Add search by filename
+-   [x] Add filters:
+    -   [x] By user
+    -   [x] By date range (client-side)
+    -   [x] Orphaned only
+-   [x] Pagination
+-   [x] Bulk selection & actions
+-   [x] Test file browser (widget test created/updated)
 
 #### Task 2.2.2: File Detail View
 
