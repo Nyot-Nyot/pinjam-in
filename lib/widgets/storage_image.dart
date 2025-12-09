@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -200,6 +201,26 @@ class _StorageImageState extends State<StorageImage> {
     }
 
     if (_signedUrl != null && _signedUrl!.isNotEmpty) {
+      // Special-case data URIs: use Image.memory to render inline base64 images.
+      if (_signedUrl!.startsWith('data:')) {
+        final parts = _signedUrl!.split(',');
+        if (parts.length == 2) {
+          try {
+            final payload = parts[1];
+            final bytes = base64Decode(payload);
+            return Image.memory(
+              bytes,
+              fit: widget.fit,
+              width: widget.width,
+              height: widget.height,
+              errorBuilder: (context, error, stack) =>
+                  _buildPlaceholder(error.toString()),
+            );
+          } catch (e) {
+            // Fallthrough to network loader as fallback
+          }
+        }
+      }
       return CachedNetworkImage(
         imageUrl: _signedUrl!,
         fit: widget.fit,

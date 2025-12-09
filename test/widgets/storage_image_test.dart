@@ -31,6 +31,32 @@ class FakeNoUrlPersistence extends PersistenceService {
   Future<String?> getPublicUrl(String path) async => null;
 }
 
+class FakeDataUriPersistence extends PersistenceService {
+  @override
+  Future<void> deleteItem(String itemId) async {}
+
+  @override
+  Future<void> invalidateCache({String? itemId}) async {}
+
+  @override
+  Future<String?> currentUserId() async => null;
+
+  @override
+  Future<List<LoanItem>> loadActive() async => <LoanItem>[];
+
+  @override
+  Future<List<LoanItem>> loadHistory() async => <LoanItem>[];
+
+  @override
+  Future<void> saveActive(List items) async {}
+
+  @override
+  Future<void> saveHistory(List items) async {}
+
+  Future<String?> getSignedUrl(String path) async =>
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAoMBg9f8CUcAAAAASUVORK5CYII=';
+}
+
 void main() {
   testWidgets(
     'StorageImage shows placeholder for relative path when persistence has no URL',
@@ -58,4 +84,27 @@ void main() {
       expect(find.byIcon(Icons.image_not_supported), findsOneWidget);
     },
   );
+
+  testWidgets('StorageImage renders data URI as Image.memory', (tester) async {
+    final persistence = FakeDataUriPersistence();
+    ServiceLocator.setPersistenceService(persistence);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StorageImage(
+            imageUrl: 'user1/photo1.jpg',
+            persistence: persistence,
+            width: 80,
+            height: 80,
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // Expect Image widget (rendered from memory) is present
+    expect(find.byType(Image), findsOneWidget);
+  });
 }

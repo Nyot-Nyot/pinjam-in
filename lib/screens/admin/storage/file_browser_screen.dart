@@ -1,5 +1,11 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:pinjam_in/di/service_locator.dart';
 import 'package:pinjam_in/screens/admin/admin_layout.dart';
 import 'package:pinjam_in/services/admin_service.dart';
@@ -7,6 +13,7 @@ import 'package:pinjam_in/services/storage_service.dart';
 import 'package:pinjam_in/services/supabase_persistence.dart';
 import 'package:pinjam_in/widgets/admin/breadcrumbs.dart';
 import 'package:pinjam_in/widgets/storage_image.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class FileBrowserScreen extends StatefulWidget {
   final bool wrapWithAdminLayout;
@@ -124,26 +131,44 @@ class FileBrowserScreenState extends State<FileBrowserScreen> {
   Future<void> _handleDelete(Map<String, dynamic> f) async {
     final path = f['name'] as String?;
     if (path == null || path.isEmpty) return;
+    bool clearRelated = true;
     final confirmed = await showDialog<bool?>(
       context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('Delete file'),
-        content: Text('Delete "$path" from storage? This cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c, false),
-            child: const Text('Cancel'),
+      builder: (c) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: const Text('Delete file'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Delete "$path" from storage? This cannot be undone.'),
+              const SizedBox(height: 12),
+              CheckboxListTile(
+                value: clearRelated,
+                onChanged: (v) => setState(() => clearRelated = v ?? false),
+                title: const Text('Clear related item photo_url fields'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(c, true),
-            child: const Text('Delete'),
-          ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
       ),
     );
     if (confirmed != true) return;
     try {
-      await _adminSvc.deleteStorageObject(path, bucketId: null);
+      await _adminSvc.deleteStorageObjectAndClearItems(
+        path,
+        bucketId: null,
+        clearRelated: clearRelated,
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
@@ -157,32 +182,169 @@ class FileBrowserScreenState extends State<FileBrowserScreen> {
     }
   }
 
+  Future<void> _downloadToDeviceForPath(String path) async {
+    if (path.isEmpty) return;
+    try {
+      final ps = ServiceLocator.persistenceService;
+      String? signed;
+      try {
+        final dyn = ps as dynamic;
+        final fn = dyn.getSignedUrl;
+        if (fn != null && fn is Function) signed = await dyn.getSignedUrl(path);
+      } catch (_) {}
+
+      if (signed == null || signed.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No download link available')),
+        );
+        return;
+      }
+
+      final uri = Uri.parse(signed);
+      var savedPath = '';
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogCtx) {
+          double progress = 0.0;
+          return StatefulBuilder(
+            builder: (context, setState) {
+              WidgetsBinding.instance.addPostFrameCallback((_) async {
+                try {
+                  if (signed != null && signed.startsWith('data:')) {
+                    final parts = signed.split(',');
+                    if (parts.length == 2) {
+                      final payload = parts[1];
+                      final bytes = base64Decode(payload);
+                      final tempDir =
+                          await getDownloadsDirectory() ??
+                          await getTemporaryDirectory();
+                      final filename = uri.pathSegments.isNotEmpty
+                          ? uri.pathSegments.last
+                          : path.split('/').last;
+                      final file = File('${tempDir.path}/$filename');
+                      await file.writeAsBytes(bytes);
+                      savedPath = file.path;
+                      if (mounted) Navigator.of(dialogCtx).pop();
+                      return;
+                    }
+                  }
+                  final client = http.Client();
+                  final req = http.Request('GET', uri);
+                  final res = await client.send(req);
+                  final total = res.contentLength ?? 0;
+                  final tempDir =
+                      await getDownloadsDirectory() ??
+                      await getTemporaryDirectory();
+                  final filename = uri.pathSegments.isNotEmpty
+                      ? uri.pathSegments.last
+                      : path.split('/').last;
+                  final file = File('${tempDir.path}/$filename');
+                  final sink = file.openWrite();
+                  int received = 0;
+                  await for (final chunk in res.stream) {
+                    received += chunk.length;
+                    sink.add(chunk);
+                    if (total > 0) {
+                      setState(() {
+                        progress = received / total;
+                      });
+                    }
+                  }
+                  await sink.flush();
+                  await sink.close();
+                  savedPath = file.path;
+                  client.close();
+                  if (mounted) Navigator.of(dialogCtx).pop();
+                } catch (e) {
+                  if (mounted) Navigator.of(dialogCtx).pop();
+                  if (mounted)
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Download failed: $e')),
+                    );
+                }
+              });
+              return AlertDialog(
+                title: const Text('Downloading'),
+                content: SizedBox(
+                  height: 80,
+                  child: Column(
+                    children: [
+                      LinearProgressIndicator(value: progress),
+                      const SizedBox(height: 12),
+                      Text('${(progress * 100).toStringAsFixed(0)}%'),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(dialogCtx).pop(),
+                    child: const Text('Cancel'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+
+      if (!mounted) return;
+      if (savedPath.isNotEmpty) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Saved to $savedPath')));
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Download failed: $e')));
+    }
+  }
+
   Future<void> _handleBulkDelete() async {
     if (_selected.isEmpty) return;
+    bool clearRelated = true;
     final confirmed = await showDialog<bool?>(
       context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('Delete selected files'),
-        content: Text(
-          'Delete ${_selected.length} files? This cannot be undone.',
+      builder: (c) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: const Text('Delete selected files'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Delete ${_selected.length} files? This cannot be undone.'),
+              const SizedBox(height: 12),
+              CheckboxListTile(
+                value: clearRelated,
+                onChanged: (v) => setState(() => clearRelated = v ?? false),
+                title: const Text('Clear related item photo_url fields'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: const Text('Delete'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(c, true),
-            child: const Text('Delete'),
-          ),
-        ],
       ),
     );
     if (confirmed != true) return;
     final toDelete = List<String>.from(_selected);
     try {
       for (final path in toDelete) {
-        await _adminSvc.deleteStorageObject(path, bucketId: null);
+        await _adminSvc.deleteStorageObjectAndClearItems(
+          path,
+          bucketId: null,
+          clearRelated: clearRelated,
+        );
       }
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -371,6 +533,9 @@ class FileBrowserScreenState extends State<FileBrowserScreen> {
                   final path = f['name'] as String? ?? '';
                   return ListTile(
                     isThreeLine: true,
+                    dense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    minLeadingWidth: 88,
                     leading: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -389,11 +554,12 @@ class FileBrowserScreenState extends State<FileBrowserScreen> {
                             },
                           ),
                         ),
+                        const SizedBox(width: 8),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(6),
                           child: SizedBox(
-                            width: 56,
-                            height: 56,
+                            width: 48,
+                            height: 48,
                             child: StorageImage(
                               imageUrl: path,
                               persistence: ServiceLocator.persistenceService,
@@ -473,14 +639,32 @@ class FileBrowserScreenState extends State<FileBrowserScreen> {
                                   f['name'] as String,
                                 );
                                 if (!mounted) return;
-                                if (signed != null) {
-                                  ScaffoldMessenger.of(ctx).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Download link copied (open in browser)',
+                                if (signed != null && signed.isNotEmpty) {
+                                  final uri = Uri.tryParse(signed);
+                                  if (uri != null && await canLaunchUrl(uri)) {
+                                    await launchUrl(
+                                      uri,
+                                      mode: LaunchMode.externalApplication,
+                                    );
+                                    ScaffoldMessenger.of(ctx).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Opened download link in browser',
+                                        ),
                                       ),
-                                    ),
-                                  );
+                                    );
+                                  } else {
+                                    await Clipboard.setData(
+                                      ClipboardData(text: signed),
+                                    );
+                                    ScaffoldMessenger.of(ctx).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Download link copied (open in browser)',
+                                        ),
+                                      ),
+                                    );
+                                  }
                                 } else {
                                   ScaffoldMessenger.of(ctx).showSnackBar(
                                     const SnackBar(
@@ -508,6 +692,14 @@ class FileBrowserScreenState extends State<FileBrowserScreen> {
                                 ),
                               );
                             }
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.save_alt),
+                          tooltip: 'Download to device',
+                          onPressed: () async {
+                            final p = f['name'] as String? ?? '';
+                            await _downloadToDeviceForPath(p);
                           },
                         ),
                         IconButton(
@@ -550,6 +742,7 @@ class FileBrowserScreenState extends State<FileBrowserScreen> {
                     child: const Text('Toggle Select All'),
                   ),
                 ],
+                mainAxisSize: MainAxisSize.min,
               ),
             ),
           if (_files.isNotEmpty)

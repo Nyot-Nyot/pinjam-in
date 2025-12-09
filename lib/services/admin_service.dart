@@ -339,6 +339,91 @@ class AdminService {
     }
   }
 
+  /// Delete a storage object and optionally clear `photo_url` references on
+  /// items that referenced it. This ensures DB rows do not point to deleted
+  /// storage objects. The method also creates an audit log entry for the
+  /// deletion.
+  Future<bool> deleteStorageObjectAndClearItems(
+    String path, {
+    String? bucketId,
+    bool clearRelated = true,
+  }) async {
+    try {
+      final bucket = bucketId ?? StorageKeys.imagesBucket;
+      final deleted = await deleteStorageObject(path, bucketId: bucket);
+
+      final clearedItemIds = <String>[];
+      if (deleted && clearRelated) {
+        try {
+          // Find items where photo_url matches the path exactly
+          final exactRes = await _client
+              .from(StorageKeys.itemsTable)
+              .select('id')
+              .eq('photo_url', path);
+          final exactRows = exactRes is List
+              ? exactRes
+              : (exactRes is Map ? [exactRes] : <dynamic>[]);
+          // Also try to match items where photo_url contains the path
+          final likeRes = await _client
+              .from(StorageKeys.itemsTable)
+              .select('id')
+              .ilike('photo_url', '%$path%');
+          final likeRows = likeRes is List
+              ? likeRes
+              : (likeRes is Map ? [likeRes] : <dynamic>[]);
+
+          final ids = <String>{};
+          for (final r in exactRows) {
+            try {
+              final id = (r as Map)['id'] as String?;
+              if (id != null) ids.add(id);
+            } catch (_) {}
+          }
+          for (final r in likeRows) {
+            try {
+              final id = (r as Map)['id'] as String?;
+              if (id != null) ids.add(id);
+            } catch (_) {}
+          }
+
+          for (final id in ids) {
+            try {
+              // Use updateItem to ensure audit logging and validations
+              await updateItem(id, {'photo_url': null});
+              clearedItemIds.add(id);
+            } catch (_) {}
+          }
+        } catch (_) {
+          // Non-fatal; we don't want to fail the deletion if clearing fails
+        }
+      }
+
+      // Create an audit log for the storage deletion
+      try {
+        await _callRpc(
+          'admin_create_audit_log',
+          params: {
+            'p_action_type': 'DELETE',
+            'p_table_name': 'storage',
+            'p_record_id': path,
+            'p_old_values': null,
+            'p_new_values': null,
+            'p_metadata': jsonEncode({
+              'bucket': bucket,
+              'cleared_item_ids': clearedItemIds,
+            }),
+          },
+        );
+      } catch (_) {
+        // Non-fatal
+      }
+
+      return deleted;
+    } catch (e) {
+      throw ServiceException(extractErrorMessage(e), cause: e);
+    }
+  }
+
   Future<Map<String, dynamic>> updateItem(
     String itemId,
     Map<String, dynamic> itemData,
