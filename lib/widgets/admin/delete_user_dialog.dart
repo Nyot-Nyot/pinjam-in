@@ -127,8 +127,8 @@ class _DeleteUserDialogState extends State<DeleteUserDialog> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: _hardDelete
-                    ? Colors.red.withOpacity(0.1)
-                    : Colors.orange.withOpacity(0.1),
+                    ? Colors.red.withAlpha((0.1 * 255).round())
+                    : Colors.orange.withAlpha((0.1 * 255).round()),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: _hardDelete ? Colors.red : Colors.orange,

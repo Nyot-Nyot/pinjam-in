@@ -29,14 +29,16 @@ class AdminService {
   dynamic get _client => _supabase ?? Supabase.instance.client;
 
   Future<dynamic> _callRpc(String name, {Map<String, dynamic>? params}) {
-    if (_rpcInvokerOverride != null)
+    if (_rpcInvokerOverride != null) {
       return _rpcInvokerOverride(name, params: params);
+    }
     return _client.rpc(name, params: params);
   }
 
   Future<dynamic> _callFunction(String fnName, {dynamic body}) {
-    if (_functionsInvokerOverride != null)
+    if (_functionsInvokerOverride != null) {
       return _functionsInvokerOverride(fnName, body: body);
+    }
     return _client.functions.invoke(fnName, body: body);
   }
 
@@ -44,7 +46,7 @@ class AdminService {
   static final AdminService instance = AdminService();
 
   /// Get dashboard statistics by calling the `admin_get_dashboard_stats` RPC.
-  /// Returns the first row as Map<String, dynamic> or null if not present.
+  /// Returns the first row as `Map<String, dynamic>` or null if not present.
   Future<Map<String, dynamic>?> getDashboardStats() async {
     try {
       final res = await _callRpc('admin_get_dashboard_stats');
@@ -59,7 +61,7 @@ class AdminService {
   }
 
   /// Get all users with optional filters/pagination. Returns the raw RPC
-  /// response (usually a List of records). We'll refine the signature later.
+  /// response (usually a `List<Map<String, dynamic>>` of records). We'll refine the signature later.
   Future<List<Map<String, dynamic>>> getAllUsers({
     int limit = 50,
     int offset = 0,
@@ -155,7 +157,7 @@ class AdminService {
           params: {
             'p_user_id': userId,
             'p_new_status': userData['status'],
-            'p_reason': userData['reason'] ?? null,
+            'p_reason': userData['reason'],
           },
         );
 
@@ -184,7 +186,9 @@ class AdminService {
       );
 
       // RPC functions commonly return a row with success metadata; accept any non-empty response as success
-      if (res is List) return res.isNotEmpty;
+      if (res is List) {
+        return res.isNotEmpty;
+      }
       return true;
     } catch (e) {
       throw ServiceException(extractErrorMessage(e), cause: e);
@@ -306,8 +310,9 @@ class AdminService {
 
       try {
         final asList = insertRes as List;
-        if (asList.isNotEmpty)
+        if (asList.isNotEmpty) {
           return (asList.first as Map).cast<String, dynamic>();
+        }
       } catch (_) {}
 
       try {
@@ -328,7 +333,9 @@ class AdminService {
     try {
       // Load existing item for old values
       final existing = await getItemDetails(itemId);
-      if (existing == null) throw Exception('Item not found: $itemId');
+      if (existing == null) {
+        throw Exception('Item not found: $itemId');
+      }
 
       final oldValues = Map<String, dynamic>.from(existing);
 
@@ -343,7 +350,9 @@ class AdminService {
       if (localPhoto != null && localPhoto.isNotEmpty) {
         try {
           final uploaded = await persistence.uploadImage(localPhoto, itemId);
-          if (uploaded != null && uploaded.isNotEmpty) photoUrl = uploaded;
+          if (uploaded != null && uploaded.isNotEmpty) {
+            photoUrl = uploaded;
+          }
         } catch (_) {
           // If upload fails, keep existing photoUrl and continue
         }
@@ -386,7 +395,9 @@ class AdminService {
         updated['photo_url'] = photoUrl;
       }
 
-      if (updated.isEmpty) return oldValues;
+      if (updated.isEmpty) {
+        return oldValues;
+      }
 
       final res = await _client
           .from(StorageKeys.itemsTable)
@@ -416,8 +427,9 @@ class AdminService {
 
       try {
         final asList = res as List;
-        if (asList.isNotEmpty)
+        if (asList.isNotEmpty) {
           return (asList.first as Map).cast<String, dynamic>();
+        }
       } catch (_) {}
 
       try {
@@ -427,7 +439,7 @@ class AdminService {
 
       return {'success': true, 'id': itemId};
     } catch (e) {
-      rethrow;
+      throw ServiceException(extractErrorMessage(e), cause: e);
     }
   }
 
@@ -453,8 +465,9 @@ class AdminService {
                 // expected: [maybe 'public'|'sign', bucket, ...path]
                 if (pathParts.length > 2) {
                   storagePath = pathParts.sublist(2).join('/');
-                  if (storagePath.contains('?'))
+                  if (storagePath.contains('?')) {
                     storagePath = storagePath.split('?')[0];
+                  }
                 }
               }
             }
@@ -488,10 +501,10 @@ class AdminService {
         } catch (_) {}
         return true;
       } catch (e) {
-        rethrow;
+        throw ServiceException(extractErrorMessage(e), cause: e);
       }
     } catch (e) {
-      rethrow;
+      throw ServiceException(extractErrorMessage(e), cause: e);
     }
   }
 }

@@ -329,7 +329,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
 
                               // Role Dropdown
                               DropdownButtonFormField<String>(
-                                value: _selectedRole,
+                                initialValue: _selectedRole,
                                 decoration: const InputDecoration(
                                   labelText: 'Role',
                                   prefixIcon: Icon(Icons.admin_panel_settings),
@@ -355,7 +355,7 @@ class _CreateUserScreenState extends State<CreateUserScreen> {
 
                               // Status Dropdown
                               DropdownButtonFormField<String>(
-                                value: _selectedStatus,
+                                initialValue: _selectedStatus,
                                 decoration: const InputDecoration(
                                   labelText: 'Status',
                                   prefixIcon: Icon(Icons.info),

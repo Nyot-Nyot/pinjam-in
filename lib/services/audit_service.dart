@@ -16,8 +16,9 @@ class AuditService {
   dynamic get _client => _supabase ?? Supabase.instance.client;
 
   Future<dynamic> _callRpc(String name, {Map<String, dynamic>? params}) {
-    if (_rpcInvokerOverride != null)
+    if (_rpcInvokerOverride != null) {
       return _rpcInvokerOverride(name, params: params);
+    }
     return _client.rpc(name, params: params);
   }
 

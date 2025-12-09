@@ -41,7 +41,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
   String? _selectedUserId;
   List<Map<String, dynamic>> _users = [];
   bool _loadingUsers = true;
-  bool _showUserList = false;
+  // Whether to show the fallback user list in owner selection (unused currently)
   bool _isLoading = true;
   bool _isSubmitting = false;
   // delete flow flags (local state toggles handled in dialog)
@@ -127,7 +127,9 @@ class _EditItemScreenState extends State<EditItemScreen> {
           // pathParts like ['public', 'item_photos', 'user_id', 'file.jpg']
           if (pathParts.length > 2) {
             final storagePath = pathParts.sublist(2).join('/');
-            if (storagePath.contains('?')) return storagePath.split('?')[0];
+            if (storagePath.contains('?')) {
+              return storagePath.split('?')[0];
+            }
             return storagePath;
           }
         }
@@ -145,10 +147,16 @@ class _EditItemScreenState extends State<EditItemScreen> {
           .eq('id', widget.itemId)
           .maybeSingle();
       if (res == null) {
+        if (!mounted) {
+          setState(() => _isLoading = false);
+          return;
+        }
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Item not found')));
-        if (mounted) Navigator.pop(context);
+        if (mounted) {
+          Navigator.pop(context);
+        }
         return;
       }
 
@@ -168,6 +176,9 @@ class _EditItemScreenState extends State<EditItemScreen> {
               .eq('id', ownerId)
               .maybeSingle();
           if (prof is Map<String, dynamic> && prof.isNotEmpty) {
+            if (!mounted) {
+              return;
+            }
             _ownerInitialDisplay = _userDisplay(prof);
           }
         }
@@ -194,12 +205,16 @@ class _EditItemScreenState extends State<EditItemScreen> {
           : null;
     } catch (e) {
       debugPrint('EditItem: load failed $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to load item: $e')));
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to load item: $e')));
+        Navigator.pop(context);
+      }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -330,12 +345,15 @@ class _EditItemScreenState extends State<EditItemScreen> {
       }
     } catch (e) {
       debugPrint('EditItem: submit failed $e');
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Update failed: $e')));
+      }
     } finally {
-      if (mounted) setState(() => _isSubmitting = false);
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
@@ -475,12 +493,15 @@ class _EditItemScreenState extends State<EditItemScreen> {
       }
     } catch (e) {
       debugPrint('EditItem: delete failed $e');
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
+      }
     } finally {
-      if (mounted) setState(() => _isDeleting = false);
+      if (mounted) {
+        setState(() => _isDeleting = false);
+      }
     }
   }
 
@@ -611,7 +632,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
                             // Status selector
                             DropdownButtonFormField<String>(
                               // Items table only allows 'borrowed' or 'returned'
-                              value:
+                              initialValue:
                                   ([
                                     AppConstants.statusBorrowed,
                                     AppConstants.statusReturned,
@@ -697,8 +718,9 @@ class _EditItemScreenState extends State<EditItemScreen> {
                                         firstDate: DateTime(2000),
                                         lastDate: DateTime(2100),
                                       );
-                                      if (picked != null)
+                                      if (picked != null) {
                                         setState(() => _borrowDate = picked);
+                                      }
                                     },
                                     child: InputDecorator(
                                       decoration: const InputDecoration(
@@ -728,8 +750,9 @@ class _EditItemScreenState extends State<EditItemScreen> {
                                         firstDate: DateTime(2000),
                                         lastDate: DateTime(2100),
                                       );
-                                      if (picked != null)
+                                      if (picked != null) {
                                         setState(() => _dueDate = picked);
+                                      }
                                     },
                                     child: InputDecorator(
                                       decoration: const InputDecoration(

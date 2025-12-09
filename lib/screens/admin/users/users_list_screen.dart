@@ -53,7 +53,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
   }
 
   Future<void> _loadUsers() async {
-    print('_loadUsers called, fetching from database...');
+    debugPrint('_loadUsers called, fetching from database...');
     setState(() {
       _isLoading = true;
       _error = null;
@@ -78,9 +78,9 @@ class _UsersListScreenState extends State<UsersListScreen> {
       // Parse response
       final List<dynamic> usersList = response as List;
 
-      print('Fetched ${usersList.length} users from database');
+      debugPrint('Fetched ${usersList.length} users from database');
       if (usersList.isNotEmpty) {
-        print(
+        debugPrint(
           'First user: ${usersList[0]['full_name']} (${usersList[0]['email']})',
         );
       }
@@ -101,9 +101,9 @@ class _UsersListScreenState extends State<UsersListScreen> {
         _selectedUserIds.clear(); // Clear selection on reload
       });
 
-      print('Users list updated in state, should trigger rebuild');
+      debugPrint('Users list updated in state, should trigger rebuild');
     } catch (e) {
-      print('Error loading users: $e');
+      debugPrint('Error loading users: $e');
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -302,7 +302,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
               // Role filter
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _roleFilter,
+                  initialValue: _roleFilter,
                   decoration: InputDecoration(
                     labelText: 'Role',
                     border: OutlineInputBorder(
@@ -328,7 +328,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
               // Status filter
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _statusFilter,
+                  initialValue: _statusFilter,
                   decoration: InputDecoration(
                     labelText: 'Status',
                     border: OutlineInputBorder(
@@ -549,9 +549,9 @@ class _UsersListScreenState extends State<UsersListScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withAlpha((0.1 * 255).round()),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withAlpha((0.3 * 255).round())),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -597,9 +597,9 @@ class _UsersListScreenState extends State<UsersListScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withAlpha((0.1 * 255).round()),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withAlpha((0.3 * 255).round())),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -688,35 +688,35 @@ class _UsersListScreenState extends State<UsersListScreen> {
       '/admin/users/$userId/edit',
     );
 
+    // If widget unmounted while on edit screen, bail out
+    if (!mounted) return;
+
     // Show result
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Edit returned with: $result (type: ${result.runtimeType})',
-          ),
-          duration: const Duration(seconds: 3),
-          backgroundColor: Colors.blue,
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Edit returned with: $result (type: ${result.runtimeType})',
         ),
-      );
-    }
+        duration: const Duration(seconds: 3),
+        backgroundColor: Colors.blue,
+      ),
+    );
 
     // Reload list if user was updated
     if (result == true) {
-      print('Result is true, reloading users...');
-      if (mounted) {
-        await _loadUsers();
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('User list reloaded!'),
-            duration: Duration(seconds: 2),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+      debugPrint('Result is true, reloading users...');
+      if (!mounted) return;
+      await _loadUsers();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('User list reloaded!'),
+          duration: Duration(seconds: 2),
+          backgroundColor: Colors.green,
+        ),
+      );
     } else {
-      print('Result is NOT true: $result');
+      debugPrint('Result is NOT true: $result');
     }
   }
 
@@ -879,7 +879,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
+                color: Colors.orange.withAlpha((0.1 * 255).round()),
                 borderRadius: BorderRadius.circular(4),
                 border: Border.all(color: Colors.orange),
               ),

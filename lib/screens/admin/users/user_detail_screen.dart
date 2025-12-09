@@ -39,7 +39,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   }
 
   Future<void> _loadUserDetails() async {
-    print('Loading user details for: ${widget.userId}');
+    debugPrint('Loading user details for: ${widget.userId}');
     setState(() {
       _isLoading = true;
       _error = null;
@@ -52,7 +52,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
         params: {'p_user_id': widget.userId},
       );
 
-      print('User details response: $response');
+      debugPrint('User details response: $response');
 
       // Get user's items (last 10)
       final itemsResponse = await _supabase
@@ -68,10 +68,10 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
           _userItems = (itemsResponse as List).cast<Map<String, dynamic>>();
           _isLoading = false;
         });
-        print('User details updated: ${_userDetails?['full_name']}');
+        debugPrint('User details updated: ${_userDetails?['full_name']}');
       }
     } catch (e) {
-      print('Error loading user details: $e');
+      debugPrint('Error loading user details: $e');
       if (mounted) {
         setState(() {
           _error = e.toString();
@@ -232,7 +232,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    print('MOBILE Edit button pressed!');
+                    debugPrint('MOBILE Edit button pressed!');
                     _handleEditUser();
                   },
                   icon: const Icon(Icons.edit, size: 18),
@@ -286,7 +286,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
             // Edit button
             ElevatedButton.icon(
               onPressed: () {
-                print('DESKTOP Edit button pressed!');
+                debugPrint('DESKTOP Edit button pressed!');
                 _handleEditUser();
               },
               icon: const Icon(Icons.edit, size: 18),
@@ -604,9 +604,9 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withAlpha((0.1 * 255).round()),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withAlpha((0.3 * 255).round())),
       ),
       child: Row(
         children: [
@@ -680,7 +680,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withAlpha((0.1 * 255).round()),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color),
       ),
@@ -741,7 +741,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
         vertical: small ? 3 : 5,
       ),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withAlpha((0.1 * 255).round()),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color),
       ),
@@ -820,7 +820,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
 
   // Action handlers
   void _handleEditUser() async {
-    print('Edit button clicked, navigating to edit screen...');
+    debugPrint('Edit button clicked, navigating to edit screen...');
 
     // Show debug snackbar
     ScaffoldMessenger.of(context).showSnackBar(
@@ -835,7 +835,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       '/admin/users/${widget.userId}/edit',
     );
 
-    print('Returned from edit screen with result: $result');
+    debugPrint('Returned from edit screen with result: $result');
 
     // Show result in snackbar for debugging
     if (mounted) {
@@ -850,21 +850,21 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
 
     // Reload data if user was updated
     if (result == true) {
-      print('User was updated, reloading details...');
-      if (mounted) {
-        await _loadUserDetails();
+      debugPrint('User was updated, reloading details...');
+      if (!mounted) return;
+      await _loadUserDetails();
+      if (!mounted) return;
 
-        // Show reload confirmation
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Data reloaded!'),
-            duration: Duration(seconds: 1),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+      // Show reload confirmation
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Data reloaded!'),
+          duration: Duration(seconds: 1),
+          backgroundColor: Colors.green,
+        ),
+      );
     } else {
-      print('No update or result is not true');
+      debugPrint('No update or result is not true');
     }
   }
 
@@ -994,7 +994,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
         );
       } catch (auditError) {
         // Audit log failed but reset email was sent, just log it
-        print('Failed to create audit log: $auditError');
+        debugPrint('Failed to create audit log: $auditError');
       }
     } catch (e) {
       if (!mounted) return;
@@ -1041,8 +1041,8 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: isActive
-                        ? Colors.orange.withOpacity(0.1)
-                        : Colors.green.withOpacity(0.1),
+                        ? Colors.orange.withAlpha((0.1 * 255).round())
+                        : Colors.green.withAlpha((0.1 * 255).round()),
                     border: Border.all(
                       color: isActive ? Colors.orange : Colors.green,
                       width: 1,
@@ -1186,6 +1186,9 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       // Reload user details to show updated state
       await _loadUserDetails();
 
+      // If the widget is no longer mounted after the await, bail out
+      if (!mounted) return;
+
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1283,29 +1286,31 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                   const SizedBox(height: 8),
 
                   // Role options
-                  RadioListTile<String>(
+                  ListTile(
                     title: const Text('User'),
                     subtitle: const Text(
                       'Can borrow items and manage own profile',
                       style: TextStyle(fontSize: 12),
                     ),
-                    value: 'user',
-                    groupValue: tempRole,
-                    onChanged: (value) {
-                      setState(() => tempRole = value!);
-                    },
+                    leading: Icon(
+                      tempRole == 'user'
+                          ? Icons.radio_button_checked
+                          : Icons.radio_button_unchecked,
+                    ),
+                    onTap: () => setState(() => tempRole = 'user'),
                   ),
-                  RadioListTile<String>(
+                  ListTile(
                     title: const Text('Admin'),
                     subtitle: const Text(
                       'Full access to all features and data',
                       style: TextStyle(fontSize: 12),
                     ),
-                    value: 'admin',
-                    groupValue: tempRole,
-                    onChanged: (value) {
-                      setState(() => tempRole = value!);
-                    },
+                    leading: Icon(
+                      tempRole == 'admin'
+                          ? Icons.radio_button_checked
+                          : Icons.radio_button_unchecked,
+                    ),
+                    onTap: () => setState(() => tempRole = 'admin'),
                   ),
 
                   // Warning for admin role
@@ -1314,7 +1319,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                       margin: const EdgeInsets.only(top: 8),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.1),
+                        color: Colors.orange.withAlpha((0.1 * 255).round()),
                         border: Border.all(color: Colors.orange, width: 1),
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -1397,6 +1402,8 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
 
       // Reload user details to show updated state
       await _loadUserDetails();
+
+      if (!mounted) return;
 
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(

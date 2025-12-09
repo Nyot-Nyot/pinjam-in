@@ -358,10 +358,12 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
 
       if (mounted) {
         Navigator.pop(context); // Close loading dialog
+      }
 
-        // Reload item details
-        await _loadItemDetails();
+      // Reload item details
+      await _loadItemDetails();
 
+      if (mounted) {
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -371,9 +373,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen> {
         );
       }
     } catch (e) {
-      if (mounted) {
-        Navigator.pop(context); // Close loading dialog
+      if (mounted) Navigator.pop(context); // Close loading dialog
 
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: ${e.toString()}'),

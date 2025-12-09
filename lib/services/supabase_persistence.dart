@@ -589,7 +589,10 @@ class SupabasePersistence implements PersistenceService {
   Future<String?> getSignedUrl(String photoUrl) async {
     if (photoUrl.isEmpty) return null;
 
-    print('getSignedUrl: Input URL: $photoUrl');
+    AppLogger.debug(
+      'getSignedUrl: Input URL: $photoUrl',
+      'SupabasePersistence',
+    );
 
     // Check in-memory cache first
     try {
@@ -597,7 +600,10 @@ class SupabasePersistence implements PersistenceService {
       if (cached != null) {
         // signed URLs are set to be long-lived; reuse if not too old (7 days)
         if (DateTime.now().difference(cached.ts) < const Duration(days: 7)) {
-          print('getSignedUrl: Using cached URL');
+          AppLogger.debug(
+            'getSignedUrl: Using cached URL',
+            'SupabasePersistence',
+          );
           return cached.url;
         } else {
           _signedUrlCache.remove(photoUrl);
@@ -605,7 +611,10 @@ class SupabasePersistence implements PersistenceService {
       }
     } catch (_) {}
 
-    print('getSignedUrl: Creating new signed URL');
+    AppLogger.debug(
+      'getSignedUrl: Creating new signed URL',
+      'SupabasePersistence',
+    );
 
     try {
       final storage = _client.storage;
@@ -642,7 +651,10 @@ class SupabasePersistence implements PersistenceService {
         }
       }
 
-      print('getSignedUrl: Extracted path: $path');
+      AppLogger.debug(
+        'getSignedUrl: Extracted path: $path',
+        'SupabasePersistence',
+      );
 
       // Create a signed URL valid for 1 year
       final signed = await (from as dynamic).createSignedUrl(
@@ -650,7 +662,10 @@ class SupabasePersistence implements PersistenceService {
         60 * 60 * 24 * 365, // 1 year in seconds
       );
 
-      print('getSignedUrl: Signed result: $signed');
+      AppLogger.debug(
+        'getSignedUrl: Signed result: $signed',
+        'SupabasePersistence',
+      );
 
       if (signed is Map &&
           (signed['signedURL'] != null || signed['signedUrl'] != null)) {
@@ -663,7 +678,7 @@ class SupabasePersistence implements PersistenceService {
         return signed;
       }
     } catch (e) {
-      print('getSignedUrl: Error - $e');
+      AppLogger.error('getSignedUrl: Error - $e', e, 'SupabasePersistence');
       AppLogger.error(
         'Error creating signed URL for $photoUrl',
         e,

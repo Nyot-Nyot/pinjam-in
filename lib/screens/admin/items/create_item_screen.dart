@@ -104,7 +104,9 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
 
       setState(() {
         _users = parsed;
-        if (_users.isNotEmpty) _selectedUserId = _users.first['id'] as String?;
+        if (_users.isNotEmpty) {
+          _selectedUserId = _users.first['id'] as String?;
+        }
       });
       // Fallback: if RPC returned nothing, try selecting directly from profiles
       if (parsed.isEmpty) {
@@ -116,8 +118,9 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
           if (direct.isNotEmpty) {
             setState(() {
               _users = direct.cast<Map<String, dynamic>>();
-              if (_users.isNotEmpty)
+              if (_users.isNotEmpty) {
                 _selectedUserId = _users.first['id'] as String?;
+              }
             });
             debugPrint(
               '[CreateItem] Fallback: loaded ${_users.length} users from profiles table',
@@ -149,7 +152,9 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
     if (_selectedUserId == null) {
       ScaffoldMessenger.of(
         context,
@@ -201,7 +206,7 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
           .insert(item)
           .select();
       // use insertRes to avoid analyzer unused-local warning and log result
-      debugPrint('CreateItem: insertRes=${insertRes}');
+      debugPrint('CreateItem: insertRes=$insertRes');
 
       // Create audit log via RPC (optional)
       try {
@@ -234,7 +239,9 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
         ).showSnackBar(SnackBar(content: Text('Error creating item: $e')));
       }
     } finally {
-      if (mounted) setState(() => _isSubmitting = false);
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
@@ -307,10 +314,11 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                                             (u) => u['id'] == _selectedUserId,
                                             orElse: () => <String, dynamic>{},
                                           );
-                                          if (current.isNotEmpty)
+                                          if (current.isNotEmpty) {
                                             controller.text = _userDisplay(
                                               current,
                                             );
+                                          }
                                         }
                                         return TextFormField(
                                           controller: controller,
@@ -460,8 +468,9 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                                   firstDate: DateTime(2000),
                                   lastDate: DateTime(2100),
                                 );
-                                if (picked != null)
+                                if (picked != null) {
                                   setState(() => _borrowDate = picked);
+                                }
                               },
                               child: InputDecorator(
                                 decoration: const InputDecoration(
@@ -491,8 +500,9 @@ class _CreateItemScreenState extends State<CreateItemScreen> {
                                   firstDate: DateTime(2000),
                                   lastDate: DateTime(2100),
                                 );
-                                if (picked != null)
+                                if (picked != null) {
                                   setState(() => _dueDate = picked);
+                                }
                               },
                               child: InputDecorator(
                                 decoration: const InputDecoration(

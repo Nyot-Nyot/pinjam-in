@@ -61,7 +61,7 @@ class _StorageImageState extends State<StorageImage> {
       return;
     }
 
-    print('StorageImage: Loading URL: ${widget.imageUrl}');
+    debugPrint('StorageImage: Loading URL: ${widget.imageUrl}');
 
     // Always go through getSignedUrl for Supabase Storage URLs
     // This handles both public and private buckets correctly
@@ -72,10 +72,10 @@ class _StorageImageState extends State<StorageImage> {
 
     try {
       if (widget.persistence is SupabasePersistence) {
-        print('StorageImage: Calling getSignedUrl');
+        debugPrint('StorageImage: Calling getSignedUrl');
         final signedUrl = await (widget.persistence as SupabasePersistence)
             .getSignedUrl(widget.imageUrl!);
-        print('StorageImage: Got signed URL: $signedUrl');
+        debugPrint('StorageImage: Got signed URL: $signedUrl');
         if (mounted) {
           setState(() {
             _signedUrl = signedUrl;
@@ -92,7 +92,7 @@ class _StorageImageState extends State<StorageImage> {
         }
       }
     } catch (e) {
-      print('StorageImage: Error loading signed URL: $e');
+      debugPrint('StorageImage: Error loading signed URL: $e');
       if (mounted) {
         setState(() {
           _error = e.toString();

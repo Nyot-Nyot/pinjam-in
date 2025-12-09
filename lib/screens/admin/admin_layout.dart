@@ -204,7 +204,7 @@ class _AdminLayoutState extends State<AdminLayout> {
               Text(
                 'Admin Panel',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withAlpha((0.8 * 255).round()),
                   fontSize: 14,
                 ),
               ),
@@ -279,7 +279,9 @@ class _AdminLayoutState extends State<AdminLayout> {
         ),
       ),
       selected: isSelected,
-      selectedTileColor: Theme.of(context).primaryColor.withOpacity(0.1),
+      selectedTileColor: Theme.of(
+        context,
+      ).primaryColor.withAlpha((0.1 * 255).round()),
       onTap: () {
         Navigator.of(context).pushReplacementNamed(route);
       },

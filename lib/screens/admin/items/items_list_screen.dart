@@ -26,13 +26,13 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
   List<Map<String, dynamic>> _items = [];
   bool _isLoading = true;
   String? _error;
-  int _pageSize = 20;
+  final int _pageSize = 20;
   int _currentPage = 0;
   int _totalItems = 0;
   String _searchQuery = '';
   String _statusFilter = 'all';
   String? _ownerFilter;
-  Set<String> _selectedItemIds = {};
+  final Set<String> _selectedItemIds = {};
 
   @override
   void initState() {
@@ -49,8 +49,8 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
     try {
       final offset = _currentPage * _pageSize;
 
-      print('[ItemsList] Calling admin_get_all_items RPC...');
-      print(
+      debugPrint('[ItemsList] Calling admin_get_all_items RPC...');
+      debugPrint(
         '[ItemsList] Params: limit=$_pageSize, offset=$offset, search=$_searchQuery, status=$_statusFilter, owner=$_ownerFilter',
       );
 
@@ -67,12 +67,12 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
         },
       );
 
-      print('[ItemsList] RPC response type: ${response.runtimeType}');
-      print('[ItemsList] RPC response: $response');
+      debugPrint('[ItemsList] RPC response type: ${response.runtimeType}');
+      debugPrint('[ItemsList] RPC response: $response');
 
       final List<dynamic> itemsList = response as List;
 
-      print('[ItemsList] Fetched ${itemsList.length} items');
+      debugPrint('[ItemsList] Fetched ${itemsList.length} items');
 
       setState(() {
         _items = itemsList.cast<Map<String, dynamic>>();
@@ -83,8 +83,8 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
         _isLoading = false;
       });
     } catch (e, stackTrace) {
-      print('[ItemsList] Error loading items: $e');
-      print('[ItemsList] Stack trace: $stackTrace');
+      debugPrint('[ItemsList] Error loading items: $e');
+      debugPrint('[ItemsList] Stack trace: $stackTrace');
       setState(() {
         _error = 'Failed to load items: $e';
         _isLoading = false;
@@ -157,10 +157,9 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
             const SizedBox(height: 16),
             ListTile(
               title: const Text('Mark as Returned'),
-              leading: Radio<String>(
-                value: 'returned',
-                groupValue: null,
-                onChanged: (value) => Navigator.pop(context, value),
+              leading: IconButton(
+                icon: const Icon(Icons.check_circle_outline),
+                onPressed: () => Navigator.pop(context, 'returned'),
               ),
               onTap: () => Navigator.pop(context, 'returned'),
             ),
@@ -495,7 +494,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
                 SizedBox(
                   width: 200,
                   child: DropdownButtonFormField<String>(
-                    value: _statusFilter,
+                    initialValue: _statusFilter,
                     decoration: const InputDecoration(
                       labelText: 'Status',
                       border: OutlineInputBorder(),
@@ -628,7 +627,9 @@ class _ItemsListScreenState extends State<ItemsListScreen> {
             return DataRow(
               selected: isSelected,
               color: isOverdue
-                  ? WidgetStateProperty.all(Colors.red.withOpacity(0.1))
+                  ? WidgetStateProperty.all(
+                      Colors.red.withAlpha((0.1 * 255).round()),
+                    )
                   : null,
               cells: [
                 DataCell(

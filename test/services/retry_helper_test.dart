@@ -25,18 +25,15 @@ void main() {
 
   test('retry rethrows after attempts exhausted', () async {
     var calls = 0;
-    try {
-      await retry(
-        () async {
-          calls++;
-          throw Exception('always');
-        },
-        attempts: 2,
-        initialDelay: const Duration(milliseconds: 1),
-      );
-      fail('should have thrown');
-    } catch (e) {
-      expect(calls, 2);
-    }
+    final future = retry(
+      () async {
+        calls++;
+        throw Exception('always');
+      },
+      attempts: 2,
+      initialDelay: const Duration(milliseconds: 1),
+    );
+    await expectLater(future, throwsException);
+    expect(calls, 2);
   });
 }

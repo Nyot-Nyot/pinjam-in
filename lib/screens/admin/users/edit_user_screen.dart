@@ -110,21 +110,23 @@ class _EditUserScreenState extends State<EditUserScreen> {
       final roleChanged = _selectedRole != _originalRole;
       final statusChanged = _selectedStatus != _originalStatus;
 
-      print('=== CHANGE DETECTION ===');
-      print('Email: "$_originalEmail" → "$email" (changed: $emailChanged)');
-      print(
+      debugPrint('=== CHANGE DETECTION ===');
+      debugPrint(
+        'Email: "$_originalEmail" → "$email" (changed: $emailChanged)',
+      );
+      debugPrint(
         'Full Name: "$_originalFullName" → "$fullName" (changed: $fullNameChanged)',
       );
-      print(
+      debugPrint(
         'Role: "$_originalRole" → "$_selectedRole" (changed: $roleChanged)',
       );
-      print(
+      debugPrint(
         'Status: "$_originalStatus" → "$_selectedStatus" (changed: $statusChanged)',
       );
 
       // Check if anything changed
       if (!emailChanged && !fullNameChanged && !roleChanged && !statusChanged) {
-        print('No changes detected, returning...');
+        debugPrint('No changes detected, returning...');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -169,8 +171,10 @@ class _EditUserScreenState extends State<EditUserScreen> {
 
         // Update profiles full_name if changed
         if (fullNameChanged) {
-          print('Updating full_name from "$_originalFullName" to "$fullName"');
-          print('User ID: ${widget.userId}');
+          debugPrint(
+            'Updating full_name from "$_originalFullName" to "$fullName"',
+          );
+          debugPrint('User ID: ${widget.userId}');
 
           // Use RPC with SECURITY DEFINER to bypass RLS
           try {
@@ -179,9 +183,9 @@ class _EditUserScreenState extends State<EditUserScreen> {
               params: {'p_user_id': widget.userId, 'p_full_name': fullName},
             );
 
-            print('Profile updated successfully via RPC');
+            debugPrint('Profile updated successfully via RPC');
           } catch (e) {
-            print('Error updating profile: $e');
+            debugPrint('Error updating profile: $e');
             rethrow;
           }
           // Create audit log for full_name change
@@ -218,9 +222,9 @@ class _EditUserScreenState extends State<EditUserScreen> {
         );
 
         // Navigate back with result to trigger reload
-        print('Edit successful, popping with result true');
+        debugPrint('Edit successful, popping with result true');
         Navigator.of(context).pop(true);
-        print('Pop called');
+        debugPrint('Pop called');
       }
     } on PostgrestException catch (e) {
       // Database errors (RLS policy violations, constraint violations, etc.)
@@ -471,7 +475,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
 
                         // Role dropdown
                         DropdownButtonFormField<String>(
-                          value: _selectedRole,
+                          initialValue: _selectedRole,
                           decoration: const InputDecoration(
                             labelText: 'Role',
                             border: OutlineInputBorder(),
@@ -497,7 +501,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
 
                         // Status dropdown
                         DropdownButtonFormField<String>(
-                          value: _selectedStatus,
+                          initialValue: _selectedStatus,
                           decoration: const InputDecoration(
                             labelText: 'Status',
                             border: OutlineInputBorder(),
@@ -529,10 +533,10 @@ class _EditUserScreenState extends State<EditUserScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.1),
+                            color: Colors.blue.withAlpha((0.1 * 255).round()),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: Colors.blue.withOpacity(0.3),
+                              color: Colors.blue.withAlpha((0.3 * 255).round()),
                             ),
                           ),
                           child: Row(
