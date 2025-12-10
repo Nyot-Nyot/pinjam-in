@@ -12,6 +12,7 @@ import 'providers/theme_provider.dart';
 import 'screens/admin/admin_dashboard_screen.dart';
 import 'screens/admin/analytics/items_analytics_screen.dart';
 import 'screens/admin/analytics/user_analytics_screen.dart';
+import 'screens/admin/audit/audit_logs_screen_clean.dart';
 import 'screens/admin/items/create_item_screen.dart';
 import 'screens/admin/items/edit_item_screen.dart';
 import 'screens/admin/items/item_detail_screen.dart';
@@ -25,7 +26,6 @@ import 'screens/admin/users/edit_user_screen.dart';
 import 'screens/admin/users/user_detail_screen.dart';
 import 'screens/admin/users/users_list_screen.dart';
 import 'screens/splash_screen.dart';
-import 'screens/unauthorized_screen.dart';
 import 'theme/app_theme.dart';
 import 'utils/admin_guard.dart';
 import 'utils/logger.dart';
@@ -191,7 +191,7 @@ class _MaterialAppWrapper extends StatelessWidget {
       case '/admin/analytics/items':
         return const ItemsAnalyticsScreen();
       case '/admin/audit':
-        return const UnauthorizedScreen(); // Placeholder
+        return const AuditLogsScreen();
       case '/admin/reports':
         return const ReportScreen();
       default:

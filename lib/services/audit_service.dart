@@ -72,6 +72,7 @@ class AuditService {
     String? adminUserId,
     String? actionType,
     String? tableName,
+    String? recordId,
     DateTime? dateFrom,
     DateTime? dateTo,
   }) async {
@@ -84,6 +85,7 @@ class AuditService {
           'p_user_id': adminUserId,
           'p_action_type': actionType,
           'p_table_name': tableName,
+          'p_record_id': recordId,
           'p_date_from': dateFrom?.toIso8601String(),
           'p_date_to': dateTo?.toIso8601String(),
         },

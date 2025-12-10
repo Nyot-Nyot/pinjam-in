@@ -80,4 +80,18 @@ void main() {
     final svc = AuditService(null, fakeRpc);
     expect(() => svc.getAuditLogs(), throwsA(isA<ServiceException>()));
   });
+
+  test('getAuditLogs accepts recordId param', () async {
+    Future<dynamic> fakeRpc(String name, {Map<String, dynamic>? params}) async {
+      expect(name, 'admin_get_audit_logs');
+      expect(params?['p_record_id'], 'i123');
+      return [
+        {'id': 'i123-a1'},
+      ];
+    }
+
+    final svc = AuditService(null, fakeRpc);
+    final list = await svc.getAuditLogs(recordId: 'i123');
+    expect(list, hasLength(1));
+  });
 }
