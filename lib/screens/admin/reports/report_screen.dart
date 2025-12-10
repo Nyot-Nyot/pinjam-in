@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:printing/printing.dart';
 
 import '../../../services/report_service.dart';
 import '../../admin/admin_layout.dart';
@@ -164,27 +166,207 @@ class _ReportScreenState extends State<ReportScreen> {
                             : const Text('Preview'),
                       ),
                       ElevatedButton(
-                        onPressed: _rows.isEmpty ? null : _exportCsv,
+                        onPressed: _rows.isEmpty
+                            ? null
+                            : () async {
+                                // Provide Save or Share options
+                                final action =
+                                    await showModalBottomSheet<String>(
+                                      context: context,
+                                      builder: (ctx) => SafeArea(
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            ListTile(
+                                              leading: const Icon(Icons.save),
+                                              title: const Text('Save to file'),
+                                              onTap: () =>
+                                                  Navigator.of(ctx).pop('save'),
+                                            ),
+                                            ListTile(
+                                              leading: const Icon(Icons.share),
+                                              title: const Text('Share'),
+                                              onTap: () => Navigator.of(
+                                                ctx,
+                                              ).pop('share'),
+                                            ),
+                                            ListTile(
+                                              leading: const Icon(Icons.copy),
+                                              title: const Text(
+                                                'Copy CSV to clipboard',
+                                              ),
+                                              onTap: () => Navigator.of(
+                                                ctx,
+                                              ).pop('clipboard'),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                if (action == 'clipboard') {
+                                  await _exportCsv();
+                                  return;
+                                }
+                                setState(() => _loading = true);
+                                final filename =
+                                    'report_${DateTime.now().toIso8601String().replaceAll(':', '-')}';
+                                try {
+                                  if (action == 'share') {
+                                    final path = await ReportService.instance
+                                        .saveAndShareRowsAsCsv(
+                                          _rows,
+                                          filename: filename,
+                                        );
+                                    if (kIsWeb) {
+                                      // fallback to copy
+                                      await _exportCsv();
+                                    } else {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'CSV saved and shared: $path',
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  } else {
+                                    final path = await ReportService.instance
+                                        .saveRowsToCsvFile(
+                                          _rows,
+                                          filename: filename,
+                                        );
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('CSV saved: $path'),
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Export failed: ${e.toString()}',
+                                      ),
+                                    ),
+                                  );
+                                } finally {
+                                  setState(() => _loading = false);
+                                }
+                              },
                         child: const Text('Export CSV'),
                       ),
                       Tooltip(
-                        message: 'Export PDF (placeholder)',
+                        message: 'Export PDF',
                         child: ElevatedButton(
-                          onPressed: () => showDialog<void>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Export PDF'),
-                              content: const Text(
-                                'PDF export not implemented yet.',
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(),
-                                  child: const Text('Close'),
-                                ),
-                              ],
-                            ),
-                          ),
+                          onPressed: _rows.isEmpty
+                              ? null
+                              : () async {
+                                  final action =
+                                      await showModalBottomSheet<String>(
+                                        context: context,
+                                        builder: (ctx) => SafeArea(
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              ListTile(
+                                                leading: const Icon(Icons.save),
+                                                title: const Text(
+                                                  'Save to file',
+                                                ),
+                                                onTap: () => Navigator.of(
+                                                  ctx,
+                                                ).pop('save'),
+                                              ),
+                                              ListTile(
+                                                leading: const Icon(
+                                                  Icons.share,
+                                                ),
+                                                title: const Text('Share'),
+                                                onTap: () => Navigator.of(
+                                                  ctx,
+                                                ).pop('share'),
+                                              ),
+                                              ListTile(
+                                                leading: const Icon(
+                                                  Icons.print,
+                                                ),
+                                                title: const Text('Print'),
+                                                onTap: () => Navigator.of(
+                                                  ctx,
+                                                ).pop('print'),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                  if (action == null) return;
+                                  setState(() => _loading = true);
+                                  final filename =
+                                      'report_pdf_${DateTime.now().toIso8601String().replaceAll(':', '-')}.pdf';
+                                  try {
+                                    if (action == 'share') {
+                                      final path = await ReportService.instance
+                                          .saveAndShareRowsAsPdf(
+                                            _rows,
+                                            filename: filename,
+                                          );
+                                      if (kIsWeb) {
+                                        // Web returns base64 string as path, show information
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'PDF generated for web. Please use browser download.',
+                                            ),
+                                          ),
+                                        );
+                                      } else {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'PDF saved and shared: $path',
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    } else if (action == 'print') {
+                                      final pdfBytes = await ReportService
+                                          .instance
+                                          .generatePdfBytes(_rows);
+                                      await Printing.layoutPdf(
+                                        onLayout: (_) => pdfBytes,
+                                      );
+                                    } else {
+                                      final path = await ReportService.instance
+                                          .saveRowsToPdfFile(
+                                            _rows,
+                                            filename: filename,
+                                          );
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text('PDF saved: $path'),
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'PDF export failed: ${e.toString()}',
+                                        ),
+                                      ),
+                                    );
+                                  } finally {
+                                    setState(() => _loading = false);
+                                  }
+                                },
                           child: const Text('Export PDF'),
                         ),
                       ),

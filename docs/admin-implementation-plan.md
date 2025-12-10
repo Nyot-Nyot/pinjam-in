@@ -1218,24 +1218,24 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
 
 #### Task 3.2.2: Export to CSV
 
--   [ ] Install package: `csv`
--   [ ] Implement CSV export:
-    -   [ ] User data
-    -   [ ] Items data
-    -   [ ] Analytics data
--   [ ] Download files
--   [ ] Test exports
+-   [x] Install package: `csv`
+-   [x] Implement CSV export:
+    -   [x] User data
+    -   [x] Items data
+    -   [x] Analytics data
+-   [x] Download files (save and share via `share_plus`)
+-   [x] Test exports (unit tests for CSV string and file writing)
 
 #### Task 3.2.3: Export to PDF (Optional)
 
--   [ ] Install package: `pdf` dan `printing`
--   [ ] Implement basic PDF generator
--   [ ] Design simple PDF layout:
-    -   [ ] Header (title, date)
-    -   [ ] Summary section
-    -   [ ] Data tables
--   [ ] Generate & download PDF
--   [ ] Test PDF export
+-   [x] Install package: `pdf` dan `printing` (added to pubspec)
+-   [x] Implement basic PDF generator (implemented in ReportService.generatePdfBytes)
+-   [x] Design simple PDF layout:
+    -   [x] Header (title, date)
+    -   [x] Summary section
+    -   [x] Data tables
+-   [x] Generate & download PDF (save and share implemented)
+-   [x] Test PDF export (unit tests for PDF bytes and file writing added)
 
 ### 3.3 Audit Logs UI (2 hari)
 
