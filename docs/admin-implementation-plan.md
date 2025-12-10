@@ -1143,11 +1143,11 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
 
 #### Task 2.3.1: Orphaned Files Detection
 
--   [ ] Implement function untuk detect orphaned files
--   [ ] Query files di storage bucket
--   [ ] Cross-check dengan items.photo_url
--   [ ] Return list orphaned files
--   [ ] Test detection
+-   [x] Implement function untuk detect orphaned files
+-   [x] Query files di storage bucket
+-   [x] Cross-check dengan items.photo_url (server-side via RPC)
+-   [x] Return list orphaned files
+-   [x] Test detection (unit tests calling the RPC wrapper)
 
 #### Task 2.3.2: Storage Cleanup Tool
 

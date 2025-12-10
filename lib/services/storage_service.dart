@@ -129,6 +129,32 @@ class StorageService {
     }
   }
 
+  /// Returns a list of orphaned storage files (not referenced by items.photo_url)
+  /// Supports optional pagination.
+  Future<List<Map<String, dynamic>>> listOrphanedFiles({
+    String? bucketId,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    try {
+      final effectiveBucket = bucketId ?? StorageKeys.imagesBucket;
+      final res = await _callRpc(
+        'admin_list_orphaned_storage_files',
+        params: {
+          'p_bucket_id': effectiveBucket,
+          'p_limit': limit,
+          'p_offset': offset,
+        },
+      );
+      if (res is List) {
+        return res.map((e) => (e as Map).cast<String, dynamic>()).toList();
+      }
+      return <Map<String, dynamic>>[];
+    } catch (e) {
+      throw ServiceException(extractErrorMessage(e), cause: e);
+    }
+  }
+
   Map<String, dynamic> _normalizeStats(Map<String, dynamic> raw) {
     final m = Map<String, dynamic>.from(raw);
 
