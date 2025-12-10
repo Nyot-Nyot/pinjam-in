@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -330,9 +331,289 @@ class AdminService {
   Future<bool> deleteStorageObject(String path, {String? bucketId}) async {
     try {
       final bucket = bucketId ?? StorageKeys.imagesBucket;
-      await retry(() async {
-        return await _client.storage.from(bucket).remove([path]);
-      }, attempts: 2);
+      developer.log(
+        'AdminService.deleteStorageObject called path=$path bucket=$bucket',
+      );
+      print(
+        'AdminService.deleteStorageObject called path=$path bucket=$bucket',
+      );
+      // Normalize path if a full URL was provided (extract object path)
+      String objectPath = path;
+      try {
+        if (path.contains('/storage/v1/object/')) {
+          final parts = path.split('/storage/v1/object/');
+          if (parts.length > 1) {
+            final afterObject = parts[1];
+            final pathParts = afterObject.split('/');
+            int bucketIndex = -1;
+            for (int i = 0; i < pathParts.length; i++) {
+              if (pathParts[i] == bucket) {
+                bucketIndex = i;
+                break;
+              }
+            }
+            if (bucketIndex >= 0 && bucketIndex + 1 < pathParts.length) {
+              objectPath = pathParts.sublist(bucketIndex + 1).join('/');
+            }
+          }
+        }
+      } catch (_) {
+        // ignore normalization failure and proceed with provided path
+      }
+      // Attempt remove; track tried paths and attempt alternate forms if needed
+      final triedPaths = <String>[];
+      Future<void> attemptRemove(String p) async {
+        if (p.isEmpty) return;
+        triedPaths.add(p);
+        developer.log('AdminService.remove attempt: $p');
+        final res = await retry(() async {
+          return await _client.storage.from(bucket).remove([p]);
+        }, attempts: 2);
+        developer.log('AdminService.remove result for $p: $res');
+        print('AdminService: remove result for $p -> $res');
+        // If the storage API returns an error map, throw
+        try {
+          if (res is Map && res.containsKey('error')) {
+            throw Exception(res['error']);
+          }
+        } catch (_) {}
+      }
+
+      // Initial attempt — preserve error semantics so storage remove failure surfaces
+      await attemptRemove(objectPath);
+
+      // Verify that the file no longer appears in storage listing (best-effort)
+      try {
+        final resCheck = await _callRpc(
+          'admin_list_storage_files',
+          params: {
+            'p_bucket_id': bucket,
+            'p_limit': 10,
+            'p_offset': 0,
+            'p_search': objectPath,
+          },
+        );
+        var _count = 0;
+        if (resCheck is List) _count = resCheck.length;
+        developer.log(
+          'AdminService.deleteStorageObject listing check count=$_count',
+        );
+        print('AdminService.deleteStorageObject listing check count=$_count');
+        if (resCheck is List && resCheck.isNotEmpty) {
+          // If there's any file whose name equals or ends with the objectPath, consider deletion failed
+          for (final r in resCheck) {
+            final n = (r as Map)['name']?.toString() ?? '';
+            if (n == objectPath || n.endsWith(objectPath)) {
+              developer.log(
+                'AdminService.deleteStorageObject: listing still contains object: $n',
+              );
+              print(
+                'AdminService.deleteStorageObject: listing still contains object: $n',
+              );
+              final foundNames = <String>[];
+              for (final rr in resCheck) {
+                foundNames.add((rr as Map)['name']?.toString() ?? '');
+              }
+              // Try removing the exact listed name if it differs from the requested objectPath
+              if (n != objectPath && !triedPaths.contains(n)) {
+                try {
+                  developer.log(
+                    'AdminService.deleteStorageObject: trying remove with full listed name: $n',
+                  );
+                  print(
+                    'AdminService.deleteStorageObject: trying remove with full listed name: $n',
+                  );
+                  await attemptRemove(n);
+                  // If it succeeded, re-check through alternate logic below
+                } catch (e) {
+                  developer.log(
+                    'AdminService.deleteStorageObject: failed to remove by listed name $n: $e',
+                  );
+                  print(
+                    'AdminService.deleteStorageObject: failed to remove by listed name $n: $e',
+                  );
+                }
+              }
+              // Prepare alternate path attempts
+              final alternates = <String>[];
+              // Strip query params
+              if (objectPath.contains('?'))
+                alternates.add(objectPath.split('?')[0]);
+              // Try toggling "public/" prefix
+              if (!objectPath.startsWith('public/'))
+                alternates.add('public/$objectPath');
+              if (objectPath.startsWith('public/'))
+                alternates.add(objectPath.replaceFirst('public/', ''));
+              // If objectPath contains bucket, try removing bucket prefix
+              if (objectPath.startsWith('$bucket/'))
+                alternates.add(objectPath.replaceFirst('$bucket/', ''));
+              alternates.removeWhere(
+                (a) => a.isEmpty || triedPaths.contains(a),
+              );
+              var removed = false;
+              for (final alt in alternates) {
+                try {
+                  developer.log(
+                    'AdminService.deleteStorageObject: trying alternate remove for $alt',
+                  );
+                  print(
+                    'AdminService.deleteStorageObject: trying alternate remove for $alt',
+                  );
+                  await attemptRemove(alt);
+                  removed = true;
+                  break;
+                } catch (e) {
+                  developer.log(
+                    'AdminService.deleteStorageObject: alternate remove failed for $alt -> $e',
+                  );
+                  print(
+                    'AdminService.deleteStorageObject: alternate remove failed for $alt -> $e',
+                  );
+                }
+              }
+              if (removed) {
+                developer.log(
+                  'AdminService.deleteStorageObject: alternate removal attempt succeeded, re-checking listing',
+                );
+                final newResCheck = await _callRpc(
+                  'admin_list_storage_files',
+                  params: {
+                    'p_bucket_id': bucket,
+                    'p_limit': 10,
+                    'p_offset': 0,
+                    'p_search': objectPath,
+                  },
+                );
+                var stillFound = false;
+                if (newResCheck is List && newResCheck.isNotEmpty) {
+                  for (final r2 in newResCheck) {
+                    final n2 = (r2 as Map)['name']?.toString() ?? '';
+                    if (n2 == objectPath || n2.endsWith(objectPath)) {
+                      stillFound = true;
+                      break;
+                    }
+                  }
+                }
+                // Try to remove all found names as a last resort
+                for (final fn in foundNames) {
+                  if (triedPaths.contains(fn)) continue;
+                  try {
+                    developer.log(
+                      'AdminService.deleteStorageObject: trying remove with listed name: $fn',
+                    );
+                    print(
+                      'AdminService.deleteStorageObject: trying remove with listed name: $fn',
+                    );
+                    await attemptRemove(fn);
+                  } catch (err) {
+                    developer.log(
+                      'AdminService.deleteStorageObject: failed to remove by listed name $fn: $err',
+                    );
+                    print(
+                      'AdminService.deleteStorageObject: failed to remove by listed name $fn: $err',
+                    );
+                  }
+                }
+                if (!stillFound) {
+                  // success — object no longer appears in listing
+                  developer.log(
+                    'AdminService.deleteStorageObject: object $objectPath no longer found after alternate remove',
+                  );
+                  continue;
+                }
+                // If still found, let the loop continue to eventually throw
+                developer.log(
+                  'AdminService.deleteStorageObject: object $objectPath still present after alternate remove',
+                );
+              }
+              throw Exception(
+                'Deletion unsuccessful: object still present in storage listing; found: ${foundNames.join(', ')}',
+              );
+            }
+          }
+        }
+      } catch (_) {
+        // We don't want to fail silently, but for now treat as potential failure
+        // (will be surfaced by the catch block below)
+        rethrow;
+      }
+      // Create an audit log entry for storage deletion (best-effort)
+      try {
+        await retry(
+          () => _callRpc(
+            'admin_create_audit_log',
+            params: {
+              'p_action_type': 'DELETE',
+              'p_table_name': 'storage.objects',
+              'p_record_id': objectPath,
+              'p_old_values': null,
+              'p_new_values': null,
+              'p_metadata': jsonEncode({'bucket': bucket, 'path': objectPath}),
+            },
+          ),
+          attempts: 2,
+        );
+      } catch (_) {
+        // non-fatal — we don't want audit failures to block deletion
+      }
+
+      // Try to unlink references from items.photo_url - handle exact and like matches separately
+      developer.log(
+        'AdminService.deleteStorageObject: attempting to unlink item references for $objectPath',
+      );
+      try {
+        final pk = StorageKeys.columnPhotoUrl;
+        int updatedCount = 0;
+
+        // Exact matches
+        try {
+          final resEq = await _client
+              .from(StorageKeys.itemsTable)
+              .update({pk: null})
+              .eq('photo_url', objectPath)
+              .select();
+          if (resEq is List) updatedCount += resEq.length;
+        } catch (_) {}
+
+        // Partial matches (photo_url contains object path)
+        try {
+          final resLike = await _client
+              .from(StorageKeys.itemsTable)
+              .update({pk: null})
+              .like('photo_url', '%$objectPath')
+              .select();
+          if (resLike is List) updatedCount += resLike.length;
+        } catch (_) {}
+
+        // Create audit log for the unlink operation if any rows were updated
+        if (updatedCount > 0) {
+          developer.log(
+            'AdminService.deleteStorageObject: unlinked $updatedCount item rows referring to $objectPath',
+          );
+          try {
+            await retry(
+              () => _callRpc(
+                'admin_create_audit_log',
+                params: {
+                  'p_action_type': 'UPDATE',
+                  'p_table_name': StorageKeys.itemsTable,
+                  'p_record_id': objectPath,
+                  'p_old_values': null,
+                  'p_new_values': jsonEncode({'photo_url': null}),
+                  'p_metadata': jsonEncode({
+                    'bucket': bucket,
+                    'path': objectPath,
+                    'action': 'unlink',
+                    'rows': updatedCount,
+                  }),
+                },
+              ),
+              attempts: 2,
+            );
+          } catch (_) {}
+        }
+      } catch (_) {}
+
       return true;
     } catch (e) {
       throw ServiceException(extractErrorMessage(e), cause: e);

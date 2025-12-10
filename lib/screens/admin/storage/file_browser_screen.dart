@@ -1,5 +1,12 @@
+import 'dart:developer' as developer;
+import 'dart:io';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:pinjam_in/di/service_locator.dart';
 import 'package:pinjam_in/screens/admin/admin_layout.dart';
 import 'package:pinjam_in/services/admin_service.dart';
@@ -7,6 +14,7 @@ import 'package:pinjam_in/services/storage_service.dart';
 import 'package:pinjam_in/services/supabase_persistence.dart';
 import 'package:pinjam_in/widgets/admin/breadcrumbs.dart';
 import 'package:pinjam_in/widgets/storage_image.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class FileBrowserScreen extends StatefulWidget {
   final bool wrapWithAdminLayout;
@@ -143,17 +151,81 @@ class FileBrowserScreenState extends State<FileBrowserScreen> {
     );
     if (confirmed != true) return;
     try {
-      await _adminSvc.deleteStorageObject(path, bucketId: null);
+      final ok = await _adminSvc.deleteStorageObject(path, bucketId: null);
+      if (!ok)
+        throw Exception('Delete reported success but file still present');
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('File deleted')));
       await _loadFiles();
     } catch (e) {
+      developer.log('FileBrowser: error deleting $path -> $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error deleting: $e')));
+      final msg = e.toString();
+      String userMsg;
+      if (msg.contains('Deletion unsuccessful') ||
+          msg.contains('object still present')) {
+        userMsg =
+            'Delete failed: object still present in storage; it may require server-side cleanup or retry.';
+      } else {
+        userMsg = 'Error deleting: $e';
+      }
+      // Show a detailed dialog with retry/copy action to help users retrieve details
+      await showDialog<void>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: const Text('Delete failed'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: [
+                Text(userMsg),
+                const SizedBox(height: 12),
+                Text('Details: $msg', style: const TextStyle(fontSize: 12)),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: msg));
+                Navigator.pop(c);
+              },
+              child: const Text('Copy details'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(c);
+                // Retry the delete once more
+                try {
+                  developer.log('FileBrowser: retry delete $path');
+                  final ok = await _adminSvc.deleteStorageObject(
+                    path,
+                    bucketId: null,
+                  );
+                  if (!ok)
+                    throw Exception('Retry failed: object still present');
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text('File deleted')));
+                  await _loadFiles();
+                } catch (e2) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('Retry failed: $e2')));
+                }
+              },
+              child: const Text('Retry'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(c),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
     }
   }
 
@@ -182,7 +254,8 @@ class FileBrowserScreenState extends State<FileBrowserScreen> {
     final toDelete = List<String>.from(_selected);
     try {
       for (final path in toDelete) {
-        await _adminSvc.deleteStorageObject(path, bucketId: null);
+        final ok = await _adminSvc.deleteStorageObject(path, bucketId: null);
+        if (!ok) throw Exception('Some deletes failed');
       }
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -192,9 +265,252 @@ class FileBrowserScreenState extends State<FileBrowserScreen> {
       await _loadFiles();
     } catch (e) {
       if (!mounted) return;
+      final msg = e.toString();
+      await showDialog<void>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: const Text('Delete failed'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: [
+                Text('Bulk delete failed; some files may remain'),
+                const SizedBox(height: 12),
+                Text('Details: $msg', style: const TextStyle(fontSize: 12)),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: msg));
+                Navigator.pop(c);
+              },
+              child: const Text('Copy details'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(c),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  Future<void> _openDownloadLink(Map<String, dynamic> f) async {
+    if (!mounted) return;
+    final ctx = context;
+    final ps = ServiceLocator.persistenceService;
+    final name = (f['name'] ?? '').toString();
+
+    // Show a small progress dialog while generating link
+    showDialog(
+      context: ctx,
+      barrierDismissible: false,
+      builder: (c) => const AlertDialog(
+        content: SizedBox(
+          height: 80,
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ),
+    );
+
+    try {
+      developer.log(
+        'FileBrowser: _openDownloadLink called for ${name} with persistence=${ps.runtimeType}',
+      );
+      print(
+        'FileBrowser: _openDownloadLink called for ${name} with persistence=${ps.runtimeType}',
+      );
+      // If 'name' is a direct URL (starts with http/https), use it directly
+      if (name.startsWith('http://') || name.startsWith('https://')) {
+        Navigator.pop(ctx);
+        await launchUrlString(name, mode: LaunchMode.externalApplication);
+        if (!mounted) return;
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          const SnackBar(content: Text('Opened download link in browser')),
+        );
+        return;
+      }
+
+      String? signed;
+      try {
+        final dyn = ps as dynamic;
+        if (dyn.getSignedUrl != null) {
+          signed = await dyn.getSignedUrl(name) as String?;
+        }
+      } catch (_) {}
+      developer.log(
+        'FileBrowser: _openDownloadLink got signed=$signed for name=$name',
+      );
+      print('FileBrowser: _openDownloadLink got signed=$signed for name=$name');
+
+      Navigator.pop(ctx);
+      if (signed == null || signed.isEmpty) {
+        // If persistence backend doesn't provide signed or public URL, show helpful message
+        developer.log(
+          'FileBrowser: No signed url for $name on ${ps.runtimeType}',
+        );
+        print('FileBrowser: No signed url for $name on ${ps.runtimeType}');
+        if (ps is! SupabasePersistence) {
+          Navigator.pop(ctx);
+          if (!mounted) return;
+          ScaffoldMessenger.of(ctx).showSnackBar(
+            const SnackBar(
+              content: Text('Persistence backend does not support downloads'),
+            ),
+          );
+          return;
+        }
+        if (!mounted) return;
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No download link available: Supabase did not return a URL for this object. Check file path and bucket permissions.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      // Open in external browser
+      await launchUrlString(signed, mode: LaunchMode.externalApplication);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        const SnackBar(content: Text('Opened download link in browser')),
+      );
+    } catch (e) {
+      Navigator.pop(context);
+      if (!mounted) return;
       ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error deleting: $e')));
+        ctx,
+      ).showSnackBar(SnackBar(content: Text('Failed to open link: $e')));
+    }
+  }
+
+  Future<void> _downloadToDevice(Map<String, dynamic> f) async {
+    if (!mounted) return;
+    final ctx = context;
+    final ps = ServiceLocator.persistenceService;
+    final name = (f['name'] ?? '').toString();
+
+    if (kIsWeb) {
+      // Web cannot easily stream to device; open in browser as fallback
+      await _openDownloadLink(f);
+      return;
+    }
+
+    showDialog(
+      context: ctx,
+      barrierDismissible: false,
+      builder: (c) {
+        var progress = 0.0;
+        return StatefulBuilder(
+          builder: (BuildContext ctx2, StateSetter setState) {
+            return AlertDialog(
+              title: const Text('Downloading'),
+              content: SizedBox(
+                height: 80,
+                child: Column(
+                  children: [
+                    LinearProgressIndicator(value: progress),
+                    const SizedBox(height: 8),
+                    Text('${(progress * 100).toStringAsFixed(0)}%'),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    String? signed;
+    try {
+      developer.log(
+        'FileBrowser: _downloadToDevice called for $name with persistence=${ps.runtimeType}',
+      );
+      print(
+        'FileBrowser: _downloadToDevice called for $name with persistence=${ps.runtimeType}',
+      );
+      final dyn = ps as dynamic;
+      try {
+        if (dyn.getSignedUrl != null)
+          signed = await dyn.getSignedUrl(name) as String?;
+      } catch (_) {}
+
+      if ((signed == null || signed.isEmpty) && dyn.getPublicUrl != null) {
+        try {
+          signed = await dyn.getPublicUrl(name) as String?;
+        } catch (_) {}
+      }
+
+      developer.log(
+        'FileBrowser: _downloadToDevice resolved link=$signed for $name',
+      );
+      print('FileBrowser: _downloadToDevice resolved link=$signed for $name');
+      if (signed == null || signed.isEmpty) {
+        Navigator.pop(ctx);
+        if (!mounted) return;
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          const SnackBar(content: Text('No download link available')),
+        );
+        return;
+      }
+
+      final client = http.Client();
+      final req = http.Request('GET', Uri.parse(signed));
+      final streamed = await client.send(req);
+      final total = streamed.contentLength ?? 0;
+      final tmpDir = await getTemporaryDirectory();
+      final fileName = name.contains('/') ? name.split('/').last : name;
+      final file = File('${tmpDir.path}/$fileName');
+      final sink = file.openWrite();
+      var received = 0;
+      // Update progress via periodic callbacks to the active dialog
+      final cancelToken = <bool>[false];
+      // No-op: public URL handling moved earlier
+
+      await for (final chunk in streamed.stream) {
+        if (cancelToken[0]) break;
+        sink.add(chunk);
+        received += chunk.length;
+        // final newProgress = total > 0 ? received / total : null;
+        // Update the active progress dialog
+        if (mounted) {
+          // find the active dialog's state and set progress: using navigator and simple rebuild is complex
+          // For now, update via a SnackBar for progress (periodically)
+          if (total > 0) {
+            ScaffoldMessenger.of(ctx).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Downloading... ${((received / total) * 100).toStringAsFixed(0)}%',
+                ),
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(
+              ctx,
+            ).showSnackBar(const SnackBar(content: Text('Downloading...')));
+          }
+        }
+      }
+      await sink.flush();
+      await sink.close();
+      client.close();
+
+      Navigator.pop(ctx); // close progress dialog
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        ctx,
+      ).showSnackBar(SnackBar(content: Text('Downloaded to ${file.path}')));
+    } catch (e) {
+      Navigator.pop(ctx);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        ctx,
+      ).showSnackBar(SnackBar(content: Text('Download failed: $e')));
     }
   }
 
@@ -449,56 +765,50 @@ class FileBrowserScreenState extends State<FileBrowserScreen> {
                             );
                           },
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.download),
-                          tooltip: 'Download',
-                          onPressed: () async {
-                            // Attempt to obtain a signed URL and open in external browser
-                            final ctx = context;
-                            try {
-                              final ps = ServiceLocator.persistenceService;
-                              if (ps is SupabasePersistence) {
-                                final signed = await ps.getSignedUrl(
-                                  f['name'] as String,
-                                );
-                                if (!mounted) return;
-                                if (signed != null) {
-                                  ScaffoldMessenger.of(ctx).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Download link copied (open in browser)',
+                        // Show download icon only when supported by persistence backend
+                        // (we detect dynamic getSignedUrl/getPublicUrl method) or when name is an http(s) URL
+                        if (() {
+                          final psDyn =
+                              ServiceLocator.persistenceService as dynamic;
+                          try {
+                            final supportsSigned = psDyn.getSignedUrl != null;
+                            if (supportsSigned) return true;
+                          } catch (_) {}
+                          return path.startsWith('http://') ||
+                              path.startsWith('https://');
+                        }())
+                          IconButton(
+                            icon: const Icon(Icons.download),
+                            tooltip: 'Download',
+                            onPressed: () async {
+                              // Show options: Open in browser or download to device
+                              await showModalBottomSheet<void>(
+                                context: context,
+                                builder: (ctx) => SafeArea(
+                                  child: Wrap(
+                                    children: [
+                                      ListTile(
+                                        leading: const Icon(Icons.open_in_new),
+                                        title: const Text('Open in Browser'),
+                                        onTap: () async {
+                                          Navigator.of(ctx).pop();
+                                          await _openDownloadLink(f);
+                                        },
                                       ),
-                                    ),
-                                  );
-                                } else {
-                                  ScaffoldMessenger.of(ctx).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'No download link available',
+                                      ListTile(
+                                        leading: const Icon(Icons.save_alt),
+                                        title: const Text('Download to Device'),
+                                        onTap: () async {
+                                          Navigator.of(ctx).pop();
+                                          await _downloadToDevice(f);
+                                        },
                                       ),
-                                    ),
-                                  );
-                                }
-                              } else {
-                                if (!mounted) return;
-                                ScaffoldMessenger.of(ctx).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Persistence backend does not support downloads',
-                                    ),
+                                    ],
                                   ),
-                                );
-                              }
-                            } catch (_) {
-                              if (!mounted) return;
-                              ScaffoldMessenger.of(ctx).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Failed to get download link'),
                                 ),
                               );
-                            }
-                          },
-                        ),
+                            },
+                          ),
                         IconButton(
                           icon: const Icon(Icons.delete_forever),
                           tooltip: 'Delete',

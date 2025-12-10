@@ -132,7 +132,12 @@ void main() {
 
       expect(find.text('Home'), findsOneWidget);
       expect(find.text('Admin'), findsOneWidget);
-      expect(find.text('Users'), findsOneWidget);
+      // Ensure 'Users' breadcrumb exists within the breadcrumbs widget
+      final usersBreadcrumb = find.descendant(
+        of: find.byType(Breadcrumbs),
+        matching: find.text('Users'),
+      );
+      expect(usersBreadcrumb, findsOneWidget);
     });
 
     testWidgets('should display theme toggle button', (tester) async {

@@ -28,7 +28,11 @@ void main() {
     'deleteStorageObject uses storage client remove and returns true',
     () async {
       final client = _FakeClient(false);
-      final svc = AdminService(client, null, null);
+      final svc = AdminService(
+        client,
+        (name, {params}) async => <dynamic>[],
+        null,
+      );
       final ok = await svc.deleteStorageObject('user1/photo1.jpg');
       expect(ok, isTrue);
     },
@@ -38,7 +42,11 @@ void main() {
     'deleteStorageObject throws ServiceException on storage error',
     () async {
       final client = _FakeClient(true);
-      final svc = AdminService(client, null, null);
+      final svc = AdminService(
+        client,
+        (name, {params}) async => <dynamic>[],
+        null,
+      );
       try {
         await svc.deleteStorageObject('user1/photo1.jpg');
         fail('should have thrown');
@@ -47,4 +55,62 @@ void main() {
       }
     },
   );
+
+  test(
+    'deleteStorageObject throws ServiceException when listing still contains object',
+    () async {
+      final client = _FakeClient(false);
+      final svc = AdminService(client, (name, {params}) async {
+        if (name == 'admin_list_storage_files') {
+          return [
+            {
+              'id': '1',
+              'name': 'user1/photo1.jpg',
+              'owner': null,
+              'bucket_id': 'item_photos',
+              'size_bytes': 1024,
+              'created_at': DateTime.now().toIso8601String(),
+              'metadata': <String, dynamic>{},
+            },
+          ];
+        }
+        return <dynamic>[];
+      }, null);
+      try {
+        await svc.deleteStorageObject('user1/photo1.jpg');
+        fail('should have thrown');
+      } catch (e) {
+        expect(e, isA<ServiceException>());
+      }
+    },
+  );
+
+  test('deleteStorageObject succeeds when listing clears after retry', () async {
+    final client = _FakeClient(false);
+    var callCount = 0;
+    final svc = AdminService(client, (name, {params}) async {
+      if (name == 'admin_list_storage_files') {
+        callCount += 1;
+        // On first listing: return non-empty so it appears to still exist.
+        // On subsequent listing(s) return empty to simulate eventual consistency.
+        if (callCount == 1) {
+          return [
+            {
+              'id': '1',
+              'name': 'user1/photo1.jpg',
+              'owner': null,
+              'bucket_id': 'item_photos',
+              'size_bytes': 1024,
+              'created_at': DateTime.now().toIso8601String(),
+              'metadata': <String, dynamic>{},
+            },
+          ];
+        }
+        return <dynamic>[];
+      }
+      return <dynamic>[];
+    }, null);
+    final ok = await svc.deleteStorageObject('user1/photo1.jpg');
+    expect(ok, isTrue);
+  });
 }

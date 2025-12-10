@@ -5,6 +5,7 @@ import 'package:pinjam_in/models/loan_item.dart';
 import 'package:pinjam_in/screens/admin/storage/file_browser_screen.dart';
 import 'package:pinjam_in/services/admin_service.dart';
 import 'package:pinjam_in/services/persistence_service.dart';
+import 'package:pinjam_in/services/shared_prefs_persistence.dart';
 import 'package:pinjam_in/services/storage_service.dart';
 
 class FakeAdminService extends AdminService {
@@ -12,6 +13,14 @@ class FakeAdminService extends AdminService {
   @override
   Future<bool> deleteStorageObject(String path, {String? bucketId}) async {
     return true;
+  }
+}
+
+class FakeAdminServiceFails extends AdminService {
+  FakeAdminServiceFails() : super(null, null, null);
+  @override
+  Future<bool> deleteStorageObject(String path, {String? bucketId}) async {
+    return false;
   }
 }
 
@@ -123,12 +132,21 @@ void main() {
       matching: find.byType(Checkbox),
     );
     expect(fileCheckbox, findsOneWidget);
-    await tester.tap(fileCheckbox);
+    // Re-find the checkbox in the newly-built widget tree
+    final fileCheckbox2 = find.descendant(
+      of: find.widgetWithText(ListTile, 'photo1.jpg'),
+      matching: find.byType(Checkbox),
+    );
+    expect(fileCheckbox2, findsOneWidget);
+    await tester.tap(fileCheckbox2);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text('Delete (1)'), findsOneWidget);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
     expect(find.text('Delete (1)'), findsOneWidget);
     // Confirm bulk delete dialog (two-step: tap delete button)
-    await tester.tap(find.textContaining('Delete (1)'));
+    await tester.tap(find.text('Delete (1)'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
     // Tap Delete on the dialog
@@ -138,5 +156,78 @@ void main() {
     // After deletion the file list should refresh and show no items if only one was present
     // (We can't assert delete is 100% here but we can assert snack bar message appears)
     expect(find.text('Files deleted'), findsOneWidget);
+
+    // Test delete failure: replace admin service with failing fake and trigger
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: FileBrowserScreen(
+            wrapWithAdminLayout: false,
+            storageService: storageSvc,
+            adminService: FakeAdminServiceFails(),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    // Use the per-item delete button to test failure mode
+    final deleteIcon = find
+        .descendant(
+          of: find.widgetWithText(ListTile, 'photo1.jpg'),
+          matching: find.byIcon(Icons.delete_forever),
+        )
+        .first;
+    expect(deleteIcon, findsOneWidget);
+    await tester.tap(deleteIcon);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    // Confirm Delete on the dialog
+    await tester.tap(find.text('Delete').last);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    // Should show some snackbar indicating error
+    expect(find.byType(SnackBar), findsWidgets);
+
+    // Test download flow: tap download icon and select 'Open in Browser'
+    final downloadButton = find
+        .descendant(
+          of: find.widgetWithText(ListTile, 'photo1.jpg'),
+          matching: find.byIcon(Icons.download),
+        )
+        .first;
+    expect(downloadButton, findsOneWidget);
+    await tester.tap(downloadButton);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    // Bottom sheet options should be present
+    expect(find.text('Open in Browser'), findsOneWidget);
+    await tester.tap(find.text('Open in Browser'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    // SnackBar should show a message (success or failure feedback)
+    expect(find.byType(SnackBar), findsWidgets);
+
+    // Test download with unsupported persistence
+    ServiceLocator.setPersistenceService(SharedPrefsPersistence());
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: FileBrowserScreen(
+            wrapWithAdminLayout: false,
+            storageService: storageSvc,
+            adminService: FakeAdminService(),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    // With SharedPrefsPersistence the download icon is not shown because it doesn't provide signed URLs
+    final downloadButton2 = find.descendant(
+      of: find.widgetWithText(ListTile, 'photo1.jpg'),
+      matching: find.byIcon(Icons.download),
+    );
+    expect(downloadButton2, findsNothing);
   });
 }

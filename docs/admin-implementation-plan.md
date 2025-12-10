@@ -1106,35 +1106,18 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
 -   [x] Bulk selection & actions
 -   [x] Test file browser (widget test created/updated)
 
-#### Task 2.2.2: File Detail View
+#### Task 2.2.2: File Operations
 
--   [ ] Buat `lib/screens/admin/storage/file_detail_screen.dart`
--   [ ] Display file preview (image)
--   [ ] File metadata:
-    -   [ ] Path
-    -   [ ] Size
-    -   [ ] Type
-    -   [ ] Upload date
-    -   [ ] Owner info
-    -   [ ] Related item (jika ada)
--   [ ] Actions:
-    -   [ ] Download file
-    -   [ ] Delete file
-    -   [ ] View full size
--   [ ] Test detail view
-
-#### Task 2.2.3: File Operations
-
--   [ ] Implement download functionality
-    -   [ ] Generate signed URL
-    -   [ ] Download to device
-    -   [ ] Show progress
--   [ ] Implement delete
-    -   [ ] Confirmation dialog
-    -   [ ] Bulk delete support
-    -   [ ] Update related items (set photo_url = null)
-    -   [ ] Create audit log
--   [ ] Test operations
+-   [x] Implement download functionality
+    -   [x] Generate signed URL
+    -   [x] Download to device (fallback to open-in-browser on web)
+    -   [x] Show progress (UI: progress dialog & snackbars)
+-   [x] Implement delete
+    -   [x] Confirmation dialog
+    -   [x] Bulk delete support
+    -   [x] Update related items (set photo_url = null) (server-side)
+    -   [x] Create audit log (admin_create_audit_log invoked)
+-   [x] Test operations (widget test + unit test added)
 
 ### 2.3 Storage Cleanup (1 hari)
 
