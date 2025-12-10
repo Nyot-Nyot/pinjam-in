@@ -15,7 +15,6 @@ import 'screens/admin/items/edit_item_screen.dart';
 import 'screens/admin/items/item_detail_screen.dart';
 import 'screens/admin/items/items_list_screen.dart';
 import 'screens/admin/storage/file_browser_screen.dart';
-import 'screens/admin/storage/file_detail_screen.dart';
 import 'screens/admin/storage/storage_dashboard.dart';
 import 'screens/admin/users/create_user_screen.dart';
 import 'screens/admin/users/edit_user_screen.dart';
@@ -262,23 +261,6 @@ class _MaterialAppWrapper extends StatelessWidget {
       ),
       home: const SplashScreen(),
       onGenerateRoute: (settings) {
-        // Special case: file detail route that requires args
-        if (settings.name == '/admin/storage/files/detail') {
-          // The UI expects either a string path or a map with key 'path'.
-          String? path;
-          if (settings.arguments is String) {
-            path = settings.arguments as String;
-          } else if (settings.arguments is Map<String, dynamic>) {
-            final map = settings.arguments as Map<String, dynamic>;
-            path = map['path'] as String? ?? map['name'] as String?;
-          }
-          return MaterialPageRoute(
-            builder: (context) =>
-                AdminGuardWidget(child: FileDetailScreen(filePath: path)),
-            settings: settings,
-          );
-        }
-
         // Admin routes with guard protection
         if (settings.name?.startsWith('/admin') ?? false) {
           return MaterialPageRoute(

@@ -450,17 +450,6 @@ class FileBrowserScreenState extends State<FileBrowserScreen> {
                           },
                         ),
                         IconButton(
-                          icon: const Icon(Icons.info_outline),
-                          tooltip: 'Details',
-                          onPressed: () {
-                            Navigator.pushNamed(
-                              context,
-                              '/admin/storage/files/detail',
-                              arguments: f['name'] as String?,
-                            );
-                          },
-                        ),
-                        IconButton(
                           icon: const Icon(Icons.download),
                           tooltip: 'Download',
                           onPressed: () async {
