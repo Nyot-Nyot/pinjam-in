@@ -558,7 +558,9 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
                       TextFormField(
                         key: const Key('audit-record-input'),
                         controller: _recordIdController,
-                        decoration: const InputDecoration(labelText: 'Record ID'),
+                        decoration: const InputDecoration(
+                          labelText: 'Record ID',
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Row(
@@ -591,7 +593,9 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
                       child: TextFormField(
                         key: const Key('audit-record-input'),
                         controller: _recordIdController,
-                        decoration: const InputDecoration(labelText: 'Record ID'),
+                        decoration: const InputDecoration(
+                          labelText: 'Record ID',
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),

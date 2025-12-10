@@ -315,10 +315,7 @@ void main() {
       }
       if (name == 'admin_get_all_users') {
         return [
-          {
-            'id': 'admin1',
-            'full_name': 'Admin User',
-          },
+          {'id': 'admin1', 'full_name': 'Admin User'},
         ];
       }
       return [];
@@ -329,7 +326,7 @@ void main() {
 
     // Set a narrow test device size
     final binding = TestWidgetsFlutterBinding.ensureInitialized();
-  final oldDevicePixelRatio = binding.window.devicePixelRatio;
+    final oldDevicePixelRatio = binding.window.devicePixelRatio;
     binding.window.physicalSizeTestValue = const Size(400, 800);
     binding.window.devicePixelRatioTestValue = 1.0;
 
