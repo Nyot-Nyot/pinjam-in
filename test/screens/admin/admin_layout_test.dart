@@ -130,19 +130,9 @@ void main() {
         ),
       );
 
-      final bc = find.byType(Breadcrumbs);
-      expect(
-        find.descendant(of: bc, matching: find.text('Home')),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(of: bc, matching: find.text('Admin')),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(of: bc, matching: find.text('Users')),
-        findsOneWidget,
-      );
+      expect(find.text('Home'), findsOneWidget);
+      expect(find.text('Admin'), findsOneWidget);
+      expect(find.text('Users'), findsOneWidget);
     });
 
     testWidgets('should display theme toggle button', (tester) async {

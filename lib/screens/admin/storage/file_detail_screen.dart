@@ -1,18 +1,11 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:pinjam_in/di/service_locator.dart';
 import 'package:pinjam_in/screens/admin/admin_layout.dart';
 import 'package:pinjam_in/services/admin_service.dart';
 import 'package:pinjam_in/services/storage_service.dart';
 import 'package:pinjam_in/widgets/admin/breadcrumbs.dart';
 import 'package:pinjam_in/widgets/storage_image.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 /// FileDetailScreen shows metadata and preview for a single storage file.
 class FileDetailScreen extends StatefulWidget {
@@ -93,44 +86,26 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
   Future<void> _handleDelete() async {
     final path = _file?['name'] as String?;
     if (path == null || path.isEmpty) return;
-    bool clearRelated = true;
     final confirmed = await showDialog<bool?>(
       context: context,
-      builder: (c) => StatefulBuilder(
-        builder: (ctx, setState) => AlertDialog(
-          title: const Text('Delete file'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Delete "$path" from storage? This cannot be undone.'),
-              const SizedBox(height: 12),
-              CheckboxListTile(
-                value: clearRelated,
-                onChanged: (v) => setState(() => clearRelated = v ?? false),
-                title: const Text('Clear related item photo_url fields'),
-              ),
-            ],
+      builder: (c) => AlertDialog(
+        title: const Text('Delete file'),
+        content: Text('Delete "$path" from storage? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Cancel'),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(c, false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(c, true),
-              child: const Text('Delete'),
-            ),
-          ],
-        ),
+          TextButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Delete'),
+          ),
+        ],
       ),
     );
     if (confirmed != true) return;
     try {
-      await _adminSvc.deleteStorageObjectAndClearItems(
-        path,
-        bucketId: null,
-        clearRelated: clearRelated,
-      );
+      await _adminSvc.deleteStorageObject(path, bucketId: null);
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
@@ -159,20 +134,11 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
       } catch (_) {}
       if (signed != null && signed.isNotEmpty) {
         if (!mounted) return;
-        final uri = Uri.tryParse(signed);
-        if (uri != null && await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Opened download link in browser')),
-          );
-        } else {
-          await Clipboard.setData(ClipboardData(text: signed));
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Download link copied (open in browser)'),
-            ),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Download link copied (open in browser)'),
+          ),
+        );
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -184,134 +150,6 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to get download link: $e')),
       );
-    }
-  }
-
-  Future<void> _downloadToDevice() async {
-    final path = _file?['name'] as String?;
-    if (path == null || path.isEmpty) return;
-
-    try {
-      final ps = ServiceLocator.persistenceService;
-      String? signed;
-      try {
-        final dyn = ps as dynamic;
-        final fn = dyn.getSignedUrl;
-        if (fn != null && fn is Function) signed = await dyn.getSignedUrl(path);
-      } catch (_) {}
-
-      if (signed == null || signed.isEmpty) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No download link available')),
-        );
-        return;
-      }
-
-      final uri = Uri.parse(signed);
-      // Show progress dialog
-      var savedPath = '';
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogCtx) {
-          double progress = 0.0;
-          // Using StatefulBuilder to update progress
-          return StatefulBuilder(
-            builder: (context, setState) {
-              // Begin download when dialog is shown by scheduling in microtask
-              WidgetsBinding.instance.addPostFrameCallback((_) async {
-                try {
-                  // Special-case data: URIs in tests and small images - avoid HTTP when data URI
-                  if (signed != null && signed.startsWith('data:')) {
-                    // format: data:<mime>;base64,<payload>
-                    final parts = signed.split(',');
-                    if (parts.length == 2) {
-                      final payload = parts[1];
-                      final bytes = base64Decode(payload);
-                      final tempDir =
-                          await getDownloadsDirectory() ??
-                          await getTemporaryDirectory();
-                      final filename = uri.pathSegments.isNotEmpty
-                          ? uri.pathSegments.last
-                          : path.split('/').last;
-                      final file = File('${tempDir.path}/$filename');
-                      await file.writeAsBytes(bytes);
-                      savedPath = file.path;
-                      if (mounted) Navigator.of(dialogCtx).pop();
-                      return;
-                    }
-                  }
-                  final client = http.Client();
-                  final req = http.Request('GET', uri);
-                  final res = await client.send(req);
-                  final total = res.contentLength ?? 0;
-                  final tempDir =
-                      await getDownloadsDirectory() ??
-                      await getTemporaryDirectory();
-                  final filename = uri.pathSegments.isNotEmpty
-                      ? uri.pathSegments.last
-                      : path.split('/').last;
-                  final file = File('${tempDir.path}/$filename');
-                  final sink = file.openWrite();
-                  int received = 0;
-                  await for (final chunk in res.stream) {
-                    received += chunk.length;
-                    sink.add(chunk);
-                    if (total > 0) {
-                      setState(() {
-                        progress = received / total;
-                      });
-                    }
-                  }
-                  await sink.flush();
-                  await sink.close();
-                  savedPath = file.path;
-                  client.close();
-                  if (mounted) Navigator.of(dialogCtx).pop();
-                } catch (e) {
-                  if (mounted) Navigator.of(dialogCtx).pop();
-                  if (mounted)
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Download failed: $e')),
-                    );
-                }
-              });
-              return AlertDialog(
-                title: const Text('Downloading'),
-                content: SizedBox(
-                  height: 80,
-                  child: Column(
-                    children: [
-                      LinearProgressIndicator(value: progress),
-                      const SizedBox(height: 12),
-                      Text('${(progress * 100).toStringAsFixed(0)}%'),
-                    ],
-                  ),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(dialogCtx).pop(),
-                    child: const Text('Cancel'),
-                  ),
-                ],
-              );
-            },
-          );
-        },
-      );
-
-      if (!mounted) return;
-      if (savedPath.isNotEmpty) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Saved to $savedPath')));
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Download failed: $e')));
     }
   }
 
@@ -435,11 +273,6 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
               IconButton(
                 onPressed: _handleDownload,
                 icon: const Icon(Icons.download),
-              ),
-              IconButton(
-                onPressed: _downloadToDevice,
-                icon: const Icon(Icons.save_alt),
-                tooltip: 'Download to device',
               ),
               IconButton(
                 onPressed: () => _showFullScreenPhoto(photoUrl ?? ''),

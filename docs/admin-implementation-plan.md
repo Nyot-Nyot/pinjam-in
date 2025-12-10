@@ -1123,21 +1123,20 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
     -   [x] View full size
 -   [x] Test detail view
 
--#### Task 2.2.3: File Operations ✅
+#### Task 2.2.3: File Operations
 
--   [x] Implement download functionality
+-   [ ] Implement download functionality
     -   [x] Generate signed URL
-    -   [x] Download to device (File Details and File Browser)
-    -   [x] Show progress
--   [x] Implement delete
+    -   [ ] Download to device
+    -   [ ] Show progress
+-   [ ] Implement delete
     -   [x] Confirmation dialog
     -   [x] Bulk delete support
-    -   [x] Update related items (set photo_url = null)
-    -   [x] Create audit log
--   [x] Test operations
+    -   [ ] Update related items (set photo_url = null)
+    -   [ ] Create audit log
+-   [ ] Test operations
     -   [x] Basic delete tests (bulk/single)
     -   [x] Download link UI tests
-    -   [x] Download to device test (basic save + progress shown)
 
 ### 2.3 Storage Cleanup (1 hari)
 
