@@ -240,11 +240,44 @@ class _AdminLayoutState extends State<AdminLayout> {
           title: 'Storage',
           route: '/admin/storage',
         ),
-        _buildNavigationItem(
-          context,
-          icon: Icons.analytics,
-          title: 'Analytics',
-          route: '/admin/analytics',
+        // Analytics parent with subpages: Users and Items
+        ExpansionTile(
+          leading: Icon(
+            Icons.analytics,
+            color: widget.currentRoute.startsWith('/admin/analytics')
+                ? Theme.of(context).primaryColor
+                : null,
+          ),
+          title: Text(
+            'Analytics',
+            style: TextStyle(
+              fontWeight: widget.currentRoute.startsWith('/admin/analytics')
+                  ? FontWeight.bold
+                  : FontWeight.normal,
+              color: widget.currentRoute.startsWith('/admin/analytics')
+                  ? Theme.of(context).primaryColor
+                  : null,
+            ),
+          ),
+          initiallyExpanded: widget.currentRoute.startsWith('/admin/analytics'),
+          children: [
+            ListTile(
+              leading: const SizedBox(width: 10),
+              title: const Text('Users'),
+              selected: widget.currentRoute == '/admin/analytics',
+              onTap: () => Navigator.of(
+                context,
+              ).pushReplacementNamed('/admin/analytics'),
+            ),
+            ListTile(
+              leading: const SizedBox(width: 10),
+              title: const Text('Items'),
+              selected: widget.currentRoute == '/admin/analytics/items',
+              onTap: () => Navigator.of(
+                context,
+              ).pushReplacementNamed('/admin/analytics/items'),
+            ),
+          ],
         ),
         _buildNavigationItem(
           context,

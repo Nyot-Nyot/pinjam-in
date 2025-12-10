@@ -137,6 +137,41 @@ class AdminDashboardScreen extends StatelessWidget {
     final overdueItems = stats['overdue_items'] ?? 0;
     final totalStorageFiles = stats['total_storage_files'] ?? 0;
 
+    final metrics = [
+      _buildMetricCard(
+        context,
+        'Total Users',
+        '$totalUsers',
+        Icons.people,
+        Colors.blue,
+        subtitle: '$activeUsers active',
+      ),
+      _buildMetricCard(
+        context,
+        'Total Items',
+        '$totalItems',
+        Icons.inventory_2,
+        Colors.green,
+        subtitle: '${stats['borrowed_items'] ?? 0} borrowed',
+      ),
+      _buildMetricCard(
+        context,
+        'Overdue Items',
+        '$overdueItems',
+        Icons.warning_amber_rounded,
+        Colors.red,
+        subtitle: 'Need attention',
+      ),
+      _buildMetricCard(
+        context,
+        'Storage Files',
+        '$totalStorageFiles',
+        Icons.storage,
+        Colors.orange,
+        subtitle: 'Photos uploaded',
+      ),
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -147,60 +182,19 @@ class AdminDashboardScreen extends StatelessWidget {
           ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
-        Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: _buildMetricCard(
-                    context,
-                    'Total Users',
-                    '$totalUsers',
-                    Icons.people,
-                    Colors.blue,
-                    subtitle: '$activeUsers active',
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildMetricCard(
-                    context,
-                    'Total Items',
-                    '$totalItems',
-                    Icons.inventory_2,
-                    Colors.green,
-                    subtitle: '${stats['borrowed_items'] ?? 0} borrowed',
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildMetricCard(
-                    context,
-                    'Overdue Items',
-                    '$overdueItems',
-                    Icons.warning_amber_rounded,
-                    Colors.red,
-                    subtitle: 'Need attention',
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildMetricCard(
-                    context,
-                    'Storage Files',
-                    '$totalStorageFiles',
-                    Icons.storage,
-                    Colors.orange,
-                    subtitle: 'Photos uploaded',
-                  ),
-                ),
-              ],
-            ),
-          ],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            final columns = width < 600 ? 1 : 2;
+            final cardWidth = (width / columns) - 12 - (16 / columns);
+            return Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              children: metrics
+                  .map((m) => SizedBox(width: cardWidth, child: m))
+                  .toList(),
+            );
+          },
         ),
       ],
     );

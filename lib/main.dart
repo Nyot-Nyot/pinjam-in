@@ -10,6 +10,8 @@ import 'providers/loan_provider.dart';
 import 'providers/persistence_provider.dart';
 import 'providers/theme_provider.dart';
 import 'screens/admin/admin_dashboard_screen.dart';
+import 'screens/admin/analytics/items_analytics_screen.dart';
+import 'screens/admin/analytics/user_analytics_screen.dart';
 import 'screens/admin/items/create_item_screen.dart';
 import 'screens/admin/items/edit_item_screen.dart';
 import 'screens/admin/items/item_detail_screen.dart';
@@ -184,7 +186,9 @@ class _MaterialAppWrapper extends StatelessWidget {
       case '/admin/storage/files':
         return const FileBrowserScreen();
       case '/admin/analytics':
-        return const UnauthorizedScreen(); // Placeholder
+        return const UserAnalyticsScreen();
+      case '/admin/analytics/items':
+        return const ItemsAnalyticsScreen();
       case '/admin/audit':
         return const UnauthorizedScreen(); // Placeholder
       default:

@@ -88,6 +88,22 @@ class AdminService {
     }
   }
 
+  /// Get top active users by activity or items (admin_get_top_users)
+  Future<List<Map<String, dynamic>>> getTopActiveUsers({int limit = 10}) async {
+    try {
+      final res = await _callRpc(
+        'admin_get_top_users',
+        params: {'p_limit': limit},
+      );
+      if (res is List) {
+        return res.map((e) => (e as Map).cast<String, dynamic>()).toList();
+      }
+      return <Map<String, dynamic>>[];
+    } catch (e) {
+      throw ServiceException(extractErrorMessage(e), cause: e);
+    }
+  }
+
   Future<Map<String, dynamic>?> getUserDetails(String userId) async {
     try {
       final res = await _callRpc(
@@ -216,6 +232,159 @@ class AdminService {
       );
 
       return (res as List).cast<Map<String, dynamic>>();
+    } catch (e) {
+      throw ServiceException(extractErrorMessage(e), cause: e);
+    }
+  }
+
+  /// Get aggregated item statistics using RPC admin_get_item_statistics() if available.
+  Future<Map<String, dynamic>?> getItemStatistics() async {
+    try {
+      final res = await _callRpc('admin_get_item_statistics');
+      if (res is List && res.isNotEmpty) {
+        return (res.first as Map).cast<String, dynamic>();
+      }
+      return null;
+    } catch (e) {
+      throw ServiceException(extractErrorMessage(e), cause: e);
+    }
+  }
+
+  /// Get most borrowed items. Attempts to call RPC admin_get_top_items; if not
+  /// available, fall back to fetching items and computing counts client-side.
+  Future<List<Map<String, dynamic>>> getMostBorrowedItems({
+    int limit = 10,
+  }) async {
+    try {
+      // Try known RPC first
+      final rpcName = 'admin_get_top_items';
+      try {
+        final res = await _callRpc(rpcName, params: {'p_limit': limit});
+        if (res is List) {
+          return res.map((e) => (e as Map).cast<String, dynamic>()).toList();
+        }
+      } catch (_) {
+        // Fall back below
+      }
+
+      // Fallback: retrieve items and count by name or id
+      final items = await getAllItems(limit: 1000, offset: 0);
+      final Map<String, Map<String, dynamic>> counts = {};
+      for (final it in items) {
+        final key = (it['name'] ?? it['id'] ?? 'unknown').toString();
+        final existing = counts[key];
+        if (existing == null) {
+          counts[key] = {
+            'key': key,
+            'name': it['name'] ?? key,
+            'count': 1,
+            'sample_item': it,
+          };
+        } else {
+          existing['count'] = (existing['count'] as int) + 1;
+        }
+      }
+      final sorted = counts.values.toList()
+        ..sort((a, b) => (b['count'] as int).compareTo(a['count'] as int));
+
+      return sorted.take(limit).map((e) => e.cast<String, dynamic>()).toList();
+    } catch (e) {
+      throw ServiceException(extractErrorMessage(e), cause: e);
+    }
+  }
+
+  /// Get users with most overdue items, using admin_get_top_users (which includes overdue_items)
+  /// and sorting by overdue_items descending, or fall back to computation.
+  Future<List<Map<String, dynamic>>> getUsersWithMostOverdue({
+    int limit = 10,
+  }) async {
+    try {
+      // Try top users function as it includes overdue counts
+      final res = await _callRpc(
+        'admin_get_top_users',
+        params: {'p_limit': limit * 2},
+      );
+      if (res is List) {
+        final rows = res
+            .map((e) => (e as Map).cast<String, dynamic>())
+            .toList();
+        rows.sort(
+          (a, b) => ((b['overdue_items'] ?? 0) as int).compareTo(
+            (a['overdue_items'] ?? 0) as int,
+          ),
+        );
+        return rows.take(limit).toList();
+      }
+
+      // fallback: aggregate items to compute overdue counts per user
+      final items = await getAllItems(limit: 1000, offset: 0);
+      final Map<String, Map<String, dynamic>> map = {};
+      for (final it in items) {
+        final owner = (it['user_id'] ?? it['owner_id'] ?? 'unknown').toString();
+        final overdue =
+            (it['status'] == 'borrowed' &&
+                it['return_date'] != null &&
+                DateTime.tryParse(
+                      it['return_date']?.toString() ?? '',
+                    )?.isBefore(DateTime.now()) ==
+                    true)
+            ? 1
+            : 0;
+        final existing = map[owner];
+        if (existing == null) {
+          map[owner] = {'user_id': owner, 'overdue_items': overdue};
+        } else {
+          existing['overdue_items'] =
+              (existing['overdue_items'] as int) + overdue;
+        }
+      }
+      final list = map.values.toList();
+      list.sort(
+        (a, b) => ((b['overdue_items'] ?? 0) as int).compareTo(
+          (a['overdue_items'] ?? 0) as int,
+        ),
+      );
+      return list.take(limit).map((e) => e.cast<String, dynamic>()).toList();
+    } catch (e) {
+      throw ServiceException(extractErrorMessage(e), cause: e);
+    }
+  }
+
+  /// Item growth per day for given number of days. Attempts to call RPC
+  /// admin_get_item_growth, otherwise computes counts based on recent items.
+  Future<List<Map<String, dynamic>>> getItemGrowth({int days = 30}) async {
+    try {
+      // Try RPC admin_get_item_growth first
+      try {
+        final res = await _callRpc(
+          'admin_get_item_growth',
+          params: {'p_days': days},
+        );
+        if (res is List) {
+          return res.cast<Map<String, dynamic>>();
+        }
+      } catch (_) {}
+
+      // Fallback: compute locally by fetching limited items and counting by date
+      final items = await getAllItems(limit: 5000, offset: 0);
+      final now = DateTime.now();
+      final start = now.subtract(Duration(days: days - 1));
+      final counts = <String, int>{};
+      for (int i = 0; i < days; i++) {
+        final d = start.add(Duration(days: i));
+        counts[d.toIso8601String().substring(0, 10)] = 0;
+      }
+      for (final it in items) {
+        final createdStr = it['created_at']?.toString();
+        if (createdStr == null) continue;
+        final created = DateTime.tryParse(createdStr);
+        if (created == null) continue;
+        final key = created.toIso8601String().substring(0, 10);
+        if (counts.containsKey(key)) counts[key] = counts[key]! + 1;
+      }
+      return counts.entries
+          .map((e) => {'date': e.key, 'count': e.value})
+          .toList();
     } catch (e) {
       throw ServiceException(extractErrorMessage(e), cause: e);
     }
