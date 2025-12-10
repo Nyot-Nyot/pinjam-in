@@ -226,7 +226,8 @@ class AdminService {
           'p_limit': limit,
           'p_offset': offset,
           'p_status_filter': status,
-          'p_owner_filter': ownerId,
+          // Migration/SQL expects p_user_filter (UUID) — map ownerId => p_user_filter
+          'p_user_filter': ownerId,
           'p_search': search,
         },
       );

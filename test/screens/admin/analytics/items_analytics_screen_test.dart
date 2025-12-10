@@ -15,11 +15,17 @@ class FakeAdminProviderForItems extends AdminProvider {
     List<Map<String, dynamic>>? itemGrowth,
     List<Map<String, dynamic>>? topItems,
     List<Map<String, dynamic>>? usersMostOverdue,
+    bool isLoading = false,
+    String? analyticsError,
   }) : _itemStats = itemStats,
        _itemGrowth = itemGrowth ?? [],
        _topItems = topItems ?? [],
        _usersMostOverdue = usersMostOverdue ?? [],
+       _fakeLoading = isLoading,
+       _fakeAnalyticsError = analyticsError,
        super.noInit();
+  final bool _fakeLoading;
+  final String? _fakeAnalyticsError;
 
   @override
   Map<String, dynamic>? get itemStatistics =>
@@ -45,6 +51,12 @@ class FakeAdminProviderForItems extends AdminProvider {
 
   @override
   Future<void> retry() async {}
+
+  @override
+  bool get isItemAnalyticsLoading => _fakeLoading;
+
+  @override
+  String? get itemAnalyticsError => _fakeAnalyticsError;
 }
 
 void main() {
@@ -154,5 +166,45 @@ void main() {
     final exception = tester.takeException();
     expect(exception, isNull);
     expect(find.text('Items Analytics'), findsOneWidget);
+  });
+
+  testWidgets('ItemsAnalyticsScreen shows loading state for item analytics', (
+    tester,
+  ) async {
+    final fake = FakeAdminProviderForItems(isLoading: true);
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [ChangeNotifierProvider<AdminProvider>(create: (_) => fake)],
+        child: MaterialApp(
+          home: Scaffold(
+            body: ItemsAnalyticsScreen(wrapWithAdminLayout: false),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    // Progress indicators should appear for metric sections
+    expect(find.byType(CircularProgressIndicator), findsWidgets);
+  });
+
+  testWidgets('ItemsAnalyticsScreen shows error when item analytics fails', (
+    tester,
+  ) async {
+    final fake = FakeAdminProviderForItems(analyticsError: 'boom');
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [ChangeNotifierProvider<AdminProvider>(create: (_) => fake)],
+        child: MaterialApp(
+          home: Scaffold(
+            body: ItemsAnalyticsScreen(wrapWithAdminLayout: false),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('Failed to load item analytics'),
+      findsOneWidget,
+    );
   });
 }

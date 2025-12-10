@@ -101,6 +101,66 @@ void main() {
     expect(items, hasLength(2));
   });
 
+  test(
+    'getMostBorrowedItems falls back to getAllItems and uses p_user_filter',
+    () async {
+      bool topItemsCalled = false;
+      Future<dynamic> fakeRpc(
+        String name, {
+        Map<String, dynamic>? params,
+      }) async {
+        if (name == 'admin_get_top_items') {
+          topItemsCalled = true;
+          throw Exception('rpc not found');
+        }
+        if (name == 'admin_get_all_items') {
+          // ensure we pass p_user_filter not owner param
+          expect(params?.containsKey('p_user_filter'), isTrue);
+          return [
+            {'name': 'Hammer', 'id': 'i1'},
+            {'name': 'Hammer', 'id': 'i2'},
+            {'name': 'Screwdriver', 'id': 'i3'},
+          ];
+        }
+        throw Exception('unexpected rpc call: $name');
+      }
+
+      final svc = AdminService(null, fakeRpc, null);
+      final res = await svc.getMostBorrowedItems(limit: 2);
+      expect(topItemsCalled, isTrue);
+      expect(res, isNotEmpty);
+      expect(res.first['name'], 'Hammer');
+    },
+  );
+
+  test('getItemGrowth fallback computes counts from items list', () async {
+    Future<dynamic> fakeRpc(String name, {Map<String, dynamic>? params}) async {
+      if (name == 'admin_get_item_growth') {
+        throw Exception('rpc not found');
+      }
+      if (name == 'admin_get_all_items') {
+        // return few items with created_at dates
+        return [
+          {'id': 'i1', 'created_at': DateTime.now().toIso8601String()},
+          {
+            'id': 'i2',
+            'created_at': DateTime.now()
+                .subtract(Duration(days: 1))
+                .toIso8601String(),
+          },
+        ];
+      }
+      throw Exception('unexpected rpc call: $name');
+    }
+
+    final svc = AdminService(null, fakeRpc, null);
+    final res = await svc.getItemGrowth(days: 2);
+    expect(res, isNotEmpty);
+    // Expect keys with date strings
+    expect(res.first.containsKey('date'), isTrue);
+    expect(res.first.containsKey('count'), isTrue);
+  });
+
   test('getItemDetails returns first row', () async {
     Future<dynamic> fakeRpc(String name, {Map<String, dynamic>? params}) async {
       expect(name, 'admin_get_item_details');

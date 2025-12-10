@@ -850,7 +850,7 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
     -   Responsive layout with proper spacing
 
 -   **Technical Details**:
-    -   Uses admin_get_all_items RPC with p_limit, p_offset, p_search, p_status_filter, p_owner_filter parameters
+    -   Uses admin_get_all_items RPC with p_limit, p_offset, p_search, p_status_filter, p_user_filter parameters
     -   Uses admin_update_item_status RPC for bulk status updates
     -   Uses admin_delete_item RPC for item deletion
     -   Owner cell shows name (bold) and email (small gray text)
@@ -1194,11 +1194,11 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
 
 #### Task 3.1.3: Analytics Backend Integration
 
--   [ ] Connect charts to database functions
--   [ ] Implement data aggregation
--   [ ] Add loading states
--   [ ] Add error handling
--   [ ] Test with real data
+-   [x] Connect charts to database functions (via AdminService RPC wrappers and provider)
+-   [x] Implement data aggregation (client-side fallback in AdminService when RPC missing)
+-   [x] Add loading states (item-specific loading flags & UI elements)
+-   [x] Add error handling (itemAnalyticsError in provider, non-fatal fallback)
+-   [x] Test with real data (unit/widget tests for loading/fallback; integration tests pending)
 
 ### 3.2 Report Generation (3 hari)
 

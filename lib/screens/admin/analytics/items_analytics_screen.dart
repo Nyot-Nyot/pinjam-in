@@ -58,13 +58,41 @@ class ItemsAnalyticsScreen extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 12),
-                        _buildMetrics(context, admin.itemStatistics ?? {}),
+                        admin.isItemAnalyticsLoading
+                            ? const Center(child: CircularProgressIndicator())
+                            : admin.itemAnalyticsError != null
+                            ? Card(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Text(
+                                    'Failed to load item analytics: ${admin.itemAnalyticsError}',
+                                  ),
+                                ),
+                              )
+                            : _buildMetrics(
+                                context,
+                                admin.itemStatistics ?? {},
+                              ),
                         const SizedBox(height: 24),
-                        _buildGrowthChart(context, admin.itemGrowth),
+                        admin.isItemAnalyticsLoading
+                            ? const SizedBox(
+                                height: 180,
+                                child: Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              )
+                            : _buildGrowthChart(context, admin.itemGrowth),
                         const SizedBox(height: 24),
-                        _buildTopItems(context, admin.mostBorrowedItems),
+                        admin.isItemAnalyticsLoading
+                            ? const Center(child: CircularProgressIndicator())
+                            : _buildTopItems(context, admin.mostBorrowedItems),
                         const SizedBox(height: 24),
-                        _buildUsersMostOverdue(context, admin.usersMostOverdue),
+                        admin.isItemAnalyticsLoading
+                            ? const Center(child: CircularProgressIndicator())
+                            : _buildUsersMostOverdue(
+                                context,
+                                admin.usersMostOverdue,
+                              ),
                       ],
                     ),
                   ),
