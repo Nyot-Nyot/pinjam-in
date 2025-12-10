@@ -285,6 +285,12 @@ class _AdminLayoutState extends State<AdminLayout> {
           title: 'Audit Logs',
           route: '/admin/audit',
         ),
+        _buildNavigationItem(
+          context,
+          icon: Icons.description,
+          title: 'Reports',
+          route: '/admin/reports',
+        ),
         const Divider(),
         _buildNavigationItem(
           context,

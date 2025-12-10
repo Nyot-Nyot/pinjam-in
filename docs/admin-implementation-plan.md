@@ -1204,17 +1204,17 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
 
 #### Task 3.2.1: Simple Report Builder
 
--   [ ] Buat `lib/screens/admin/reports/report_screen.dart`
--   [ ] Pre-defined report types:
-    -   [ ] User Summary Report
-    -   [ ] Items Summary Report
-    -   [ ] Overdue Items Report
--   [ ] Configure parameters:
-    -   [ ] Date range selector
-    -   [ ] Basic filters
--   [ ] Preview report data
--   [ ] Export options (CSV, PDF)
--   [ ] Test report builder
+-   [x] Buat `lib/screens/admin/reports/report_screen.dart`
+-   [x] Pre-defined report types:
+    -   [x] User Summary Report
+    -   [x] Items Summary Report
+    -   [x] Overdue Items Report
+-   [x] Configure parameters:
+    -   [x] Date range selector
+    -   [x] Basic filters
+-   [x] Preview report data
+-   [x] Export options (CSV, PDF)
+-   [x] Test report builder
 
 #### Task 3.2.2: Export to CSV
 

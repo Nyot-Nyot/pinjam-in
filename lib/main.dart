@@ -16,6 +16,7 @@ import 'screens/admin/items/create_item_screen.dart';
 import 'screens/admin/items/edit_item_screen.dart';
 import 'screens/admin/items/item_detail_screen.dart';
 import 'screens/admin/items/items_list_screen.dart';
+import 'screens/admin/reports/report_screen.dart';
 import 'screens/admin/storage/file_browser_screen.dart';
 import 'screens/admin/storage/storage_cleanup_screen.dart';
 import 'screens/admin/storage/storage_dashboard.dart';
@@ -191,6 +192,8 @@ class _MaterialAppWrapper extends StatelessWidget {
         return const ItemsAnalyticsScreen();
       case '/admin/audit':
         return const UnauthorizedScreen(); // Placeholder
+      case '/admin/reports':
+        return const ReportScreen();
       default:
         return const AdminDashboardScreen();
     }
