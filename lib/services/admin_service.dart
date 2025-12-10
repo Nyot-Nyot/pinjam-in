@@ -620,6 +620,29 @@ class AdminService {
     }
   }
 
+  /// Delete multiple storage objects and return a summary map like:
+  /// { 'deleted': [path...], 'failed': [{path: '...', error: '...'}] }
+  Future<Map<String, dynamic>> deleteStorageObjects(
+    List<String> paths, {
+    String? bucketId,
+  }) async {
+    final deleted = <String>[];
+    final failed = <Map<String, String>>[];
+    for (final p in paths) {
+      try {
+        final ok = await deleteStorageObject(p, bucketId: bucketId);
+        if (ok) {
+          deleted.add(p);
+        } else {
+          failed.add({'path': p, 'error': 'Unknown failure'});
+        }
+      } catch (e) {
+        failed.add({'path': p, 'error': e.toString()});
+      }
+    }
+    return {'deleted': deleted, 'failed': failed};
+  }
+
   Future<Map<String, dynamic>> updateItem(
     String itemId,
     Map<String, dynamic> itemData,

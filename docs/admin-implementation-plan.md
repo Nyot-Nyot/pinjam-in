@@ -1131,15 +1131,15 @@ Phase 3: Analytics & Launch → Week 6-8 (Dashboard, Analytics & Testing)
 
 #### Task 2.3.2: Storage Cleanup Tool
 
--   [ ] Buat cleanup interface
--   [ ] Show orphaned files list dengan preview
--   [ ] Estimate storage to be freed
--   [ ] Confirmation dialog
--   [ ] Execute cleanup:
-    -   [ ] Delete orphaned files
-    -   [ ] Create audit log
-    -   [ ] Show result (files deleted, space freed)
--   [ ] Test cleanup
+-   [x] Buat cleanup interface
+-   [x] Show orphaned files list dengan preview
+-   [x] Estimate storage to be freed
+-   [x] Confirmation dialog
+-   [x] Execute cleanup:
+    -   [x] Delete orphaned files
+    -   [x] Create audit log
+    -   [x] Show result (files deleted, space freed)
+-   [x] Test cleanup
 
 ---
 

@@ -447,11 +447,11 @@ class _StorageDashboardScreenState extends State<StorageDashboardScreen> {
     );
     if (confirmed != true) return;
 
-    // Best effort: there's no RPC defined for this yet — show placeholder
+    // Navigate to the cleanup screen which will handle listing orphaned
+    // files and performing the delete operation. This keeps the dashboard
+    // lightweight and the actual cleanup logic in its own screen.
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Storage cleanup started (placeholder)')),
-    );
+    Navigator.of(context).pushNamed('/admin/storage/cleanup');
   }
 
   @override
